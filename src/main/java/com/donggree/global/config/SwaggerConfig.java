@@ -5,11 +5,8 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * Swagger/OpenAPI 설정
@@ -25,7 +22,6 @@ public class SwaggerConfig {
     public OpenAPI donggreeOpenAPI() {
         return new OpenAPI()
             .info(apiInfo())
-            .servers(serverList())
             .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
             .components(securityComponents());
     }
@@ -35,14 +31,6 @@ public class SwaggerConfig {
             .title("Donggree API")
             .description("PDF 기반 졸업 요건 자동 판정 서비스")
             .version("0.0.1");
-    }
-
-    private List<Server> serverList() {
-        return List.of(
-            new Server()
-                .url("http://localhost:8080")
-                .description("로컬 개발 서버")
-        );
     }
 
     private Components securityComponents() {

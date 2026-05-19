@@ -3,6 +3,7 @@ package com.donggree.global.handler;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GeneralExceptionAdvice {
 
@@ -42,11 +44,12 @@ public class GeneralExceptionAdvice {
         return ResponseEntity.status(code.getStatus()).body(errorResponse);
     }
 
-    // 그 외의 정의되지 않은 모든 예외 처리
+    // 그 외의 정의되지 않은 모든 예외 처리 (스택 트레이스를 로그에 기록)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(
         Exception ex
     ) {
+        log.error("[UnhandledException] {}", ex.getMessage(), ex);
 
         GeneralErrorCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(code.getStatus())
