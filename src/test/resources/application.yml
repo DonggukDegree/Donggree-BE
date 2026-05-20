@@ -10,8 +10,30 @@ spring:
       ddl-auto: create-drop
     show-sql: true
 
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/oauth/callback/{registrationId}"
+            client-authentication-method: client_secret_post
+            scope:
+              - profile_nickname
+              - profile_image
+              - account_email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
 app:
   jwt:
     secret: donggree-test-jwt-secret-key-must-be-at-least-256-bits-long
     access-expiration: 1800000
     refresh-expiration: 604800000
+  frontend-redirect-url: http://localhost:5173/login/callback
