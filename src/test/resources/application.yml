@@ -9,3 +9,9 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+
+app:
+  jwt:
+    secret: donggree-test-jwt-secret-key-must-be-at-least-256-bits-long
+    access-expiration: 1800000
+    refresh-expiration: 604800000
