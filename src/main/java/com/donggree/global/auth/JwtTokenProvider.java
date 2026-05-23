@@ -40,6 +40,13 @@ public class JwtTokenProvider {
     }
 
     /**
+     * 리프레시 토큰 만료 시간(초)을 반환한다. 쿠키 maxAge 설정에 사용한다.
+     */
+    public long getRefreshExpirationSeconds() {
+        return refreshExpiration / 1000;
+    }
+
+    /**
      * 토큰에서 memberId 클레임을 추출한다.
      */
     public Long extractMemberId(String token) {

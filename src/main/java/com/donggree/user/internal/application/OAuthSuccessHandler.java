@@ -44,7 +44,7 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                 .httpOnly(true)
                 .secure(request.isSecure())
                 .sameSite("Lax")
-                .maxAge(604800)
+                .maxAge(jwtTokenProvider.getRefreshExpirationSeconds())
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
