@@ -3,15 +3,16 @@ package com.donggree.global.config;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.donggree.global.auth.JwtAuthFilter;
 import com.donggree.global.auth.JwtProperties;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.user.internal.application.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
@@ -28,6 +29,9 @@ class SecurityConfigTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockitoBean
+    private AuthService authService;
+
     @TestConfiguration
     static class TestConfig {
 
@@ -37,11 +41,6 @@ class SecurityConfigTest {
                     "test-secret-key-for-unit-testing-only-must-be-at-least-256-bits-long",
                     1_800_000L, 604_800_000L
             ));
-        }
-
-        @Bean
-        JwtAuthFilter jwtAuthFilter(JwtTokenProvider jwtTokenProvider) {
-            return new JwtAuthFilter(jwtTokenProvider);
         }
 
         @Bean

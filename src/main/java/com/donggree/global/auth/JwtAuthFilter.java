@@ -9,7 +9,6 @@ import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
@@ -17,8 +16,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Authorization 헤더에서 Bearer 토큰을 추출하여 검증한 뒤,
  * 유효하면 memberId를 principal로 하는 Authentication을 생성한다.
  * DB 조회 없이 토큰 클레임만으로 인증을 완료한다.
+ *
+ * <p>Spring 빈이 아닌 일반 객체로 생성하여 CGLIB 프록시 충돌(GenericFilterBean.init final 메서드)을 방지한다.
+ * SecurityConfig에서 직접 인스턴스를 생성하여 SecurityFilterChain에 등록한다.</p>
  */
-@Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 

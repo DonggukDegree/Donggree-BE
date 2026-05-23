@@ -37,3 +37,5 @@ app:
     access-expiration: 1800000
     refresh-expiration: 604800000
   frontend-redirect-url: http://localhost:5173/login/callback
+  cors:
+    allowed-origins: http://localhost:3000
