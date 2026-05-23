@@ -28,6 +28,9 @@ public class UserService {
      */
     @Transactional
     public void completeOnboarding(Long memberId, String studentId, String name) {
+        String trimmedStudentId = studentId.trim();
+        String trimmedName = name.trim();
+
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
@@ -35,10 +38,10 @@ public class UserService {
             throw new GeneralException(UserErrorCode.ALREADY_ONBOARDED);
         }
 
-        if (memberRepository.existsByStudentId(studentId)) {
+        if (memberRepository.existsByStudentId(trimmedStudentId)) {
             throw new GeneralException(UserErrorCode.DUPLICATE_STUDENT_ID);
         }
 
-        member.completeOnboarding(studentId, name);
+        member.completeOnboarding(trimmedStudentId, trimmedName);
     }
 }
