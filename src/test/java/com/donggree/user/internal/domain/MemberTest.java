@@ -12,28 +12,21 @@ class MemberTest {
         Member member = createMember();
 
         assertThat(member.getStudentId()).isNull();
-        assertThat(member.getName()).isEqualTo("Alice");
+        assertThat(member.getName()).isNull();
         assertThat(member.getNickname()).isNull();
         assertThat(member.getEmail()).isEqualTo("alice@example.com");
         assertThat(member.getOauthId()).isEqualTo("kakao-123");
-        assertThat(member.getProfileUrl()).isEqualTo("https://example.com/profile.png");
+        assertThat(member.getProfileUrl()).isNotBlank();
         assertThat(member.getRole()).isEqualTo(Role.STUDENT);
         assertThat(member.hasCompletedOnboarding()).isFalse();
     }
 
     @Test
     void 카카오_회원_등록_시_문자열_앞뒤_공백을_제거한다() {
-        Member member = Member.registerKakaoMember(
-                " kakao-123 ",
-                " alice@example.com ",
-                " Alice ",
-                " https://example.com/profile.png "
-        );
+        Member member = Member.registerKakaoMember(" kakao-123 ", " alice@example.com ");
 
         assertThat(member.getOauthId()).isEqualTo("kakao-123");
         assertThat(member.getEmail()).isEqualTo("alice@example.com");
-        assertThat(member.getName()).isEqualTo("Alice");
-        assertThat(member.getProfileUrl()).isEqualTo("https://example.com/profile.png");
     }
 
     @Test
@@ -57,12 +50,8 @@ class MemberTest {
 
     @Test
     void 카카오_회원_등록_시_필수값이_비어있으면_예외가_발생한다() {
-        assertThatThrownBy(() -> Member.registerKakaoMember(
-                "",
-                "alice@example.com",
-                "Alice",
-                "https://example.com/profile.png"
-        )).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Member.registerKakaoMember("", "alice@example.com"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -77,11 +66,6 @@ class MemberTest {
     }
 
     private Member createMember() {
-        return Member.registerKakaoMember(
-                "kakao-123",
-                "alice@example.com",
-                "Alice",
-                "https://example.com/profile.png"
-        );
+        return Member.registerKakaoMember("kakao-123", "alice@example.com");
     }
 }

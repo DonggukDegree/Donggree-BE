@@ -17,12 +17,7 @@ class MemberRepositoryTest {
 
     @Test
     void 카카오_oauth_id로_회원을_조회한다() {
-        Member member = Member.registerKakaoMember(
-                "kakao-123",
-                "alice@example.com",
-                "Alice",
-                "https://example.com/profile.png"
-        );
+        Member member = Member.registerKakaoMember("kakao-123", "alice@example.com");
         memberRepository.save(member);
 
         var foundMember = memberRepository.findByOauthId("kakao-123");
@@ -33,12 +28,7 @@ class MemberRepositoryTest {
 
     @Test
     void 학번이_저장된_회원이_있는지_확인한다() {
-        Member member = Member.registerKakaoMember(
-                "kakao-123",
-                "alice@example.com",
-                "Alice",
-                "https://example.com/profile.png"
-        );
+        Member member = Member.registerKakaoMember("kakao-123", "alice@example.com");
         member.completeOnboarding("2023123456");
         memberRepository.save(member);
 
