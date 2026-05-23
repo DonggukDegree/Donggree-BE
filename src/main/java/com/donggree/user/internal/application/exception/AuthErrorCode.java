@@ -1,4 +1,4 @@
-package com.donggree.user.internal.application;
+package com.donggree.user.internal.application.exception;
 
 import com.donggree.global.apiPayload.code.BaseErrorCode;
 import lombok.AllArgsConstructor;

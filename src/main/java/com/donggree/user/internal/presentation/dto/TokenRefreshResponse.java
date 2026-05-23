@@ -1,4 +1,4 @@
-package com.donggree.user.internal.presentation;
+package com.donggree.user.internal.presentation.dto;
 
 /**
  * 토큰 갱신 응답 DTO.

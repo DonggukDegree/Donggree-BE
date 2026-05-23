@@ -4,6 +4,8 @@ import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.auth.LoginMemberId;
 import com.donggree.user.internal.application.AuthService;
+import com.donggree.user.internal.presentation.dto.TokenRefreshResponse;
+import com.donggree.user.internal.presentation.swagger.AuthApi;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

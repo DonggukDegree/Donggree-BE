@@ -1,6 +1,7 @@
-package com.donggree.user.internal.presentation;
+package com.donggree.user.internal.presentation.swagger;
 
 import com.donggree.global.apiPayload.ApiResponse;
+import com.donggree.user.internal.presentation.dto.TokenRefreshResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;

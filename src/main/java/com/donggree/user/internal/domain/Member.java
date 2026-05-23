@@ -1,6 +1,7 @@
 package com.donggree.user.internal.domain;
 
 import com.donggree.global.entity.BaseEntity;
+import com.donggree.user.internal.domain.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -62,8 +63,19 @@ public class Member extends BaseEntity {
         return new Member(oauthId, email);
     }
 
-    public void completeOnboarding(String studentId) {
-        this.studentId = requireText(studentId, "studentId", 10);
+    /**
+     * 온보딩을 완료하고 학번과 이름을 설정한다. 닉네임은 이름과 동일한 값으로 초기화한다.
+     * 이미 온보딩이 완료된 상태라면 {@link IllegalStateException}을 던진다.
+     */
+    public void completeOnboarding(String studentId, String name) {
+        if (hasCompletedOnboarding()) {
+            throw new IllegalStateException("이미 온보딩이 완료된 회원입니다.");
+        }
+        String validatedStudentId = requireText(studentId, "studentId", 10);
+        String validatedName = requireText(name, "name", 5);
+        this.studentId = validatedStudentId;
+        this.name = validatedName;
+        this.nickname = this.name;
     }
 
     public boolean hasCompletedOnboarding() {
