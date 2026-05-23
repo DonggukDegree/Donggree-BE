@@ -26,3 +26,11 @@ operation::auth-refresh[]
 
 operation::auth-logout[]
 
+=== 사용자 관리
+
+==== 온보딩 정보 저장
+
+카카오 로그인 후 최초 1회 학번과 이름을 입력받아 회원 정보를 완성한다.
+
+operation::user-onboarding[]
+
