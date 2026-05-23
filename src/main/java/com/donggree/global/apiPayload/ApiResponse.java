@@ -4,6 +4,7 @@ import com.donggree.global.apiPayload.code.BaseErrorCode;
 import com.donggree.global.apiPayload.code.BaseSuccessCode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,6 +13,7 @@ import lombok.Getter;
 @JsonPropertyOrder({"isSuccess", "code", "message", "result"})
 public class ApiResponse<T> {
 
+    @Getter(AccessLevel.NONE)
     @JsonProperty("isSuccess")
     private final boolean isSuccess;
 
