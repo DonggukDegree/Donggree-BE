@@ -3,7 +3,13 @@ package com.donggree.user.internal.presentation;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.user.internal.application.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,5 +31,26 @@ public class AuthController implements AuthApi {
         TokenRefreshResponse response = new TokenRefreshResponse(accessToken);
 
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(
+        HttpServletRequest request, HttpServletResponse response
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long memberId = (Long) authentication.getPrincipal();
+        authService.logout(memberId);
+
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+                .path("/")
+                .httpOnly(true)
+                .secure(request.isSecure())
+                .sameSite("Lax")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }
 }
