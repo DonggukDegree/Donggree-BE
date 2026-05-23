@@ -2,6 +2,7 @@ package com.donggree.user.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.user.internal.application.exception.AuthErrorCode;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
 import lombok.RequiredArgsConstructor;
