@@ -43,5 +43,5 @@ public interface AuthApi {
                     description = "인증되지 않은 요청"
             )
     })
-    ApiResponse<Void> logout(HttpServletRequest request, HttpServletResponse response);
+    ApiResponse<Void> logout(Long memberId, HttpServletRequest request, HttpServletResponse response);
 }

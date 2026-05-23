@@ -46,7 +46,7 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 20)
     private Role role;
 
-    @Column(name = "refresh_token", length = 512)
+    @Column(name = "refresh_token", length = 1024)
     private String refreshToken;
 
     @Column(name = "deleted_at")
