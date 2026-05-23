@@ -20,3 +20,9 @@ Donggree 서비스 API 문서입니다.
 
 operation::auth-refresh[]
 
+==== 로그아웃
+
+리프레시 토큰 쿠키를 삭제하여 로그아웃 처리한다.
+
+operation::auth-logout[]
+

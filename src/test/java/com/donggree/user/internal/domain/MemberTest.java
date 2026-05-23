@@ -16,7 +16,7 @@ class MemberTest {
         assertThat(member.getNickname()).isNull();
         assertThat(member.getEmail()).isEqualTo("alice@example.com");
         assertThat(member.getOauthId()).isEqualTo("kakao-123");
-        assertThat(member.getProfileUrl()).isNotBlank();
+        assertThat(member.getProfileUrl()).isNull();
         assertThat(member.getRole()).isEqualTo(Role.STUDENT);
         assertThat(member.hasCompletedOnboarding()).isFalse();
     }
@@ -63,6 +63,25 @@ class MemberTest {
 
         assertThatThrownBy(() -> member.completeOnboarding("20231234567"))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void 리프레시_토큰을_저장한다() {
+        Member member = createMember();
+
+        member.updateRefreshToken("refresh-token-value");
+
+        assertThat(member.getRefreshToken()).isEqualTo("refresh-token-value");
+    }
+
+    @Test
+    void 리프레시_토큰을_삭제하면_null이_된다() {
+        Member member = createMember();
+        member.updateRefreshToken("refresh-token-value");
+
+        member.clearRefreshToken();
+
+        assertThat(member.getRefreshToken()).isNull();
     }
 
     private Member createMember() {

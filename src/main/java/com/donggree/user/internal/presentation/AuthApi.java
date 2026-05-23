@@ -4,6 +4,8 @@ import com.donggree.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.CookieValue;
 
 @Tag(name = "Auth", description = "OAuth2 로그인 및 토큰 관리")
@@ -26,4 +28,20 @@ public interface AuthApi {
     ApiResponse<TokenRefreshResponse> refresh(
             @CookieValue("refreshToken") String refreshToken
     );
+
+    @Operation(
+            summary = "로그아웃",
+            description = "리프레시 토큰 쿠키를 삭제하여 로그아웃 처리한다. 액세스 토큰은 만료 시까지 유효하다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "로그아웃 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증되지 않은 요청"
+            )
+    })
+    ApiResponse<Void> logout(Long memberId, HttpServletRequest request, HttpServletResponse response);
 }
