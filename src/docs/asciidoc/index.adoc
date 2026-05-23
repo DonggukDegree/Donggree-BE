@@ -12,3 +12,11 @@ Donggree 서비스 API 문서입니다.
 
 == API
 
+=== 인증
+
+==== 토큰 갱신
+
+리프레시 토큰(HttpOnly 쿠키)으로 새 액세스 토큰을 발급한다.
+
+operation::auth-refresh[]
+
