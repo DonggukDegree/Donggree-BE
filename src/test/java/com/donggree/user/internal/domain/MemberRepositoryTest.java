@@ -29,7 +29,7 @@ class MemberRepositoryTest {
     @Test
     void 학번이_저장된_회원이_있는지_확인한다() {
         Member member = Member.registerKakaoMember("kakao-123", "alice@example.com");
-        member.completeOnboarding("2023123456");
+        member.completeOnboarding("2023123456", "하승연");
         memberRepository.save(member);
 
         boolean exists = memberRepository.existsByStudentId("2023123456");

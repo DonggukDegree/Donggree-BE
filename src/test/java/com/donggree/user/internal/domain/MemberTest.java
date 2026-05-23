@@ -3,6 +3,7 @@ package com.donggree.user.internal.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.donggree.user.internal.domain.enums.Role;
 import org.junit.jupiter.api.Test;
 
 class MemberTest {
@@ -30,22 +31,34 @@ class MemberTest {
     }
 
     @Test
-    void 온보딩_완료_시_학번을_저장한다() {
+    void 온보딩_완료_시_학번과_이름을_저장하고_닉네임을_이름으로_초기화한다() {
         Member member = createMember();
 
-        member.completeOnboarding("2023123456");
+        member.completeOnboarding("2023123456", "하승연");
 
         assertThat(member.getStudentId()).isEqualTo("2023123456");
+        assertThat(member.getName()).isEqualTo("하승연");
+        assertThat(member.getNickname()).isEqualTo("하승연");
         assertThat(member.hasCompletedOnboarding()).isTrue();
     }
 
     @Test
-    void 온보딩_완료_시_학번의_앞뒤_공백을_제거한다() {
+    void 온보딩_완료_시_문자열_앞뒤_공백을_제거한다() {
         Member member = createMember();
 
-        member.completeOnboarding(" 2023123456 ");
+        member.completeOnboarding(" 2023123456 ", " 하승연 ");
 
         assertThat(member.getStudentId()).isEqualTo("2023123456");
+        assertThat(member.getName()).isEqualTo("하승연");
+    }
+
+    @Test
+    void 이미_온보딩_완료된_상태에서_재호출하면_예외가_발생한다() {
+        Member member = createMember();
+        member.completeOnboarding("2023123456", "하승연");
+
+        assertThatThrownBy(() -> member.completeOnboarding("2023999999", "홍길동"))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -58,10 +71,21 @@ class MemberTest {
     void 온보딩_완료_시_학번이_비어있거나_길이_제한을_넘으면_예외가_발생한다() {
         Member member = createMember();
 
-        assertThatThrownBy(() -> member.completeOnboarding(""))
+        assertThatThrownBy(() -> member.completeOnboarding("", "하승연"))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        assertThatThrownBy(() -> member.completeOnboarding("20231234567"))
+        assertThatThrownBy(() -> member.completeOnboarding("20231234567", "하승연"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void 온보딩_완료_시_이름이_비어있거나_길이_제한을_넘으면_예외가_발생한다() {
+        Member member = createMember();
+
+        assertThatThrownBy(() -> member.completeOnboarding("2023123456", ""))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> member.completeOnboarding("2023123456", "여섯글자이름임"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
