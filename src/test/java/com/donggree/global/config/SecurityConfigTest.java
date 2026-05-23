@@ -57,8 +57,13 @@ class SecurityConfigTest {
         @RestController
         static class TestController {
 
-            @GetMapping("/auth/test")
-            String authTest() {
+            @GetMapping("/auth/refresh")
+            String authRefresh() {
+                return "ok";
+            }
+
+            @GetMapping("/auth/logout")
+            String authLogout() {
                 return "ok";
             }
 
@@ -70,9 +75,15 @@ class SecurityConfigTest {
     }
 
     @Test
-    void auth_엔드포인트는_인증_없이_접근할_수_있다() throws Exception {
-        mockMvc.perform(get("/auth/test"))
+    void auth_refresh는_인증_없이_접근할_수_있다() throws Exception {
+        mockMvc.perform(get("/auth/refresh"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void auth_logout은_인증이_필요하다() throws Exception {
+        mockMvc.perform(get("/auth/logout"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

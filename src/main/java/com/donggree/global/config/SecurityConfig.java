@@ -34,7 +34,7 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     private static final String[] PERMIT_URIS = {
-            "/auth/**",
+            "/auth/refresh",
             "/oauth2/authorization/**",
             "/swagger-ui.html",
             "/swagger-ui/**",
