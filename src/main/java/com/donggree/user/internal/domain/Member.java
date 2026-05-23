@@ -39,23 +39,22 @@ public class Member extends BaseEntity {
     @Column(name = "oauth_id", nullable = false, unique = true, length = 255)
     private String oauthId;
 
-    @Column(name = "profile_url", nullable = false, length = 512)
+    @Column(name = "profile_url", length = 512)
     private String profileUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
 
+    @Column(name = "refresh_token", length = 512)
+    private String refreshToken;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    private static final String DEFAULT_PROFILE_URL =
-            "https://k.kakaocdn.net/dn/dpk9l1/btqmGhA2lKL/Oz0wDuJn1YV2DIn92f6DVK/img_640x640.jpg";
 
     private Member(String oauthId, String email) {
         this.oauthId = requireText(oauthId, "oauthId", 255);
         this.email = requireText(email, "email", 50);
-        this.profileUrl = DEFAULT_PROFILE_URL;
         this.role = Role.STUDENT;
     }
 
@@ -69,6 +68,14 @@ public class Member extends BaseEntity {
 
     public boolean hasCompletedOnboarding() {
         return studentId != null;
+    }
+
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public void clearRefreshToken() {
+        this.refreshToken = null;
     }
 
     private static String requireText(String value, String fieldName, int maxLength) {
