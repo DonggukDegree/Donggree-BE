@@ -47,11 +47,18 @@ public class GraduationRule {
     @Column(length = 255)
     private String description;
 
-    GraduationRule(Long ruleTypeId, String ruleName, String ruleConfig, String description) {
+    private GraduationRule(Long ruleTypeId, String ruleName, String ruleConfig, String description) {
+        if (ruleTypeId == null) {
+            throw new IllegalArgumentException("ruleTypeId must not be null");
+        }
         this.ruleTypeId = ruleTypeId;
         this.ruleName = ruleName;
         this.ruleConfig = ruleConfig;
         this.description = description;
+    }
+
+    static GraduationRule create(Long ruleTypeId, String ruleName, String ruleConfig, String description) {
+        return new GraduationRule(ruleTypeId, ruleName, ruleConfig, description);
     }
 
     void assignRequirementSet(RequirementSet requirementSet) {

@@ -21,6 +21,12 @@ class RequirementSetTest {
     }
 
     @Test
+    void departmentId가_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> RequirementSet.create(null, 2023, 2025, 1, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void yearStart가_yearEnd보다_크면_예외가_발생한다() {
         assertThatThrownBy(() -> RequirementSet.create(1L, 2025, 2023, 1, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -59,7 +65,7 @@ class RequirementSetTest {
     @Test
     void 규칙_추가_시_양방향_관계가_설정된다() {
         RequirementSet set = createRequirementSet();
-        GraduationRule rule = new GraduationRule(1L, "전공 최소학점",
+        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점",
                 "{\"minCredits\": 60}", "전공 최소 60학점 이수");
 
         set.addRule(rule);
@@ -72,9 +78,9 @@ class RequirementSetTest {
     @Test
     void 여러_규칙을_추가할_수_있다() {
         RequirementSet set = createRequirementSet();
-        GraduationRule rule1 = new GraduationRule(1L, "전공 최소학점",
+        GraduationRule rule1 = GraduationRule.create(1L, "전공 최소학점",
                 "{\"minCredits\": 60}", null);
-        GraduationRule rule2 = new GraduationRule(2L, "교양 필수과목",
+        GraduationRule rule2 = GraduationRule.create(2L, "교양 필수과목",
                 "{\"courses\": [\"GEN1001\"]}", null);
 
         set.addRule(rule1);
@@ -84,14 +90,22 @@ class RequirementSetTest {
     }
 
     @Test
+    void null_규칙을_추가하면_예외가_발생한다() {
+        RequirementSet set = createRequirementSet();
+
+        assertThatThrownBy(() -> set.addRule(null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void getRules는_불변_리스트를_반환한다() {
         RequirementSet set = createRequirementSet();
-        GraduationRule rule = new GraduationRule(1L, "전공 최소학점",
+        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점",
                 "{\"minCredits\": 60}", null);
         set.addRule(rule);
 
         assertThatThrownBy(() -> set.getRules().add(
-                new GraduationRule(2L, "다른 규칙", "{}", null)))
+                GraduationRule.create(2L, "다른 규칙", "{}", null)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
@@ -99,13 +113,20 @@ class RequirementSetTest {
 
     @Test
     void GraduationRule_생성_시_필드가_올바르게_저장된다() {
-        GraduationRule rule = new GraduationRule(1L, "전공 최소학점",
+        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점",
                 "{\"minCredits\": 60}", "전공 최소 60학점 이수");
 
         assertThat(rule.getRuleTypeId()).isEqualTo(1L);
         assertThat(rule.getRuleName()).isEqualTo("전공 최소학점");
         assertThat(rule.getRuleConfig()).isEqualTo("{\"minCredits\": 60}");
         assertThat(rule.getDescription()).isEqualTo("전공 최소 60학점 이수");
+    }
+
+    @Test
+    void GraduationRule_생성_시_ruleTypeId가_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> GraduationRule.create(null, "전공 최소학점",
+                "{\"minCredits\": 60}", null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private RequirementSet createRequirementSet() {

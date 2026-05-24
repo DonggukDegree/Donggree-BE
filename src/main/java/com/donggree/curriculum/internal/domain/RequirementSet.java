@@ -31,7 +31,7 @@ public class RequirementSet extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "department_id")
+    @Column(name = "department_id", nullable = false)
     private Long departmentId;
 
     @Column(name = "year_start", nullable = false)
@@ -57,6 +57,9 @@ public class RequirementSet extends BaseEntity {
 
     private RequirementSet(Long departmentId, int yearStart, int yearEnd,
                            int version, String description, String sheetImageUrl) {
+        if (departmentId == null) {
+            throw new IllegalArgumentException("departmentId must not be null");
+        }
         if (yearStart > yearEnd) {
             throw new IllegalArgumentException("yearStart must be less than or equal to yearEnd");
         }
@@ -88,6 +91,9 @@ public class RequirementSet extends BaseEntity {
      * 졸업 규칙을 추가하고 양방향 관계를 설정한다.
      */
     public void addRule(GraduationRule rule) {
+        if (rule == null) {
+            throw new IllegalArgumentException("rule must not be null");
+        }
         rules.add(rule);
         rule.assignRequirementSet(this);
     }
