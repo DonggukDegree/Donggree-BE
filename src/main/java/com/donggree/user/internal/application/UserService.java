@@ -4,6 +4,7 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
+import com.donggree.user.internal.presentation.dto.UserInfoResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,5 +44,24 @@ public class UserService {
         }
 
         member.completeOnboarding(trimmedStudentId, trimmedName);
+    }
+
+    /**
+     * 로그인한 회원의 정보를 조회한다.
+     *
+     * @param memberId 로그인한 회원 ID
+     * @return 학번, 이름, 닉네임이 담긴 응답
+     * @throws GeneralException 회원 미존재 시
+     */
+    @Transactional(readOnly = true)
+    public UserInfoResponse getUserInfo(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
+
+        return new UserInfoResponse(
+                member.getStudentId(),
+                member.getName(),
+                member.getNickname()
+        );
     }
 }
