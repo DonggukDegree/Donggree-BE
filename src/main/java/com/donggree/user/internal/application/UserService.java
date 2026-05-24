@@ -58,12 +58,7 @@ public class UserService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
-        return new UserInfoResponse(
-                member.getStudentId(),
-                member.getName(),
-                member.getNickname(),
-                member.isIdentityVerified()
-        );
+        return UserInfoResponse.from(member);
     }
 
     /**
@@ -103,11 +98,6 @@ public class UserService {
 
         member.updateProfile(trimmedStudentId, trimmedName, trimmedNickname);
 
-        return new UserInfoResponse(
-                member.getStudentId(),
-                member.getName(),
-                member.getNickname(),
-                member.isIdentityVerified()
-        );
+        return UserInfoResponse.from(member);
     }
 }
