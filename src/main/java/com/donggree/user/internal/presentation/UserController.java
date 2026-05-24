@@ -10,6 +10,7 @@ import com.donggree.user.internal.presentation.dto.UserInfoUpdateRequest;
 import com.donggree.user.internal.presentation.swagger.UserApi;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,5 +54,14 @@ public class UserController implements UserApi {
                 memberId, request.studentId(), request.name(), request.nickname()
         );
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
+    }
+
+    @Override
+    @DeleteMapping
+    public ApiResponse<Void> deleteUser(
+            @LoginMemberId Long memberId
+    ) {
+        userService.deleteUser(memberId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }
 }

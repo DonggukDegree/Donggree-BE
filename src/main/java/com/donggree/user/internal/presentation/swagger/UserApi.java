@@ -67,4 +67,20 @@ public interface UserApi {
             )
     })
     ApiResponse<UserInfoResponse> updateUserInfo(@Parameter(hidden = true) Long memberId, UserInfoUpdateRequest request);
+
+    @Operation(
+            summary = "회원 탈퇴",
+            description = "로그인한 사용자의 계정을 탈퇴 처리한다. soft-delete 방식으로 처리되며, 동일 카카오 계정으로 재로그인 시 재활성화된다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "탈퇴 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않는 회원"
+            )
+    })
+    ApiResponse<Void> deleteUser(@Parameter(hidden = true) Long memberId);
 }

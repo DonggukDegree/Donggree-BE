@@ -3,8 +3,10 @@ package com.donggree.user.internal.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.user.event.MemberWithdrawnEvent;
 import com.donggree.user.internal.application.dto.UserInfoResponse;
 import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.donggree.user.internal.domain.Member;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,6 +28,9 @@ class UserServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Test
     void 온보딩을_완료하면_학번과_이름이_저장된다() {
@@ -154,6 +160,35 @@ class UserServiceTest {
                 .isInstanceOf(GeneralException.class)
                 .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                         .isEqualTo(UserErrorCode.DUPLICATE_STUDENT_ID));
+    }
+
+    // --- deleteUser 테스트 ---
+
+    @Test
+    void 정상_탈퇴_시_withdraw가_호출되고_이벤트가_발행된다() {
+        Long memberId = 1L;
+        Member member = Member.registerKakaoMember("kakao-123", "alice@example.com");
+        member.completeOnboarding("2023123456", "하승연");
+        ReflectionTestUtils.setField(member, "id", memberId);
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
+
+        userService.deleteUser(memberId);
+
+        assertThat(member.isDeleted()).isTrue();
+        assertThat(member.getRefreshToken()).isNull();
+        assertThat(member.getStudentId()).isNull();
+        verify(eventPublisher).publishEvent(new MemberWithdrawnEvent(memberId));
+    }
+
+    @Test
+    void 탈퇴_시_존재하지_않는_회원이면_MEMBER_NOT_FOUND_예외가_발생한다() {
+        Long memberId = 999L;
+        given(memberRepository.findById(memberId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.deleteUser(memberId))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(UserErrorCode.MEMBER_NOT_FOUND));
     }
 
     /**
