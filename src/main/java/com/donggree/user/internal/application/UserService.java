@@ -61,7 +61,53 @@ public class UserService {
         return new UserInfoResponse(
                 member.getStudentId(),
                 member.getName(),
-                member.getNickname()
+                member.getNickname(),
+                member.isIdentityVerified()
+        );
+    }
+
+    /**
+     * 로그인한 회원의 프로필 정보를 수정한다.
+     * 온보딩 미완료 시, 본인 인증 완료 후 학번/이름 변경 시도 시, 학번 중복 시 예외를 던진다.
+     *
+     * @param memberId  로그인한 회원 ID
+     * @param studentId 학번
+     * @param name      이름
+     * @param nickname  닉네임
+     * @return 수정된 프로필 정보
+     * @throws GeneralException 회원 미존재, 온보딩 미완료, 본인 인증 후 변경 불가, 학번 중복 시
+     */
+    @Transactional
+    public UserInfoResponse updateUserInfo(Long memberId, String studentId, String name, String nickname) {
+        String trimmedStudentId = studentId.trim();
+        String trimmedName = name.trim();
+        String trimmedNickname = nickname.trim();
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
+
+        if (!member.hasCompletedOnboarding()) {
+            throw new GeneralException(UserErrorCode.NOT_ONBOARDED);
+        }
+
+        if (member.isIdentityVerified()
+                && (!member.getStudentId().equals(trimmedStudentId)
+                || !member.getName().equals(trimmedName))) {
+            throw new GeneralException(UserErrorCode.IDENTITY_ALREADY_VERIFIED);
+        }
+
+        if (!member.getStudentId().equals(trimmedStudentId)
+                && memberRepository.existsByStudentIdAndIdNot(trimmedStudentId, memberId)) {
+            throw new GeneralException(UserErrorCode.DUPLICATE_STUDENT_ID);
+        }
+
+        member.updateProfile(trimmedStudentId, trimmedName, trimmedNickname);
+
+        return new UserInfoResponse(
+                member.getStudentId(),
+                member.getName(),
+                member.getNickname(),
+                member.isIdentityVerified()
         );
     }
 }
