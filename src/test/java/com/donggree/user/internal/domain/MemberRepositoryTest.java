@@ -3,6 +3,7 @@ package com.donggree.user.internal.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.global.config.JpaAuditingConfig;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -14,6 +15,9 @@ class MemberRepositoryTest {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void 카카오_oauth_id로_회원을_조회한다() {
@@ -35,5 +39,48 @@ class MemberRepositoryTest {
         boolean exists = memberRepository.existsByStudentId("2023123456");
 
         assertThat(exists).isTrue();
+    }
+
+    // --- soft-delete 필터링 테스트 ---
+
+    @Test
+    void 탈퇴한_회원은_findByOauthId로_조회되지_않는다() {
+        Member member = Member.registerKakaoMember("kakao-deleted", "deleted@example.com");
+        memberRepository.save(member);
+        member.withdraw();
+        memberRepository.flush();
+        entityManager.clear();
+
+        var result = memberRepository.findByOauthId("kakao-deleted");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void 탈퇴한_회원은_findById로_조회되지_않는다() {
+        Member member = Member.registerKakaoMember("kakao-deleted", "deleted@example.com");
+        memberRepository.save(member);
+        Long memberId = member.getId();
+        member.withdraw();
+        memberRepository.flush();
+        entityManager.clear();
+
+        var result = memberRepository.findById(memberId);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void findByOauthIdIncludingDeleted로_탈퇴한_회원을_조회할_수_있다() {
+        Member member = Member.registerKakaoMember("kakao-deleted", "deleted@example.com");
+        memberRepository.save(member);
+        member.withdraw();
+        memberRepository.flush();
+        entityManager.clear();
+
+        var result = memberRepository.findByOauthIdIncludingDeleted("kakao-deleted");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().isDeleted()).isTrue();
     }
 }

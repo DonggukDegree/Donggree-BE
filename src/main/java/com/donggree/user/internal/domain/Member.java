@@ -14,9 +14,11 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "member")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member extends BaseEntity {
@@ -124,6 +126,42 @@ public class Member extends BaseEntity {
 
     public void clearRefreshToken() {
         this.refreshToken = null;
+    }
+
+    /**
+     * 회원 탈퇴를 처리한다.
+     * deletedAt을 현재 시각으로 기록하고, refreshToken과 studentId를 초기화한다.
+     * studentId를 null로 초기화하여 unique 제약 충돌을 방지한다.
+     * 이미 탈퇴한 회원이면 {@link IllegalStateException}을 던진다.
+     */
+    public void withdraw() {
+        if (isDeleted()) {
+            throw new IllegalStateException("이미 탈퇴한 회원입니다.");
+        }
+        this.deletedAt = LocalDateTime.now();
+        this.refreshToken = null;
+        this.studentId = null;
+    }
+
+    /**
+     * 탈퇴한 회원을 재활성화한다.
+     * deletedAt을 해제하고 프로필 정보를 초기 상태로 복원하여 온보딩부터 다시 시작하도록 한다.
+     * 활성 상태의 회원에게 호출하면 {@link IllegalStateException}을 던진다.
+     */
+    public void reactivate() {
+        if (!isDeleted()) {
+            throw new IllegalStateException("탈퇴하지 않은 회원은 재활성화할 수 없습니다.");
+        }
+        this.deletedAt = null;
+        this.studentId = null;
+        this.name = null;
+        this.nickname = null;
+        this.profileUrl = null;
+        this.identityVerified = false;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 
     private static String requireText(String value, String fieldName, int maxLength) {
