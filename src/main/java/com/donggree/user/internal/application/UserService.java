@@ -4,7 +4,7 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
-import com.donggree.user.internal.presentation.dto.UserInfoResponse;
+import com.donggree.user.internal.application.dto.UserInfoResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

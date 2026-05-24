@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.user.internal.application.UserService;
 import com.donggree.user.internal.presentation.dto.OnboardingRequest;
-import com.donggree.user.internal.presentation.dto.UserInfoResponse;
+import com.donggree.user.internal.application.dto.UserInfoResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;

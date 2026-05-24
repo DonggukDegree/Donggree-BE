@@ -1,4 +1,4 @@
-package com.donggree.user.internal.presentation.dto;
+package com.donggree.user.internal.application.dto;
 
 public record UserInfoResponse(
         String studentId,

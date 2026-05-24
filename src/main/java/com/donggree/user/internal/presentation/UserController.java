@@ -5,7 +5,7 @@ import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.auth.LoginMemberId;
 import com.donggree.user.internal.application.UserService;
 import com.donggree.user.internal.presentation.dto.OnboardingRequest;
-import com.donggree.user.internal.presentation.dto.UserInfoResponse;
+import com.donggree.user.internal.application.dto.UserInfoResponse;
 import com.donggree.user.internal.presentation.swagger.UserApi;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

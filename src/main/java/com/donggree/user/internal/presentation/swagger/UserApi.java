@@ -2,7 +2,7 @@ package com.donggree.user.internal.presentation.swagger;
 
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.user.internal.presentation.dto.OnboardingRequest;
-import com.donggree.user.internal.presentation.dto.UserInfoResponse;
+import com.donggree.user.internal.application.dto.UserInfoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
