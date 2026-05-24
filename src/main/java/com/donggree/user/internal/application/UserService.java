@@ -1,11 +1,13 @@
 package com.donggree.user.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.user.event.MemberWithdrawnEvent;
 import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
 import com.donggree.user.internal.application.dto.UserInfoResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final MemberRepository memberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 온보딩을 완료하고 회원의 학번과 이름을 설정한다.
@@ -99,5 +102,22 @@ public class UserService {
         member.updateProfile(trimmedStudentId, trimmedName, trimmedNickname);
 
         return UserInfoResponse.from(member);
+    }
+
+    /**
+     * 회원 탈퇴를 처리한다.
+     * 회원의 soft-delete를 수행하고 MemberWithdrawnEvent를 발행한다.
+     *
+     * @param memberId 로그인한 회원 ID
+     * @throws GeneralException 회원 미존재 시
+     */
+    @Transactional
+    public void deleteUser(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
+
+        member.withdraw();
+
+        eventPublisher.publishEvent(new MemberWithdrawnEvent(memberId));
     }
 }
