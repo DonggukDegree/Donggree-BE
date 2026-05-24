@@ -1,9 +1,11 @@
 package com.donggree.user.internal.presentation;
 
+import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.user.internal.application.UserService;
 import com.donggree.user.internal.presentation.dto.OnboardingRequest;
+import com.donggree.user.internal.application.dto.UserInfoResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
@@ -65,5 +68,34 @@ class UserControllerTest extends RestDocsSupport {
                 ));
 
         Mockito.verify(userService).completeOnboarding(memberId, "2023123456", "하승연");
+    }
+
+    @Test
+    void 사용자_정보를_조회한다() throws Exception {
+        Long memberId = 1L;
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList())
+        );
+
+        given(userService.getUserInfo(memberId))
+                .willReturn(new UserInfoResponse("2023123456", "하승연", "하승연"));
+
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("COMMON200_1"))
+                .andExpect(jsonPath("$.result.studentId").value("2023123456"))
+                .andExpect(jsonPath("$.result.name").value("하승연"))
+                .andExpect(jsonPath("$.result.nickname").value("하승연"))
+                .andDo(document("user-info",
+                        responseFields(
+                                fieldWithPath("isSuccess").description("요청 성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("result.studentId").description("학번"),
+                                fieldWithPath("result.name").description("이름"),
+                                fieldWithPath("result.nickname").description("닉네임")
+                        )
+                ));
     }
 }
