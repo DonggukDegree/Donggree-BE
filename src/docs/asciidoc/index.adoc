@@ -40,3 +40,9 @@ operation::user-onboarding[]
 
 operation::user-info[]
 
+==== 사용자 정보 수정
+
+로그인한 사용자의 학번, 이름, 닉네임을 수정한다. 본인 인증 완료 후에는 닉네임만 변경 가능하다.
+
+operation::user-info-update[]
+
