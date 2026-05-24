@@ -1,8 +1,9 @@
 package com.donggree.user.internal.presentation.swagger;
 
 import com.donggree.global.apiPayload.ApiResponse;
-import com.donggree.user.internal.presentation.dto.OnboardingRequest;
 import com.donggree.user.internal.application.dto.UserInfoResponse;
+import com.donggree.user.internal.presentation.dto.OnboardingRequest;
+import com.donggree.user.internal.presentation.dto.UserInfoUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -46,4 +47,24 @@ public interface UserApi {
             )
     })
     ApiResponse<UserInfoResponse> getUserInfo(@Parameter(hidden = true) Long memberId);
+
+    @Operation(
+            summary = "사용자 정보 수정",
+            description = "로그인한 사용자의 학번, 이름, 닉네임을 수정한다. 본인 인증 완료 후에는 닉네임만 변경 가능하다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "수정 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "존재하지 않는 회원"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409",
+                    description = "온보딩 미완료, 본인 인증 후 변경 불가, 학번 중복"
+            )
+    })
+    ApiResponse<UserInfoResponse> updateUserInfo(@Parameter(hidden = true) Long memberId, UserInfoUpdateRequest request);
 }

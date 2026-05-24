@@ -23,6 +23,14 @@ public enum UserErrorCode implements BaseErrorCode {
     DUPLICATE_STUDENT_ID(HttpStatus.CONFLICT,
             "USER409_2",
             "이미 사용 중인 학번입니다."),
+
+    IDENTITY_ALREADY_VERIFIED(HttpStatus.CONFLICT,
+            "USER409_3",
+            "본인 인증 완료 후에는 학번과 이름을 변경할 수 없습니다."),
+
+    NOT_ONBOARDED(HttpStatus.CONFLICT,
+            "USER409_4",
+            "온보딩을 먼저 완료해야 합니다."),
     ;
 
     private final HttpStatus status;
