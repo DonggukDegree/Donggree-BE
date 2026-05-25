@@ -39,3 +39,6 @@ out/
 .vscode/
 .claude/
 CLAUDE.md
+
+### 테스트 PDF (개인정보 포함) ###
+src/test/resources/pdf/
