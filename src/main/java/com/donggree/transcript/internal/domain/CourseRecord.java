@@ -60,6 +60,15 @@ public class CourseRecord {
 
     private CourseRecord(String semester, CourseType courseType, Long areaTypeId,
                          Long courseId, Grade grade, boolean retake) {
+        if (semester == null) {
+            throw new IllegalArgumentException("semester must not be null");
+        }
+        if (courseType == null) {
+            throw new IllegalArgumentException("courseType must not be null");
+        }
+        if (courseId == null) {
+            throw new IllegalArgumentException("courseId must not be null");
+        }
         if (grade == null) {
             throw new IllegalArgumentException("grade must not be null");
         }

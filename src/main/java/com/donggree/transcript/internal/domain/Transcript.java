@@ -1,6 +1,8 @@
 package com.donggree.transcript.internal.domain;
 
 import com.donggree.global.entity.BaseEntity;
+import com.donggree.transcript.internal.domain.enums.CourseType;
+import com.donggree.transcript.internal.domain.enums.Grade;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -40,10 +42,7 @@ public class Transcript extends BaseEntity {
     @Column(name = "member_id", unique = true)
     private Long memberId;
 
-    @Column(name = "pdf_url", nullable = false, length = 512)
-    private String pdfUrl;
-
-    @JdbcTypeCode(SqlTypes.JSON)
+@JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_data", nullable = false, columnDefinition = "jsonb")
     private String rawData;
 
@@ -119,43 +118,58 @@ public class Transcript extends BaseEntity {
     @OneToMany(mappedBy = "transcript", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CourseRecord> courseRecords = new ArrayList<>();
 
-    private Transcript(Long memberId, String pdfUrl, String rawData,
-                       int admissionYear, String academicStatus) {
-        if (memberId == null) {
+    private Transcript(TranscriptCreateData data) {
+        if (data.memberId() == null) {
             throw new IllegalArgumentException("memberId must not be null");
         }
-        this.memberId = memberId;
-        this.pdfUrl = pdfUrl;
-        this.rawData = rawData;
-        this.admissionYear = admissionYear;
-        this.academicStatus = academicStatus;
-        this.totalCredits = 0;
-        this.gpa = BigDecimal.ZERO;
-        this.completedSemesters = 0;
-        this.engineeringCertified = false;
-        this.transfer = false;
-        this.selectiveCompletion = false;
-        this.globalTalentTrack = false;
-        this.englishCourseTarget = false;
-        this.thesisStatus = false;
-    }
-
-    /**
-     * 필수 필드만 받아 Transcript를 생성하는 팩토리 메서드.
-     * PDF 파싱 직후 최소한의 정보로 생성하며, 나머지 필드는 파싱 결과에 따라 별도 메서드로 설정한다.
-     */
-    public static Transcript create(Long memberId, String pdfUrl, String rawData,
-                                    int admissionYear, String academicStatus) {
-        return new Transcript(memberId, pdfUrl, rawData, admissionYear, academicStatus);
-    }
-
-    /**
-     * 수강 이력을 추가하고 양방향 관계를 설정한다.
-     */
-    public void addCourseRecord(CourseRecord record) {
-        if (record == null) {
-            throw new IllegalArgumentException("courseRecord must not be null");
+        if (data.rawData() == null) {
+            throw new IllegalArgumentException("rawData must not be null");
         }
+        if (data.academicStatus() == null) {
+            throw new IllegalArgumentException("academicStatus must not be null");
+        }
+        this.memberId = data.memberId();
+        this.rawData = data.rawData();
+        this.admissionYear = data.admissionYear();
+        this.academicStatus = data.academicStatus();
+        this.studentType = data.studentType();
+        this.departmentId = data.departmentId();
+        this.subMajor1Id = data.subMajor1Id();
+        this.subMajor2Id = data.subMajor2Id();
+        this.dualMajor1Id = data.dualMajor1Id();
+        this.dualMajor2Id = data.dualMajor2Id();
+        this.totalCredits = data.totalCredits();
+        this.gpa = data.gpa();
+        this.completedSemesters = data.completedSemesters();
+        this.englishLevel = data.englishLevel();
+        this.engineeringCertified = data.engineeringCertified();
+        this.transfer = data.transfer();
+        this.selectiveCompletion = data.selectiveCompletion();
+        this.globalTalentTrack = data.globalTalentTrack();
+        this.englishCourseTarget = data.englishCourseTarget();
+        this.completedEnglishResult = data.completedEnglishResult();
+        this.completedEnglishMajor = data.completedEnglishMajor();
+        this.completedEnglishNonMajor = data.completedEnglishNonMajor();
+        this.teachingAptitudeCount = data.teachingAptitudeCount();
+        this.thesisStatus = data.thesisStatus();
+    }
+
+    /**
+     * PDF 파싱 결과를 기반으로 Transcript를 생성하는 팩토리 메서드.
+     * 파싱이 완료된 시점에 모든 데이터를 한 번에 받아 생성한다.
+     */
+    public static Transcript create(TranscriptCreateData data) {
+        return new Transcript(data);
+    }
+
+    /**
+     * 수강 이력을 생성하여 추가하고 양방향 관계를 설정한다.
+     * CourseRecord는 Transcript의 하위 엔티티이므로 반드시 루트를 통해 생성한다.
+     */
+    public void addCourseRecord(String semester, CourseType courseType, Long areaTypeId,
+                                Long courseId, Grade grade, boolean retake) {
+        CourseRecord record = CourseRecord.create(semester, courseType, areaTypeId,
+                courseId, grade, retake);
         courseRecords.add(record);
         record.assignTranscript(this);
     }
@@ -168,14 +182,17 @@ public class Transcript extends BaseEntity {
     }
 
     /**
-     * 소프트 삭제를 수행한다. deletedAt을 현재 시각으로 기록한다.
+     * 소프트 삭제를 수행한다. 삭제 시각을 외부에서 주입받아 기록한다.
      * 이미 삭제된 상태이면 IllegalStateException을 던진다.
      */
-    public void markAsDeleted() {
+    public void markAsDeleted(LocalDateTime deletedAt) {
         if (isDeleted()) {
             throw new IllegalStateException("이미 삭제된 성적표입니다.");
         }
-        this.deletedAt = LocalDateTime.now();
+        if (deletedAt == null) {
+            throw new IllegalArgumentException("deletedAt must not be null");
+        }
+        this.deletedAt = deletedAt;
     }
 
     public boolean isDeleted() {

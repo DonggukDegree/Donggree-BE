@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.transcript.internal.domain.enums.CourseType;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class TranscriptTest {
@@ -13,22 +15,32 @@ class TranscriptTest {
     // --- Transcript 생성 테스트 ---
 
     @Test
-    void Transcript_생성_시_필수_필드가_올바르게_저장된다() {
-        Transcript transcript = createTranscript();
+    void Transcript_생성_시_모든_필드가_올바르게_저장된다() {
+        Transcript transcript = createFullTranscript();
 
         assertThat(transcript.getMemberId()).isEqualTo(1L);
-        assertThat(transcript.getPdfUrl()).isEqualTo("https://storage.example.com/test.pdf");
         assertThat(transcript.getRawData()).isEqualTo("{\"pages\": []}");
         assertThat(transcript.getAdmissionYear()).isEqualTo(2023);
         assertThat(transcript.getAcademicStatus()).isEqualTo("재학");
-        assertThat(transcript.getTotalCredits()).isZero();
-        assertThat(transcript.getGpa()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(transcript.getCompletedSemesters()).isZero();
-        assertThat(transcript.isEngineeringCertified()).isFalse();
+        assertThat(transcript.getStudentType()).isEqualTo("단일");
+        assertThat(transcript.getDepartmentId()).isEqualTo(100L);
+        assertThat(transcript.getSubMajor1Id()).isNull();
+        assertThat(transcript.getSubMajor2Id()).isNull();
+        assertThat(transcript.getDualMajor1Id()).isNull();
+        assertThat(transcript.getDualMajor2Id()).isNull();
+        assertThat(transcript.getTotalCredits()).isEqualTo(80);
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("3.95"));
+        assertThat(transcript.getCompletedSemesters()).isEqualTo(4);
+        assertThat(transcript.getEnglishLevel()).isEqualTo("S1");
+        assertThat(transcript.isEngineeringCertified()).isTrue();
         assertThat(transcript.isTransfer()).isFalse();
         assertThat(transcript.isSelectiveCompletion()).isFalse();
         assertThat(transcript.isGlobalTalentTrack()).isFalse();
-        assertThat(transcript.isEnglishCourseTarget()).isFalse();
+        assertThat(transcript.isEnglishCourseTarget()).isTrue();
+        assertThat(transcript.getCompletedEnglishResult()).isTrue();
+        assertThat(transcript.getCompletedEnglishMajor()).isEqualTo(2);
+        assertThat(transcript.getCompletedEnglishNonMajor()).isEqualTo(1);
+        assertThat(transcript.getTeachingAptitudeCount()).isNull();
         assertThat(transcript.isThesisStatus()).isFalse();
         assertThat(transcript.getCourseRecords()).isEmpty();
         assertThat(transcript.isDeleted()).isFalse();
@@ -36,11 +48,44 @@ class TranscriptTest {
 
     @Test
     void memberId가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> Transcript.create(
-                null, "https://storage.example.com/test.pdf",
-                "{}", 2023, "재학"))
+        TranscriptCreateData data = new TranscriptCreateData(
+                null, "{}",
+                2023, "재학", null, null, null, null, null, null,
+                0, BigDecimal.ZERO, 0, null,
+                false, false, false, false, false,
+                null, null, null, null, false);
+
+        assertThatThrownBy(() -> Transcript.create(data))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("memberId");
+    }
+
+    @Test
+    void rawData가_null이면_예외가_발생한다() {
+        TranscriptCreateData data = new TranscriptCreateData(
+                1L, null,
+                2023, "재학", null, null, null, null, null, null,
+                0, BigDecimal.ZERO, 0, null,
+                false, false, false, false, false,
+                null, null, null, null, false);
+
+        assertThatThrownBy(() -> Transcript.create(data))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("rawData");
+    }
+
+    @Test
+    void academicStatus가_null이면_예외가_발생한다() {
+        TranscriptCreateData data = new TranscriptCreateData(
+                1L, "{}",
+                2023, null, null, null, null, null, null, null,
+                0, BigDecimal.ZERO, 0, null,
+                false, false, false, false, false,
+                null, null, null, null, false);
+
+        assertThatThrownBy(() -> Transcript.create(data))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("academicStatus");
     }
 
     // --- addCourseRecord 테스트 ---
@@ -48,47 +93,31 @@ class TranscriptTest {
     @Test
     void 수강_이력_추가_시_양방향_관계가_설정된다() {
         Transcript transcript = createTranscript();
-        CourseRecord record = CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, 1L, 10L, Grade.A_PLUS, false);
 
-        transcript.addCourseRecord(record);
+        transcript.addCourseRecord("2023-1", CourseType.FIRST_MAJOR, 1L, 10L, Grade.A_PLUS, false);
 
         assertThat(transcript.getCourseRecords()).hasSize(1);
-        assertThat(transcript.getCourseRecords().get(0)).isSameAs(record);
+        CourseRecord record = transcript.getCourseRecords().get(0);
+        assertThat(record.getSemester()).isEqualTo("2023-1");
+        assertThat(record.getCourseType()).isEqualTo(CourseType.FIRST_MAJOR);
         assertThat(record.getTranscript()).isSameAs(transcript);
     }
 
     @Test
     void 여러_수강_이력을_추가할_수_있다() {
         Transcript transcript = createTranscript();
-        CourseRecord record1 = CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, 1L, 10L, Grade.A_PLUS, false);
-        CourseRecord record2 = CourseRecord.create(
-                "2023-1", CourseType.COMMON_GENERAL, 2L, 20L, Grade.B_ZERO, false);
-        CourseRecord record3 = CourseRecord.create(
-                "2023-2", CourseType.LIBERAL_ARTS, null, 30L, Grade.P, false);
 
-        transcript.addCourseRecord(record1);
-        transcript.addCourseRecord(record2);
-        transcript.addCourseRecord(record3);
+        transcript.addCourseRecord("2023-1", CourseType.FIRST_MAJOR, 1L, 10L, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-1", CourseType.COMMON_GENERAL, 2L, 20L, Grade.B_ZERO, false);
+        transcript.addCourseRecord("2023-2", CourseType.LIBERAL_ARTS, null, 30L, Grade.P, false);
 
         assertThat(transcript.getCourseRecords()).hasSize(3);
     }
 
     @Test
-    void null_수강_이력을_추가하면_예외가_발생한다() {
-        Transcript transcript = createTranscript();
-
-        assertThatThrownBy(() -> transcript.addCourseRecord(null))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
     void getCourseRecords는_불변_리스트를_반환한다() {
         Transcript transcript = createTranscript();
-        CourseRecord record = CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, 1L, 10L, Grade.A_PLUS, false);
-        transcript.addCourseRecord(record);
+        transcript.addCourseRecord("2023-1", CourseType.FIRST_MAJOR, 1L, 10L, Grade.A_PLUS, false);
 
         assertThatThrownBy(() -> transcript.getCourseRecords().add(
                 CourseRecord.create("2023-2", CourseType.COMMON_GENERAL,
@@ -101,19 +130,20 @@ class TranscriptTest {
     @Test
     void markAsDeleted_호출_시_deletedAt이_기록된다() {
         Transcript transcript = createTranscript();
+        LocalDateTime now = LocalDateTime.of(2025, 1, 1, 12, 0);
 
-        transcript.markAsDeleted();
+        transcript.markAsDeleted(now);
 
         assertThat(transcript.isDeleted()).isTrue();
-        assertThat(transcript.getDeletedAt()).isNotNull();
+        assertThat(transcript.getDeletedAt()).isEqualTo(now);
     }
 
     @Test
     void 이미_삭제된_Transcript에_markAsDeleted_호출_시_예외가_발생한다() {
         Transcript transcript = createTranscript();
-        transcript.markAsDeleted();
+        transcript.markAsDeleted(LocalDateTime.of(2025, 1, 1, 12, 0));
 
-        assertThatThrownBy(transcript::markAsDeleted)
+        assertThatThrownBy(() -> transcript.markAsDeleted(LocalDateTime.now()))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -138,6 +168,30 @@ class TranscriptTest {
                 "2023-1", CourseType.FIRST_MAJOR, 1L, 10L, null, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("grade");
+    }
+
+    @Test
+    void CourseRecord_생성_시_semester가_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseRecord.create(
+                null, CourseType.FIRST_MAJOR, 1L, 10L, Grade.A_PLUS, false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("semester");
+    }
+
+    @Test
+    void CourseRecord_생성_시_courseType이_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseRecord.create(
+                "2023-1", null, 1L, 10L, Grade.A_PLUS, false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("courseType");
+    }
+
+    @Test
+    void CourseRecord_생성_시_courseId가_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseRecord.create(
+                "2023-1", CourseType.FIRST_MAJOR, 1L, null, Grade.A_PLUS, false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("courseId");
     }
 
     // --- Grade enum 테스트 ---
@@ -173,7 +227,20 @@ class TranscriptTest {
     // --- 헬퍼 메서드 ---
 
     private Transcript createTranscript() {
-        return Transcript.create(1L, "https://storage.example.com/test.pdf",
-                "{\"pages\": []}", 2023, "재학");
+        return Transcript.create(new TranscriptCreateData(
+                1L, "{\"pages\": []}",
+                2023, "재학", null, null, null, null, null, null,
+                0, BigDecimal.ZERO, 0, null,
+                false, false, false, false, false,
+                null, null, null, null, false));
+    }
+
+    private Transcript createFullTranscript() {
+        return Transcript.create(new TranscriptCreateData(
+                1L, "{\"pages\": []}",
+                2023, "재학", "단일", 100L, null, null, null, null,
+                80, new BigDecimal("3.95"), 4, "S1",
+                true, false, false, false, true,
+                true, 2, 1, null, false));
     }
 }
