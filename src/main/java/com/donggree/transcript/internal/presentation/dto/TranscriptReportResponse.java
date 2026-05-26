@@ -9,9 +9,7 @@ import java.util.List;
  */
 public record TranscriptReportResponse(
         Meta meta,
-        List<SemesterCourses> courses,
-        Long nextCursor,
-        boolean hasNext
+        List<SemesterCourses> courses
 ) {
 
     public record Meta(

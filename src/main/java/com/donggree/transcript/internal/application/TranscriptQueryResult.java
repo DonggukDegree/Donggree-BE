@@ -10,9 +10,7 @@ import java.util.List;
  */
 public record TranscriptQueryResult(
         RawMeta meta,
-        List<RawSemesterGroup> semesterGroups,
-        Long nextCursor,
-        boolean hasNext
+        List<RawSemesterGroup> semesterGroups
 ) {
 
     public record RawMeta(

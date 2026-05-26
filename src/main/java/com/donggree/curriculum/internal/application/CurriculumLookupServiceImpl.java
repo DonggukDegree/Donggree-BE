@@ -3,6 +3,7 @@ package com.donggree.curriculum.internal.application;
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.internal.domain.Department;
 import com.donggree.curriculum.internal.domain.DepartmentRepository;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     @Override
     public Map<Long, String> findDepartmentNamesByIds(List<Long> departmentIds) {
         if (departmentIds.isEmpty()) {
-            return Map.of();
+            return new HashMap<>();
         }
         return departmentRepository.findAllById(departmentIds).stream()
                 .collect(Collectors.toMap(Department::getId, Department::getDepartmentName));

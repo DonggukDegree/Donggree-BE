@@ -17,11 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -116,32 +114,20 @@ public class TranscriptService {
     }
 
     /**
-     * 로그인한 회원의 성적표 데이터를 커서 기반으로 조회한다.
+     * 로그인한 회원의 성적표 데이터를 전체 조회한다.
+     * 수강 이력은 학기 오름차순으로 그룹핑하여 반환한다.
      * 커리큘럼 이름 해소 없이 ID만 담은 {@link TranscriptQueryResult}를 반환하며,
      * 이름 변환은 컨트롤러에서 수행한다.
      *
      * @param memberId 로그인한 회원 ID
-     * @param cursor   마지막으로 조회한 course_record.id (첫 조회 시 null)
-     * @param size     한 번에 가져올 수강 이력 수
      */
     @Transactional(readOnly = true)
-    public TranscriptQueryResult getTranscriptRawReport(Long memberId, Long cursor, int size) {
+    public TranscriptQueryResult getTranscriptRawReport(Long memberId) {
         Transcript transcript = transcriptRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.TRANSCRIPT_NOT_FOUND));
 
-        List<CourseRecord> sorted = transcript.getCourseRecords().stream()
-                .sorted(Comparator.comparingLong(CourseRecord::getId))
-                .toList();
-
-        List<CourseRecord> afterCursor = cursor == null
-                ? sorted
-                : sorted.stream().filter(r -> r.getId() > cursor).toList();
-
-        boolean hasNext = afterCursor.size() > size;
-        List<CourseRecord> page = afterCursor.subList(0, Math.min(size, afterCursor.size()));
-        Long nextCursor = hasNext ? page.get(page.size() - 1).getId() : null;
-
-        List<RawSemesterGroup> semesterGroups = page.stream()
+        List<RawSemesterGroup> semesterGroups = transcript.getCourseRecords().stream()
+                .sorted((a, b) -> a.getSemester().compareTo(b.getSemester()))
                 .collect(Collectors.groupingBy(CourseRecord::getSemester, LinkedHashMap::new, Collectors.toList()))
                 .entrySet().stream()
                 .map(e -> new RawSemesterGroup(
@@ -173,7 +159,7 @@ public class TranscriptService {
                 transcript.getCompletedSemesters()
         );
 
-        return new TranscriptQueryResult(meta, semesterGroups, nextCursor, hasNext);
+        return new TranscriptQueryResult(meta, semesterGroups);
     }
 
     // ====== 내부 헬퍼 ======

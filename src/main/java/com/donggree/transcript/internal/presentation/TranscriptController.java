@@ -45,11 +45,9 @@ public class TranscriptController implements TranscriptApi {
     @Override
     @GetMapping
     public ApiResponse<TranscriptReportResponse> getTranscriptReport(
-            @LoginMemberId Long memberId,
-            @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "20") int size
+            @LoginMemberId Long memberId
     ) {
-        TranscriptQueryResult raw = transcriptService.getTranscriptRawReport(memberId, cursor, size);
+        TranscriptQueryResult raw = transcriptService.getTranscriptRawReport(memberId);
 
         List<Long> deptIds = Stream.of(
                         raw.meta().departmentId(), raw.meta().subMajor1Id(),
@@ -61,11 +59,11 @@ public class TranscriptController implements TranscriptApi {
         Meta meta = new Meta(
                 raw.meta().reportId(),
                 raw.meta().admissionYear(),
-                deptNameMap.get(raw.meta().departmentId()),
-                deptNameMap.get(raw.meta().subMajor1Id()),
-                deptNameMap.get(raw.meta().subMajor2Id()),
-                deptNameMap.get(raw.meta().dualMajor1Id()),
-                deptNameMap.get(raw.meta().dualMajor2Id()),
+                deptName(deptNameMap, raw.meta().departmentId()),
+                deptName(deptNameMap, raw.meta().subMajor1Id()),
+                deptName(deptNameMap, raw.meta().subMajor2Id()),
+                deptName(deptNameMap, raw.meta().dualMajor1Id()),
+                deptName(deptNameMap, raw.meta().dualMajor2Id()),
                 raw.meta().academicStatus(),
                 raw.meta().totalCredits(),
                 raw.meta().gpa(),
@@ -77,7 +75,7 @@ public class TranscriptController implements TranscriptApi {
                 .toList();
 
         return ApiResponse.onSuccess(GeneralSuccessCode.OK,
-                new TranscriptReportResponse(meta, courses, raw.nextCursor(), raw.hasNext()));
+                new TranscriptReportResponse(meta, courses));
     }
 
     @Override
@@ -104,7 +102,7 @@ public class TranscriptController implements TranscriptApi {
                     .map(c -> new CourseRecordCreateData(
                             c.semester(),
                             CourseType.fromCategory(c.category()),
-                            c.area().isBlank() ? null : c.area(),
+                            (c.area() == null || c.area().isBlank()) ? null : c.area(),
                             c.courseCode(),
                             c.courseName(),
                             c.credits(),
@@ -125,6 +123,10 @@ public class TranscriptController implements TranscriptApi {
         if (departmentName == null || departmentName.isBlank()) return null;
         return curriculumLookupService.findDepartmentIdByName(departmentName)
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
+    }
+
+    private String deptName(Map<Long, String> map, Long id) {
+        return id != null ? map.get(id) : null;
     }
 
     private List<CourseRecord> toCourseRecords(RawSemesterGroup group) {

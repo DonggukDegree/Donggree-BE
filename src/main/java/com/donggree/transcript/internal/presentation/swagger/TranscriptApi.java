@@ -34,8 +34,8 @@ public interface TranscriptApi {
 
     @Operation(
             summary = "학업 정보 조회",
-            description = "로그인한 회원의 성적표 메타 정보와 수강 이력을 커서 기반으로 조회한다. "
-                    + "수강 이력은 학기별로 그룹핑하여 반환한다."
+            description = "로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. "
+                    + "수강 이력은 학기 오름차순으로 그룹핑하여 반환한다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -48,8 +48,6 @@ public interface TranscriptApi {
             )
     })
     ApiResponse<TranscriptReportResponse> getTranscriptReport(
-            @Parameter(hidden = true) Long memberId,
-            @Parameter(description = "마지막으로 조회한 course_record ID (첫 조회 시 생략)") Long cursor,
-            @Parameter(description = "한 번에 가져올 수강 이력 수 (기본값 20)") int size
+            @Parameter(hidden = true) Long memberId
     );
 }
