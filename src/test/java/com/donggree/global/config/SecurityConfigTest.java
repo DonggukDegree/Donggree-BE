@@ -3,6 +3,7 @@ package com.donggree.global.config;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.global.auth.JwtProperties;
 import com.donggree.global.auth.JwtTokenProvider;
 import com.donggree.transcript.internal.application.TranscriptService;
@@ -39,6 +40,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private TranscriptService transcriptService;
+
+    @MockitoBean
+    private CurriculumLookupService curriculumLookupService;
 
     @TestConfiguration
     static class TestConfig {

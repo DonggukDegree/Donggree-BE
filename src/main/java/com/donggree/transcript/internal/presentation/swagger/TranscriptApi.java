@@ -2,6 +2,7 @@ package com.donggree.transcript.internal.presentation.swagger;
 
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
+import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -29,5 +30,24 @@ public interface TranscriptApi {
     ApiResponse<TranscriptCreateResponse> createTranscript(
             @Parameter(hidden = true) Long memberId,
             MultipartFile file
+    );
+
+    @Operation(
+            summary = "학업 정보 조회",
+            description = "로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. "
+                    + "수강 이력은 학기 오름차순으로 그룹핑하여 반환한다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "성적표 없음"
+            )
+    })
+    ApiResponse<TranscriptReportResponse> getTranscriptReport(
+            @Parameter(hidden = true) Long memberId
     );
 }
