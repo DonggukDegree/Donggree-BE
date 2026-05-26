@@ -100,7 +100,7 @@ public class TranscriptParser {
         Matcher km = Pattern.compile(keyPattern).matcher(text);
         while (km.find()) {
             keyPositions.add(new int[]{km.start(), km.end()});
-            keyNames.add(km.group(1).replace("\\(", "(").replace("\\)", ")"));
+            keyNames.add(km.group(1));
         }
 
         for (int i = 0; i < keyPositions.size(); i++) {
