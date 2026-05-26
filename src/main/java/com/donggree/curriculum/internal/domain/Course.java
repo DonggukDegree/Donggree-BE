@@ -11,8 +11,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 교과목 정보를 나타내는 엔티티.
- * 교과목 코드, 교과목명, 학점을 관리한다.
+ * 교과목 카탈로그 엔티티. curriculum 모듈이 소유하며, 이벤트를 통해 수집된다.
+ * transcript 모듈은 course_record에 course_name/credits를 반정규화하여 직접 저장하므로
+ * 이 테이블을 참조하지 않는다.
  */
 @Entity
 @Table(name = "course")
@@ -24,7 +25,7 @@ public class Course {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "course_code", nullable = false, length = 7)
+    @Column(name = "course_code", nullable = false, unique = true, length = 10)
     private String courseCode;
 
     @Column(name = "course_name", nullable = false, length = 100)

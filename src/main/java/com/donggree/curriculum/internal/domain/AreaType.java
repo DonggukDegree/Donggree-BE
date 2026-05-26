@@ -11,8 +11,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 이수 영역 분류를 나타내는 엔티티.
- * 교과목이 속하는 세부 영역(예: 자아, 영어, 리더, 대학, 동국 등)을 관리한다.
+ * 이수 영역 카탈로그 엔티티. curriculum 모듈이 소유하며, 이벤트를 통해 수집된다.
+ * transcript 모듈은 course_record에 area_name을 직접 저장하므로 이 테이블을 참조하지 않는다.
  */
 @Entity
 @Table(name = "area_type")
@@ -24,7 +24,7 @@ public class AreaType {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "area_name", nullable = false, length = 30)
+    @Column(name = "area_name", nullable = false, unique = true, length = 30)
     private String areaName;
 
     private AreaType(String areaName) {
