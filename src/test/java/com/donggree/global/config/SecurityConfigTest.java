@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.donggree.global.auth.JwtProperties;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.transcript.internal.application.TranscriptService;
 import com.donggree.user.internal.application.AuthService;
 import com.donggree.user.internal.application.UserService;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private TranscriptService transcriptService;
 
     @TestConfiguration
     static class TestConfig {
