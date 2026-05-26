@@ -19,7 +19,8 @@ public enum Grade {
     D_PLUS("D+"),
     D_ZERO("D0"),
     F("F"),
-    P("P");
+    P("P"),
+    NP("NP");
 
     private final String value;
 

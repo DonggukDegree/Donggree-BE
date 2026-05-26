@@ -66,9 +66,6 @@ public class CourseRecord {
         if (courseType == null) {
             throw new IllegalArgumentException("courseType must not be null");
         }
-        if (courseId == null) {
-            throw new IllegalArgumentException("courseId must not be null");
-        }
         if (grade == null) {
             throw new IllegalArgumentException("grade must not be null");
         }

@@ -187,11 +187,11 @@ class TranscriptTest {
     }
 
     @Test
-    void CourseRecord_생성_시_courseId가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, 1L, null, Grade.A_PLUS, false))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("courseId");
+    void CourseRecord_생성_시_courseId가_null이어도_정상_생성된다() {
+        CourseRecord record = CourseRecord.create(
+                "2023-1", CourseType.FIRST_MAJOR, 1L, null, Grade.A_PLUS, false);
+
+        assertThat(record.getCourseId()).isNull();
     }
 
     // --- Grade enum 테스트 ---
