@@ -23,6 +23,10 @@ public enum TranscriptErrorCode implements BaseErrorCode {
     TRANSCRIPT_NOT_FOUND(HttpStatus.NOT_FOUND,
             "TRANSCRIPT404_1",
             "성적표를 찾을 수 없습니다."),
+
+    DEPARTMENT_NOT_FOUND(HttpStatus.BAD_REQUEST,
+            "TRANSCRIPT400_3",
+            "PDF에 기재된 학과가 등록되어 있지 않습니다."),
     ;
 
     private final HttpStatus status;

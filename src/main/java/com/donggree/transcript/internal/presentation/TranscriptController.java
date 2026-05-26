@@ -1,15 +1,33 @@
 package com.donggree.transcript.internal.presentation;
 
+import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.LoginMemberId;
+import com.donggree.transcript.internal.application.CourseRecordCreateData;
+import com.donggree.transcript.internal.application.TranscriptParseResult;
+import com.donggree.transcript.internal.application.TranscriptQueryResult;
+import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
 import com.donggree.transcript.internal.application.TranscriptService;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
+import com.donggree.transcript.internal.domain.ParsedTranscriptData;
+import com.donggree.transcript.internal.domain.TranscriptCreateData;
+import com.donggree.transcript.internal.domain.enums.CourseType;
+import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordResponse;
+import com.donggree.transcript.internal.presentation.dto.SemesterCoursesResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
+import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
+import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.Meta;
 import com.donggree.transcript.internal.presentation.swagger.TranscriptApi;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,15 +40,46 @@ import org.springframework.web.multipart.MultipartFile;
 public class TranscriptController implements TranscriptApi {
 
     private final TranscriptService transcriptService;
+    private final CurriculumLookupService curriculumLookupService;
 
-    /**
-     * PDF를 업로드하여 성적표를 생성한다.
-     * 기존 성적표가 있으면 소프트 삭제 후 새로 생성한다.
-     *
-     * @param memberId 로그인한 회원 ID
-     * @param file     취득교과목 영역별 분류표 PDF 파일
-     * @return 생성된 성적표의 reportId
-     */
+    @Override
+    @GetMapping
+    public ApiResponse<TranscriptReportResponse> getTranscriptReport(
+            @LoginMemberId Long memberId,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        TranscriptQueryResult raw = transcriptService.getTranscriptRawReport(memberId, cursor, size);
+
+        List<Long> deptIds = Stream.of(
+                        raw.meta().departmentId(), raw.meta().subMajor1Id(),
+                        raw.meta().subMajor2Id(), raw.meta().dualMajor1Id(), raw.meta().dualMajor2Id())
+                .filter(Objects::nonNull).distinct().toList();
+
+        Map<Long, String> deptNameMap = curriculumLookupService.findDepartmentNamesByIds(deptIds);
+
+        Meta meta = new Meta(
+                raw.meta().reportId(),
+                raw.meta().admissionYear(),
+                deptNameMap.get(raw.meta().departmentId()),
+                deptNameMap.get(raw.meta().subMajor1Id()),
+                deptNameMap.get(raw.meta().subMajor2Id()),
+                deptNameMap.get(raw.meta().dualMajor1Id()),
+                deptNameMap.get(raw.meta().dualMajor2Id()),
+                raw.meta().academicStatus(),
+                raw.meta().totalCredits(),
+                raw.meta().gpa(),
+                raw.meta().completedSemesters()
+        );
+
+        List<SemesterCoursesResponse> courses = raw.semesterGroups().stream()
+                .map(g -> new SemesterCoursesResponse(g.semester(), toCourseRecordResponses(g)))
+                .toList();
+
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK,
+                new TranscriptReportResponse(meta, courses, raw.nextCursor(), raw.hasNext()));
+    }
+
     @Override
     @PutMapping
     public ApiResponse<TranscriptCreateResponse> createTranscript(
@@ -38,11 +87,60 @@ public class TranscriptController implements TranscriptApi {
             @RequestParam("file") MultipartFile file
     ) {
         try {
-            Long reportId = transcriptService.createTranscript(memberId, file.getBytes());
-            return ApiResponse.onSuccess(GeneralSuccessCode.CREATED,
-                    new TranscriptCreateResponse(reportId));
+            TranscriptParseResult parseResult = transcriptService.parseTranscript(file.getBytes());
+            ParsedTranscriptData parsed = parseResult.parsedData();
+            Map<String, String> meta = parsed.meta();
+
+            // department는 반드시 DB에 존재해야 함 (없으면 DEPARTMENT_NOT_FOUND 에러)
+            Long deptId = resolveDepartmentId(meta.get("학과"));
+            Long sub1Id = curriculumLookupService.findDepartmentIdByName(meta.get("부전공1")).orElse(null);
+            Long sub2Id = curriculumLookupService.findDepartmentIdByName(meta.get("부전공2")).orElse(null);
+            Long dual1Id = curriculumLookupService.findDepartmentIdByName(meta.get("복수1")).orElse(null);
+            Long dual2Id = curriculumLookupService.findDepartmentIdByName(meta.get("복수2")).orElse(null);
+
+            TranscriptCreateData createData = transcriptService.buildCreateData(
+                    memberId, parseResult.rawDataJson(), parsed, deptId, sub1Id, sub2Id, dual1Id, dual2Id);
+
+            // course_name, credits는 파싱 결과를 course_record에 직접 저장 (반정규화)
+            List<CourseRecordCreateData> courses = parsed.courses().stream()
+                    .map(c -> new CourseRecordCreateData(
+                            c.semester(),
+                            CourseType.fromCategory(c.category()),
+                            c.area().isBlank() ? null : c.area(),
+                            c.courseCode().isBlank() ? null : c.courseCode(),
+                            c.courseName(),
+                            c.credits(),
+                            Grade.fromValue(c.grade()),
+                            c.retake()
+                    ))
+                    .toList();
+
+            Long reportId = transcriptService.createTranscript(createData, courses);
+            return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, new TranscriptCreateResponse(reportId));
+
         } catch (IOException e) {
             throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);
         }
+    }
+
+    private Long resolveDepartmentId(String departmentName) {
+        if (departmentName == null || departmentName.isBlank()) return null;
+        return curriculumLookupService.findDepartmentIdByName(departmentName)
+                .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
+    }
+
+    private List<CourseRecordResponse> toCourseRecordResponses(RawSemesterGroup group) {
+        return group.records().stream()
+                .map(r -> new CourseRecordResponse(
+                        r.id(),
+                        r.courseCode(),
+                        r.courseName(),
+                        r.credits(),
+                        r.courseType(),
+                        r.areaName(),
+                        r.grade(),
+                        r.retake()
+                ))
+                .toList();
     }
 }
