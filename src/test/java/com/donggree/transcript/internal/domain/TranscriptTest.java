@@ -121,7 +121,7 @@ class TranscriptTest {
 
         assertThatThrownBy(() -> transcript.getCourseRecords().add(
                 CourseRecord.create("2023-2", CourseType.COMMON_GENERAL,
-                        null, null, null, 0, Grade.B_PLUS, false)))
+                        null, "GEN2001", "교양강의", 2, Grade.B_PLUS, false)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
@@ -189,11 +189,11 @@ class TranscriptTest {
     }
 
     @Test
-    void CourseRecord_생성_시_courseCode가_null이어도_정상_생성된다() {
-        CourseRecord record = CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, "자아", null, "특강", 1, Grade.A_PLUS, false);
-
-        assertThat(record.getCourseCode()).isNull();
+    void CourseRecord_생성_시_courseCode가_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseRecord.create(
+                "2023-1", CourseType.FIRST_MAJOR, "자아", null, "특강", 1, Grade.A_PLUS, false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("courseCode");
     }
 
     // --- Grade enum 테스트 ---

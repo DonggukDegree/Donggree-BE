@@ -15,11 +15,11 @@ import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.CourseType;
 import com.donggree.transcript.internal.domain.enums.Grade;
-import com.donggree.transcript.internal.presentation.dto.CourseRecordResponse;
-import com.donggree.transcript.internal.presentation.dto.SemesterCoursesResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
+import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.CourseRecord;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.Meta;
+import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.SemesterCourses;
 import com.donggree.transcript.internal.presentation.swagger.TranscriptApi;
 import java.io.IOException;
 import java.util.List;
@@ -72,8 +72,8 @@ public class TranscriptController implements TranscriptApi {
                 raw.meta().completedSemesters()
         );
 
-        List<SemesterCoursesResponse> courses = raw.semesterGroups().stream()
-                .map(g -> new SemesterCoursesResponse(g.semester(), toCourseRecordResponses(g)))
+        List<SemesterCourses> courses = raw.semesterGroups().stream()
+                .map(g -> new SemesterCourses(g.semester(), toCourseRecords(g)))
                 .toList();
 
         return ApiResponse.onSuccess(GeneralSuccessCode.OK,
@@ -91,7 +91,6 @@ public class TranscriptController implements TranscriptApi {
             ParsedTranscriptData parsed = parseResult.parsedData();
             Map<String, String> meta = parsed.meta();
 
-            // department는 반드시 DB에 존재해야 함 (없으면 DEPARTMENT_NOT_FOUND 에러)
             Long deptId = resolveDepartmentId(meta.get("학과"));
             Long sub1Id = curriculumLookupService.findDepartmentIdByName(meta.get("부전공1")).orElse(null);
             Long sub2Id = curriculumLookupService.findDepartmentIdByName(meta.get("부전공2")).orElse(null);
@@ -101,13 +100,12 @@ public class TranscriptController implements TranscriptApi {
             TranscriptCreateData createData = transcriptService.buildCreateData(
                     memberId, parseResult.rawDataJson(), parsed, deptId, sub1Id, sub2Id, dual1Id, dual2Id);
 
-            // course_name, credits는 파싱 결과를 course_record에 직접 저장 (반정규화)
             List<CourseRecordCreateData> courses = parsed.courses().stream()
                     .map(c -> new CourseRecordCreateData(
                             c.semester(),
                             CourseType.fromCategory(c.category()),
                             c.area().isBlank() ? null : c.area(),
-                            c.courseCode().isBlank() ? null : c.courseCode(),
+                            c.courseCode(),
                             c.courseName(),
                             c.credits(),
                             Grade.fromValue(c.grade()),
@@ -129,9 +127,9 @@ public class TranscriptController implements TranscriptApi {
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
     }
 
-    private List<CourseRecordResponse> toCourseRecordResponses(RawSemesterGroup group) {
+    private List<CourseRecord> toCourseRecords(RawSemesterGroup group) {
         return group.records().stream()
-                .map(r -> new CourseRecordResponse(
+                .map(r -> new CourseRecord(
                         r.id(),
                         r.courseCode(),
                         r.courseName(),

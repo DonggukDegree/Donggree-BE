@@ -4,19 +4,16 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 학업 정보 조회 응답 DTO.
- * 상단 메타 정보와 학기별 수강 이력(커서 페이지네이션)을 포함한다.
+ * GET /api/users/me/reports 응답 DTO.
+ * 이 응답에서만 사용하는 중첩 타입은 내부 record로 정의한다.
  */
 public record TranscriptReportResponse(
         Meta meta,
-        List<SemesterCoursesResponse> courses,
+        List<SemesterCourses> courses,
         Long nextCursor,
         boolean hasNext
 ) {
 
-    /**
-     * 성적표 상단에 표시되는 학업 메타 정보.
-     */
     public record Meta(
             Long reportId,
             int admissionYear,
@@ -29,6 +26,21 @@ public record TranscriptReportResponse(
             int totalCredits,
             BigDecimal gpa,
             int completedSemesters
+    ) {
+    }
+
+    public record SemesterCourses(String semester, List<CourseRecord> records) {
+    }
+
+    public record CourseRecord(
+            Long id,
+            String courseCode,
+            String courseName,
+            int credits,
+            String courseType,
+            String areaName,
+            String grade,
+            boolean retake
     ) {
     }
 }
