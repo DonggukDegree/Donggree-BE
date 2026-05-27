@@ -39,7 +39,7 @@ public class Transcript extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "member_id", unique = true)
+    @Column(name = "member_id")
     private Long memberId;
 
 @JdbcTypeCode(SqlTypes.JSON)

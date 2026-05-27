@@ -97,7 +97,10 @@ public class TranscriptService {
     @Transactional
     public Long createTranscript(TranscriptCreateData createData, List<CourseRecordCreateData> courses) {
         transcriptRepository.findByMemberId(createData.memberId())
-                .ifPresent(existing -> existing.markAsDeleted(LocalDateTime.now()));
+                .ifPresent(existing -> {
+                    existing.markAsDeleted(LocalDateTime.now());
+                    transcriptRepository.flush();
+                });
 
         Transcript transcript = Transcript.create(createData);
 
