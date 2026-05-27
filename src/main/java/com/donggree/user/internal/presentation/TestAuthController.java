@@ -31,14 +31,15 @@ public class TestAuthController {
     public ApiResponse<TestLoginResponse> testLogin(
             @RequestParam(defaultValue = "test@donggree.com") String email
     ) {
-        String oauthId = "test_" + email;
+        String targetEmail = (email.isBlank()) ? "test@donggree.com" : email;
+        String oauthId = "test_" + targetEmail;
 
         Member member = memberRepository.findByOauthIdIncludingDeleted(oauthId)
                 .map(m -> {
                     if (m.isDeleted()) m.reactivate();
                     return m;
                 })
-                .orElseGet(() -> memberRepository.save(Member.registerKakaoMember(oauthId, email)));
+                .orElseGet(() -> memberRepository.save(Member.registerKakaoMember(oauthId, targetEmail)));
 
         String token = jwtTokenProvider.generateAccessToken(member.getId());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, new TestLoginResponse(member.getId(), token));

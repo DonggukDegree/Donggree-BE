@@ -3,8 +3,10 @@ package com.donggree.global.config;
 import com.donggree.global.auth.JwtAuthFilter;
 import com.donggree.global.auth.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -35,7 +37,6 @@ public class SecurityConfig {
 
     private static final String[] PERMIT_URIS = {
             "/auth/refresh",
-            "/auth/test-login",
             "/oauth2/authorization/**",
             "/swagger-ui.html",
             "/swagger-ui/**",
@@ -50,18 +51,23 @@ public class SecurityConfig {
             HttpSecurity http,
             JwtTokenProvider jwtTokenProvider,
             OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService,
-            AuthenticationSuccessHandler oAuthSuccessHandler
+            AuthenticationSuccessHandler oAuthSuccessHandler,
+            Environment env
     ) throws Exception {
         JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtTokenProvider);
+        boolean isLocal = Arrays.asList(env.getActiveProfiles()).contains("local");
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(PERMIT_URIS).permitAll()
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(PERMIT_URIS).permitAll();
+                    if (isLocal) {
+                        auth.requestMatchers("/auth/test-login").permitAll();
+                    }
+                    auth.anyRequest().authenticated();
+                })
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
