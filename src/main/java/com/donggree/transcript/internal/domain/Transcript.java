@@ -165,15 +165,16 @@ public class Transcript extends BaseEntity {
     /**
      * 수강 이력을 생성하여 추가하고 양방향 관계를 설정한다.
      * CourseRecord는 Transcript의 하위 엔티티이므로 반드시 루트를 통해 생성한다.
-     * courseCode, areaName은 curriculum 모듈의 자연 PK를 String으로 참조한다.
+     * 생성된 CourseRecord를 반환하여 저장 후 ID를 참조할 수 있도록 한다.
      */
-    public void addCourseRecord(String semester, CourseType courseType, String areaName,
-                                String courseCode, String courseName, int credits,
-                                Grade grade, boolean retake) {
+    public CourseRecord addCourseRecord(String semester, CourseType courseType, String areaName,
+                                        String courseCode, String courseName, int credits,
+                                        Grade grade, boolean retake) {
         CourseRecord record = CourseRecord.create(semester, courseType, areaName,
                 courseCode, courseName, credits, grade, retake);
         courseRecords.add(record);
         record.assignTranscript(this);
+        return record;
     }
 
     /**

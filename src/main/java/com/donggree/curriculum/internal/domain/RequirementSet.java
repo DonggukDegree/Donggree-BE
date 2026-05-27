@@ -88,14 +88,13 @@ public class RequirementSet extends BaseEntity {
     }
 
     /**
-     * 졸업 규칙을 추가하고 양방향 관계를 설정한다.
+     * 졸업 규칙을 생성하고 추가한다.
      */
-    public void addRule(GraduationRule rule) {
-        if (rule == null) {
-            throw new IllegalArgumentException("rule must not be null");
-        }
+    public GraduationRule addRule(Long ruleTypeId, String ruleName, String ruleConfig, String description) {
+        GraduationRule rule = GraduationRule.create(ruleTypeId, ruleName, ruleConfig, description);
         rules.add(rule);
         rule.assignRequirementSet(this);
+        return rule;
     }
 
     /**
