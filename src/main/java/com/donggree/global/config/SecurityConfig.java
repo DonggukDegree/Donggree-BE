@@ -35,6 +35,7 @@ public class SecurityConfig {
 
     private static final String[] PERMIT_URIS = {
             "/auth/refresh",
+            "/auth/test-login",
             "/oauth2/authorization/**",
             "/swagger-ui.html",
             "/swagger-ui/**",
