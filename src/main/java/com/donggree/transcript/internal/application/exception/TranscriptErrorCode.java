@@ -31,6 +31,10 @@ public enum TranscriptErrorCode implements BaseErrorCode {
     INVALID_COURSE_DATA(HttpStatus.BAD_REQUEST,
             "TRANSCRIPT400_4",
             "유효하지 않은 이수구분 또는 성적 값입니다."),
+
+    PDF_FILE_REQUIRED(HttpStatus.BAD_REQUEST,
+            "TRANSCRIPT400_5",
+            "성적표 PDF 파일이 필요합니다."),
     ;
 
     private final HttpStatus status;

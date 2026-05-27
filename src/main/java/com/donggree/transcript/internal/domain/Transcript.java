@@ -39,7 +39,7 @@ public class Transcript extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "member_id", unique = true)
+    @Column(name = "member_id")
     private Long memberId;
 
 @JdbcTypeCode(SqlTypes.JSON)
@@ -100,12 +100,6 @@ public class Transcript extends BaseEntity {
     @Column(name = "completed_english_result")
     private Boolean completedEnglishResult;
 
-    @Column(name = "completed_english_major")
-    private Integer completedEnglishMajor;
-
-    @Column(name = "completed_english_non_major")
-    private Integer completedEnglishNonMajor;
-
     @Column(name = "teaching_aptitude_count")
     private Integer teachingAptitudeCount;
 
@@ -148,8 +142,6 @@ public class Transcript extends BaseEntity {
         this.globalTalentTrack = data.globalTalentTrack();
         this.englishCourseTarget = data.englishCourseTarget();
         this.completedEnglishResult = data.completedEnglishResult();
-        this.completedEnglishMajor = data.completedEnglishMajor();
-        this.completedEnglishNonMajor = data.completedEnglishNonMajor();
         this.teachingAptitudeCount = data.teachingAptitudeCount();
         this.thesisStatus = data.thesisStatus();
     }

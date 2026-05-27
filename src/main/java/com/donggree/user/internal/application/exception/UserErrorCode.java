@@ -31,6 +31,10 @@ public enum UserErrorCode implements BaseErrorCode {
     NOT_ONBOARDED(HttpStatus.CONFLICT,
             "USER409_4",
             "온보딩을 먼저 완료해야 합니다."),
+
+    PDF_OWNER_MISMATCH(HttpStatus.FORBIDDEN,
+            "USER403_1",
+            "타인의 성적표 PDF를 업로드할 수 없습니다."),
     ;
 
     private final HttpStatus status;

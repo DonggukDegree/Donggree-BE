@@ -1,7 +1,9 @@
 package com.donggree.transcript.internal.application;
 
+import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
+import com.donggree.user.MemberIdentityService;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawCourseRecord;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawMeta;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
@@ -38,6 +40,7 @@ public class TranscriptService {
     private final TranscriptRepository transcriptRepository;
     private final PdfTextExtractor pdfTextExtractor;
     private final ObjectMapper objectMapper;
+    private final MemberIdentityService memberIdentityService;
 
     private final TranscriptParser parser = new TranscriptParser();
 
@@ -79,10 +82,8 @@ public class TranscriptService {
                 isPresent(meta.get("전적대")),
                 isYes(meta.get("선택적수료승인")),
                 isYes(meta.get("글로벌인재트랙여부")),
-                false,
+                meta.get("영어강의이수대상") != null,
                 toPassFail(meta.get("영어강의이수결과")),
-                null,
-                null,
                 parseIntOrNull(meta.get("교직인적성합격횟수")),
                 "합격".equals(meta.get("졸업논문심사"))
         );
@@ -97,9 +98,13 @@ public class TranscriptService {
      * @return 생성된 Transcript의 ID
      */
     @Transactional
-    public Long createTranscript(TranscriptCreateData createData, List<CourseRecordCreateData> courses) {
+    public Long createTranscript(TranscriptCreateData createData, List<CourseRecordCreateData> courses,
+                                  String pdfStudentId, String pdfName) {
         transcriptRepository.findByMemberId(createData.memberId())
-                .ifPresent(existing -> existing.markAsDeleted(LocalDateTime.now()));
+                .ifPresent(existing -> {
+                    existing.markAsDeleted(LocalDateTime.now());
+                    transcriptRepository.flush();
+                });
 
         Transcript transcript = Transcript.create(createData);
 
@@ -111,7 +116,9 @@ public class TranscriptService {
             );
         }
 
-        return transcriptRepository.save(transcript).getId();
+        Long savedId = transcriptRepository.save(transcript).getId();
+        memberIdentityService.verifyIdentityIfMatch(createData.memberId(), pdfStudentId, pdfName);
+        return savedId;
     }
 
     /**
@@ -207,7 +214,7 @@ public class TranscriptService {
             rawDataMap.put("courses", parsedData.courses());
             return objectMapper.writeValueAsString(rawDataMap);
         } catch (JsonProcessingException e) {
-            throw new GeneralException(TranscriptErrorCode.PDF_PARSING_FAILED);
+            throw new GeneralException(GeneralErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 

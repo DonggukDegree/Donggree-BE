@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CurriculumLookupService;
+import com.donggree.user.MemberIdentityService;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.transcript.internal.application.TranscriptParseResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult;
@@ -48,11 +49,12 @@ class TranscriptControllerTest extends RestDocsSupport {
 
     private final TranscriptService transcriptService = Mockito.mock(TranscriptService.class);
     private final CurriculumLookupService curriculumLookupService = Mockito.mock(CurriculumLookupService.class);
+    private final MemberIdentityService memberIdentityService = Mockito.mock(MemberIdentityService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new TranscriptController(transcriptService, curriculumLookupService);
+        return new TranscriptController(transcriptService, curriculumLookupService, memberIdentityService);
     }
 
     @AfterEach
@@ -124,7 +126,9 @@ class TranscriptControllerTest extends RestDocsSupport {
                 "과정", "학사",
                 "총취득학점", "60",
                 "평점평균", "3.50",
-                "이수학기", "4"
+                "이수학기", "4",
+                "학번", "2023123456",
+                "성명", "홍길동"
         );
         ParsedTranscriptData parsedData = new ParsedTranscriptData(meta, List.of(
                 new ParsedCourse("2023-1", 1, "전공", "CSE1101", "프로그래밍기초", 3, "A+", null, false)
@@ -134,14 +138,14 @@ class TranscriptControllerTest extends RestDocsSupport {
         TranscriptCreateData createData = new TranscriptCreateData(
                 memberId, "{}", 2023, "재학", "학사", 10L,
                 null, null, null, null, 60, new BigDecimal("3.50"), 4,
-                null, false, false, false, false, false, null, null, null, null, false
+                null, false, false, false, false, false, null, null, false
         );
 
         given(transcriptService.parseTranscript(any(byte[].class))).willReturn(parseResult);
         given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
         given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
         given(transcriptService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any())).willReturn(createData);
-        given(transcriptService.createTranscript(any(), any())).willReturn(1L);
+        given(transcriptService.createTranscript(any(), any(), any(), any())).willReturn(1L);
 
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file", "transcript.pdf", "application/pdf", "PDF content".getBytes());
