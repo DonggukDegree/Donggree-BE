@@ -99,7 +99,15 @@ public class TranscriptController implements TranscriptApi {
             ParsedTranscriptData parsed = parseResult.parsedData();
             Map<String, String> meta = parsed.meta();
 
-            memberIdentityService.validatePdfOwner(memberId, meta.get("학번"), meta.get("성명"));
+            String pdfStudentId = meta.get("학번");
+            String pdfName = meta.get("성명");
+            if (pdfStudentId == null || pdfName == null
+                    || meta.get("학적상태") == null || meta.get("교육과정 적용년도") == null
+                    || meta.get("총취득학점") == null || meta.get("평점평균") == null
+                    || meta.get("이수학기") == null) {
+                throw new GeneralException(TranscriptErrorCode.PDF_PARSING_FAILED);
+            }
+            memberIdentityService.validatePdfOwner(memberId, pdfStudentId, pdfName);
 
             Long deptId = resolveDepartmentId(meta.get("학과"));
             Long sub1Id = curriculumLookupService.findDepartmentIdByName(meta.get("부전공1")).orElse(null);
@@ -123,8 +131,7 @@ public class TranscriptController implements TranscriptApi {
                     ))
                     .toList();
 
-            Long reportId = transcriptService.createTranscript(createData, courses);
-            memberIdentityService.verifyIdentityIfMatch(memberId, meta.get("학번"), meta.get("성명"));
+            Long reportId = transcriptService.createTranscript(createData, courses, pdfStudentId, pdfName);
             return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, new TranscriptCreateResponse(reportId));
 
         } catch (IOException e) {

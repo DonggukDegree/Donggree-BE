@@ -126,7 +126,9 @@ class TranscriptControllerTest extends RestDocsSupport {
                 "과정", "학사",
                 "총취득학점", "60",
                 "평점평균", "3.50",
-                "이수학기", "4"
+                "이수학기", "4",
+                "학번", "2023123456",
+                "성명", "홍길동"
         );
         ParsedTranscriptData parsedData = new ParsedTranscriptData(meta, List.of(
                 new ParsedCourse("2023-1", 1, "전공", "CSE1101", "프로그래밍기초", 3, "A+", null, false)
@@ -143,7 +145,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
         given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
         given(transcriptService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any())).willReturn(createData);
-        given(transcriptService.createTranscript(any(), any())).willReturn(1L);
+        given(transcriptService.createTranscript(any(), any(), any(), any())).willReturn(1L);
 
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file", "transcript.pdf", "application/pdf", "PDF content".getBytes());

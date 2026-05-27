@@ -18,9 +18,6 @@ public class MemberIdentityServiceImpl implements MemberIdentityService {
     @Override
     @Transactional(readOnly = true)
     public void validatePdfOwner(Long memberId, String pdfStudentId, String pdfName) {
-        if (pdfStudentId == null || pdfName == null) {
-            return;
-        }
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
