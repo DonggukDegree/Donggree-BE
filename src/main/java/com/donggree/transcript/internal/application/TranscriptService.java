@@ -79,10 +79,8 @@ public class TranscriptService {
                 isPresent(meta.get("전적대")),
                 isYes(meta.get("선택적수료승인")),
                 isYes(meta.get("글로벌인재트랙여부")),
-                false,
+                meta.get("영어강의이수대상") != null,
                 toPassFail(meta.get("영어강의이수결과")),
-                null,
-                null,
                 parseIntOrNull(meta.get("교직인적성합격횟수")),
                 "합격".equals(meta.get("졸업논문심사"))
         );

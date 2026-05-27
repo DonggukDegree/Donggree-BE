@@ -134,7 +134,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         TranscriptCreateData createData = new TranscriptCreateData(
                 memberId, "{}", 2023, "재학", "학사", 10L,
                 null, null, null, null, 60, new BigDecimal("3.50"), 4,
-                null, false, false, false, false, false, null, null, null, null, false
+                null, false, false, false, false, false, null, null, false
         );
 
         given(transcriptService.parseTranscript(any(byte[].class))).willReturn(parseResult);

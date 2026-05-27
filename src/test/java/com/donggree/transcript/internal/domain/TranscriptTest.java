@@ -37,8 +37,6 @@ class TranscriptTest {
         assertThat(transcript.isGlobalTalentTrack()).isFalse();
         assertThat(transcript.isEnglishCourseTarget()).isTrue();
         assertThat(transcript.getCompletedEnglishResult()).isTrue();
-        assertThat(transcript.getCompletedEnglishMajor()).isEqualTo(2);
-        assertThat(transcript.getCompletedEnglishNonMajor()).isEqualTo(1);
         assertThat(transcript.getTeachingAptitudeCount()).isNull();
         assertThat(transcript.isThesisStatus()).isFalse();
         assertThat(transcript.getCourseRecords()).isEmpty();
@@ -52,7 +50,7 @@ class TranscriptTest {
                 2023, "재학", null, null, null, null, null, null,
                 0, BigDecimal.ZERO, 0, null,
                 false, false, false, false, false,
-                null, null, null, null, false);
+                null, null, false);
 
         assertThatThrownBy(() -> Transcript.create(data))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -66,7 +64,7 @@ class TranscriptTest {
                 2023, "재학", null, null, null, null, null, null,
                 0, BigDecimal.ZERO, 0, null,
                 false, false, false, false, false,
-                null, null, null, null, false);
+                null, null, false);
 
         assertThatThrownBy(() -> Transcript.create(data))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -80,7 +78,7 @@ class TranscriptTest {
                 2023, null, null, null, null, null, null, null,
                 0, BigDecimal.ZERO, 0, null,
                 false, false, false, false, false,
-                null, null, null, null, false);
+                null, null, false);
 
         assertThatThrownBy(() -> Transcript.create(data))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -233,7 +231,7 @@ class TranscriptTest {
                 2023, "재학", null, null, null, null, null, null,
                 0, BigDecimal.ZERO, 0, null,
                 false, false, false, false, false,
-                null, null, null, null, false));
+                null, null, false));
     }
 
     private Transcript createFullTranscript() {
@@ -242,6 +240,6 @@ class TranscriptTest {
                 2023, "재학", "단일", 100L, null, null, null, null,
                 80, new BigDecimal("3.95"), 4, "S1",
                 true, false, false, false, true,
-                true, 2, 1, null, false));
+                true, null, false));
     }
 }
