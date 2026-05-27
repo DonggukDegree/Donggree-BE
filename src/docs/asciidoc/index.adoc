@@ -3,7 +3,7 @@
 :icons: font
 :source-highlighter: highlightjs
 :toc: left
-:toclevels: 2
+:toclevels: 3
 :sectlinks:
 
 == Overview
@@ -52,3 +52,22 @@ operation::user-info-update[]
 
 operation::user-delete[]
 
+=== 학업 정보
+
+==== 성적표 조회
+
+로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. 수강 이력은 학기 오름차순으로 그룹핑하여 반환한다.
+
+operation::transcript-get-report[]
+
+==== 성적표 등록
+
+취득교과목 영역별 분류표 PDF를 업로드하면 자동으로 파싱하여 학업 정보를 저장한다. 기존 성적표가 있으면 소프트 삭제 후 새로 생성한다.
+
+operation::transcript-create[]
+
+==== 수강 이력 추가
+
+기존 성적표에 수강 이력을 수동으로 추가한다. 여러 개를 한 번에 추가할 수 있다. 성적표가 없으면 404를 반환한다.
+
+operation::transcript-add-course-records[]
