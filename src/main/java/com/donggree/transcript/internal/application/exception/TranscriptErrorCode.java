@@ -27,6 +27,10 @@ public enum TranscriptErrorCode implements BaseErrorCode {
     DEPARTMENT_NOT_FOUND(HttpStatus.BAD_REQUEST,
             "TRANSCRIPT400_3",
             "PDF에 기재된 학과가 등록되어 있지 않습니다."),
+
+    INVALID_COURSE_DATA(HttpStatus.BAD_REQUEST,
+            "TRANSCRIPT400_4",
+            "유효하지 않은 이수구분 또는 성적 값입니다."),
     ;
 
     private final HttpStatus status;

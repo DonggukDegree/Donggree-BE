@@ -7,7 +7,6 @@ import com.donggree.transcript.internal.domain.enums.CourseType;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class TranscriptTest {

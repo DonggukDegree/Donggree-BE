@@ -65,10 +65,8 @@ class RequirementSetTest {
     @Test
     void 규칙_추가_시_양방향_관계가_설정된다() {
         RequirementSet set = createRequirementSet();
-        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점",
-                "{\"minCredits\": 60}", "전공 최소 60학점 이수");
 
-        set.addRule(rule);
+        GraduationRule rule = set.addRule(1L, "전공 최소학점", "{\"minCredits\": 60}", "전공 최소 60학점 이수");
 
         assertThat(set.getRules()).hasSize(1);
         assertThat(set.getRules().get(0)).isSameAs(rule);
@@ -78,31 +76,25 @@ class RequirementSetTest {
     @Test
     void 여러_규칙을_추가할_수_있다() {
         RequirementSet set = createRequirementSet();
-        GraduationRule rule1 = GraduationRule.create(1L, "전공 최소학점",
-                "{\"minCredits\": 60}", null);
-        GraduationRule rule2 = GraduationRule.create(2L, "교양 필수과목",
-                "{\"courses\": [\"GEN1001\"]}", null);
 
-        set.addRule(rule1);
-        set.addRule(rule2);
+        set.addRule(1L, "전공 최소학점", "{\"minCredits\": 60}", null);
+        set.addRule(2L, "교양 필수과목", "{\"courses\": [\"GEN1001\"]}", null);
 
         assertThat(set.getRules()).hasSize(2);
     }
 
     @Test
-    void null_규칙을_추가하면_예외가_발생한다() {
+    void ruleTypeId가_null이면_예외가_발생한다() {
         RequirementSet set = createRequirementSet();
 
-        assertThatThrownBy(() -> set.addRule(null))
+        assertThatThrownBy(() -> set.addRule(null, "전공 최소학점", "{}", null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void getRules는_불변_리스트를_반환한다() {
         RequirementSet set = createRequirementSet();
-        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점",
-                "{\"minCredits\": 60}", null);
-        set.addRule(rule);
+        set.addRule(1L, "전공 최소학점", "{\"minCredits\": 60}", null);
 
         assertThatThrownBy(() -> set.getRules().add(
                 GraduationRule.create(2L, "다른 규칙", "{}", null)))
