@@ -15,12 +15,15 @@ import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.CourseType;
 import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.CourseRecord;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.Meta;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.SemesterCourses;
 import com.donggree.transcript.internal.presentation.swagger.TranscriptApi;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +31,9 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -117,6 +122,35 @@ public class TranscriptController implements TranscriptApi {
         } catch (IOException e) {
             throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);
         }
+    }
+
+    @Override
+    @PatchMapping
+    public ApiResponse<CourseRecordAddResponse> addCourseRecords(
+            @LoginMemberId Long memberId,
+            @Valid @RequestBody CourseRecordAddRequest request
+    ) {
+        List<CourseRecordCreateData> courses = request.courses().stream()
+                .map(item -> {
+                    try {
+                        return new CourseRecordCreateData(
+                                item.semester(),
+                                CourseType.valueOf(item.courseType()),
+                                (item.areaName() == null || item.areaName().isBlank()) ? null : item.areaName(),
+                                item.courseCode(),
+                                item.courseName(),
+                                item.credits(),
+                                Grade.fromValue(item.grade()),
+                                item.retake()
+                        );
+                    } catch (IllegalArgumentException e) {
+                        throw new GeneralException(TranscriptErrorCode.INVALID_COURSE_DATA);
+                    }
+                })
+                .toList();
+
+        List<Long> addedIds = transcriptService.addCourseRecords(memberId, courses);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, new CourseRecordAddResponse(addedIds));
     }
 
     private Long resolveDepartmentId(String departmentName) {
