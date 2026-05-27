@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CurriculumLookupService;
+import com.donggree.user.MemberIdentityService;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.transcript.internal.application.TranscriptParseResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult;
@@ -48,11 +49,12 @@ class TranscriptControllerTest extends RestDocsSupport {
 
     private final TranscriptService transcriptService = Mockito.mock(TranscriptService.class);
     private final CurriculumLookupService curriculumLookupService = Mockito.mock(CurriculumLookupService.class);
+    private final MemberIdentityService memberIdentityService = Mockito.mock(MemberIdentityService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new TranscriptController(transcriptService, curriculumLookupService);
+        return new TranscriptController(transcriptService, curriculumLookupService, memberIdentityService);
     }
 
     @AfterEach
@@ -141,7 +143,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
         given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
         given(transcriptService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any())).willReturn(createData);
-        given(transcriptService.createTranscript(any(), any(), any(), any())).willReturn(1L);
+        given(transcriptService.createTranscript(any(), any())).willReturn(1L);
 
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file", "transcript.pdf", "application/pdf", "PDF content".getBytes());

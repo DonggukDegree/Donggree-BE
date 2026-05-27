@@ -1,2 +1,2 @@
-@org.springframework.modulith.ApplicationModule(allowedDependencies = {"global", "transcript"})
+@org.springframework.modulith.ApplicationModule(allowedDependencies = "global")
 package com.donggree.user;
