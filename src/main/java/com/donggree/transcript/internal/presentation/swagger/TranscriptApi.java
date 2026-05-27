@@ -7,8 +7,13 @@ import com.donggree.transcript.internal.presentation.dto.TranscriptCreateRespons
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Transcript", description = "성적표 관리")
@@ -19,6 +24,13 @@ public interface TranscriptApi {
             description = "취득교과목 영역별 분류표 PDF를 업로드하여 성적표를 생성한다. "
                     + "기존 성적표가 있으면 소프트 삭제 후 새로 생성한다."
     )
+    @RequestBody(content = @Content(
+            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+            schemaProperties = @SchemaProperty(
+                    name = "file",
+                    schema = @Schema(type = "string", format = "binary", description = "성적표 PDF 파일")
+            )
+    ))
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
