@@ -141,7 +141,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
         given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
         given(transcriptService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any())).willReturn(createData);
-        given(transcriptService.createTranscript(any(), any())).willReturn(1L);
+        given(transcriptService.createTranscript(any(), any(), any(), any())).willReturn(1L);
 
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file", "transcript.pdf", "application/pdf", "PDF content".getBytes());

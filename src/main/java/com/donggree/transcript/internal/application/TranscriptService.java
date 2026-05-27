@@ -1,6 +1,7 @@
 package com.donggree.transcript.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.transcript.TranscriptCreatedEvent;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawCourseRecord;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawMeta;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,7 @@ public class TranscriptService {
     private final TranscriptRepository transcriptRepository;
     private final PdfTextExtractor pdfTextExtractor;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     private final TranscriptParser parser = new TranscriptParser();
 
@@ -95,7 +98,8 @@ public class TranscriptService {
      * @return 생성된 Transcript의 ID
      */
     @Transactional
-    public Long createTranscript(TranscriptCreateData createData, List<CourseRecordCreateData> courses) {
+    public Long createTranscript(TranscriptCreateData createData, List<CourseRecordCreateData> courses,
+                                  String pdfStudentId, String pdfName) {
         transcriptRepository.findByMemberId(createData.memberId())
                 .ifPresent(existing -> {
                     existing.markAsDeleted(LocalDateTime.now());
@@ -112,7 +116,9 @@ public class TranscriptService {
             );
         }
 
-        return transcriptRepository.save(transcript).getId();
+        Long savedId = transcriptRepository.save(transcript).getId();
+        eventPublisher.publishEvent(new TranscriptCreatedEvent(createData.memberId(), pdfStudentId, pdfName));
+        return savedId;
     }
 
     /**

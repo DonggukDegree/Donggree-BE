@@ -116,7 +116,7 @@ public class TranscriptController implements TranscriptApi {
                     ))
                     .toList();
 
-            Long reportId = transcriptService.createTranscript(createData, courses);
+            Long reportId = transcriptService.createTranscript(createData, courses, meta.get("학번"), meta.get("성명"));
             return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, new TranscriptCreateResponse(reportId));
 
         } catch (IOException e) {
