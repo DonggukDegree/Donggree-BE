@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,6 +112,32 @@ public class TranscriptService {
         }
 
         return transcriptRepository.save(transcript).getId();
+    }
+
+    /**
+     * 기존 성적표에 수강 이력을 수동으로 추가한다.
+     * 성적표가 없으면 예외를 던진다.
+     *
+     * @param memberId 로그인한 회원 ID
+     * @param courses  추가할 수강 이력 목록
+     * @return 새로 생성된 CourseRecord ID 목록
+     */
+    @Transactional
+    public List<Long> addCourseRecords(Long memberId, List<CourseRecordCreateData> courses) {
+        Transcript transcript = transcriptRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new GeneralException(TranscriptErrorCode.TRANSCRIPT_NOT_FOUND));
+
+        List<CourseRecord> added = new ArrayList<>();
+        for (CourseRecordCreateData course : courses) {
+            added.add(transcript.addCourseRecord(
+                    course.semester(), course.courseType(), course.areaName(),
+                    course.courseCode(), course.courseName(), course.credits(),
+                    course.grade(), course.retake()
+            ));
+        }
+
+        transcriptRepository.save(transcript);
+        return added.stream().map(CourseRecord::getId).toList();
     }
 
     /**
