@@ -89,8 +89,11 @@ public class TranscriptController implements TranscriptApi {
     @PutMapping
     public ApiResponse<TranscriptCreateResponse> createTranscript(
             @LoginMemberId Long memberId,
-            @RequestParam("file") MultipartFile file
+            @RequestParam(value = "file", required = false) MultipartFile file
     ) {
+        if (file == null || file.isEmpty()) {
+            throw new GeneralException(TranscriptErrorCode.PDF_FILE_REQUIRED);
+        }
         try {
             TranscriptParseResult parseResult = transcriptService.parseTranscript(file.getBytes());
             ParsedTranscriptData parsed = parseResult.parsedData();
