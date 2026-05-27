@@ -135,7 +135,7 @@ public class TranscriptController implements TranscriptApi {
                     try {
                         return new CourseRecordCreateData(
                                 item.semester(),
-                                CourseType.valueOf(item.courseType()),
+                                CourseType.valueOf(item.courseType().toUpperCase()),
                                 (item.areaName() == null || item.areaName().isBlank()) ? null : item.areaName(),
                                 item.courseCode(),
                                 item.courseName(),

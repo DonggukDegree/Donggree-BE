@@ -3,7 +3,6 @@ package com.donggree.transcript.internal.presentation.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 
@@ -17,7 +16,7 @@ public record CourseRecordAddRequest(
 
     public record CourseItem(
             @NotBlank String semester,
-            @NotNull String courseType,
+            @NotBlank String courseType,
             String areaName,
             @NotBlank String courseCode,
             @NotBlank String courseName,

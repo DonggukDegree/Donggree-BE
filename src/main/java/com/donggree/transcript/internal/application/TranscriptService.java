@@ -136,7 +136,7 @@ public class TranscriptService {
             ));
         }
 
-        transcriptRepository.save(transcript);
+        transcriptRepository.saveAndFlush(transcript);
         return added.stream().map(CourseRecord::getId).toList();
     }
 
