@@ -3,7 +3,6 @@ package com.donggree.transcript.internal.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.donggree.transcript.internal.domain.enums.CourseType;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -91,12 +90,12 @@ class TranscriptTest {
     void 수강_이력_추가_시_양방향_관계가_설정된다() {
         Transcript transcript = createTranscript();
 
-        transcript.addCourseRecord("2023-1", CourseType.FIRST_MAJOR, "자아", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
 
         assertThat(transcript.getCourseRecords()).hasSize(1);
         CourseRecord record = transcript.getCourseRecords().get(0);
         assertThat(record.getSemester()).isEqualTo("2023-1");
-        assertThat(record.getCourseType()).isEqualTo(CourseType.FIRST_MAJOR);
+        assertThat(record.getCourseTypeName()).isEqualTo("전공");
         assertThat(record.getTranscript()).isSameAs(transcript);
     }
 
@@ -104,20 +103,30 @@ class TranscriptTest {
     void 여러_수강_이력을_추가할_수_있다() {
         Transcript transcript = createTranscript();
 
-        transcript.addCourseRecord("2023-1", CourseType.FIRST_MAJOR, "자아", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
-        transcript.addCourseRecord("2023-1", CourseType.COMMON_GENERAL, "영어", "ENG1001", "영어1", 2, Grade.B_ZERO, false);
-        transcript.addCourseRecord("2023-2", CourseType.LIBERAL_ARTS, null, "HUM2001", "글쓰기", 2, Grade.P, false);
+        transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-1", "공교", "자아", "ENG1001", "영어1", 2, Grade.B_ZERO, false);
+        transcript.addCourseRecord("2023-2", "일교", null, "HUM2001", "글쓰기", 2, Grade.P, false);
 
         assertThat(transcript.getCourseRecords()).hasSize(3);
     }
 
     @Test
+    void courseTypeName이_null이어도_수강_이력을_추가할_수_있다() {
+        Transcript transcript = createTranscript();
+
+        transcript.addCourseRecord("2023-1", null, null, "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
+
+        assertThat(transcript.getCourseRecords()).hasSize(1);
+        assertThat(transcript.getCourseRecords().get(0).getCourseTypeName()).isNull();
+    }
+
+    @Test
     void getCourseRecords는_불변_리스트를_반환한다() {
         Transcript transcript = createTranscript();
-        transcript.addCourseRecord("2023-1", CourseType.FIRST_MAJOR, "자아", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
 
         assertThatThrownBy(() -> transcript.getCourseRecords().add(
-                CourseRecord.create("2023-2", CourseType.COMMON_GENERAL,
+                CourseRecord.create("2023-2", "공교",
                         null, "GEN2001", "교양강의", 2, Grade.B_PLUS, false)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
@@ -149,11 +158,11 @@ class TranscriptTest {
     @Test
     void CourseRecord_생성_시_필드가_올바르게_저장된다() {
         CourseRecord record = CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, "자아", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, true);
+                "2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, true);
 
         assertThat(record.getSemester()).isEqualTo("2023-1");
-        assertThat(record.getCourseType()).isEqualTo(CourseType.FIRST_MAJOR);
-        assertThat(record.getAreaName()).isEqualTo("자아");
+        assertThat(record.getCourseTypeName()).isEqualTo("전공");
+        assertThat(record.getAreaName()).isEqualTo("전문");
         assertThat(record.getCourseCode()).isEqualTo("CSE1101");
         assertThat(record.getCourseName()).isEqualTo("컴퓨터프로그래밍");
         assertThat(record.getCredits()).isEqualTo(3);
@@ -164,7 +173,7 @@ class TranscriptTest {
     @Test
     void CourseRecord_생성_시_grade가_null이면_예외가_발생한다() {
         assertThatThrownBy(() -> CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, "자아", "CSE1101", "컴퓨터프로그래밍", 3, null, false))
+                "2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, null, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("grade");
     }
@@ -172,23 +181,15 @@ class TranscriptTest {
     @Test
     void CourseRecord_생성_시_semester가_null이면_예외가_발생한다() {
         assertThatThrownBy(() -> CourseRecord.create(
-                null, CourseType.FIRST_MAJOR, "자아", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false))
+                null, "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("semester");
     }
 
     @Test
-    void CourseRecord_생성_시_courseType이_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseRecord.create(
-                "2023-1", null, "자아", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("courseType");
-    }
-
-    @Test
     void CourseRecord_생성_시_courseCode가_null이면_예외가_발생한다() {
         assertThatThrownBy(() -> CourseRecord.create(
-                "2023-1", CourseType.FIRST_MAJOR, "자아", null, "특강", 1, Grade.A_PLUS, false))
+                "2023-1", "전공", "전문", null, "특강", 1, Grade.A_PLUS, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("courseCode");
     }

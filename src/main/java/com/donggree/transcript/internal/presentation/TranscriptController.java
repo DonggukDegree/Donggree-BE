@@ -14,7 +14,6 @@ import com.donggree.transcript.internal.application.TranscriptService;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
-import com.donggree.transcript.internal.domain.enums.CourseType;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
@@ -121,7 +120,7 @@ public class TranscriptController implements TranscriptApi {
             List<CourseRecordCreateData> courses = parsed.courses().stream()
                     .map(c -> new CourseRecordCreateData(
                             c.semester(),
-                            CourseType.fromCategory(c.category()),
+                            c.category(),
                             (c.area() == null || c.area().isBlank()) ? null : c.area(),
                             c.courseCode(),
                             c.courseName(),
@@ -150,7 +149,7 @@ public class TranscriptController implements TranscriptApi {
                     try {
                         return new CourseRecordCreateData(
                                 item.semester(),
-                                CourseType.valueOf(item.courseType().toUpperCase()),
+                                item.courseType(),
                                 (item.areaName() == null || item.areaName().isBlank()) ? null : item.areaName(),
                                 item.courseCode(),
                                 item.courseName(),
