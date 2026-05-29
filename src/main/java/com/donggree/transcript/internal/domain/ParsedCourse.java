@@ -23,6 +23,4 @@ public record ParsedCourse(
         int credits,
         String grade,
         String area,
-        boolean retake
-) {
-}
+        boolean retake) {}

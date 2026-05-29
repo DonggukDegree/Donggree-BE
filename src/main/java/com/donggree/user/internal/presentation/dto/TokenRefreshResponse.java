@@ -5,5 +5,4 @@ package com.donggree.user.internal.presentation.dto;
  *
  * @param accessToken 새로 발급된 액세스 토큰
  */
-public record TokenRefreshResponse(String accessToken) {
-}
+public record TokenRefreshResponse(String accessToken) {}

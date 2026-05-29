@@ -12,16 +12,12 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
 
     private final ThesisEvaluator evaluator = new ThesisEvaluator();
 
-    private static final String CONFIG =
-            "{\"exemptStudentTypes\": [\"학석사연계과정\"]," +
-            "\"requiredCourseSets\": [[\"종합설계1\", \"종합설계2\"], [\"종합설계1\", \"개별연구\"]]}";
+    private static final String CONFIG = "{\"exemptStudentTypes\": [\"학석사연계과정\"],"
+            + "\"requiredCourseSets\": [[\"종합설계1\", \"종합설계2\"], [\"종합설계1\", \"개별연구\"]]}";
 
     @Test
     void 종합설계1과_2를_이수하면_충족이다() {
-        var records = List.of(
-                passed("CSE4001", "종합설계1", 3, "2024-1"),
-                passed("CSE4002", "종합설계2", 3, "2024-2")
-        );
+        var records = List.of(passed("CSE4001", "종합설계1", 3, "2024-1"), passed("CSE4002", "종합설계2", 3, "2024-2"));
         var t = transcriptWith(6, 4.0, false, null, false, "단일", "S1", records);
         EvaluationContext ctx = contextNoClassification(t);
 
@@ -30,10 +26,7 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
 
     @Test
     void 종합설계1과_개별연구를_이수하면_충족이다() {
-        var records = List.of(
-                passed("CSE4001", "종합설계1", 3, "2024-1"),
-                passed("CSE4003", "개별연구", 3, "2024-2")
-        );
+        var records = List.of(passed("CSE4001", "종합설계1", 3, "2024-1"), passed("CSE4003", "개별연구", 3, "2024-2"));
         var t = transcriptWith(6, 4.0, false, null, false, "단일", "S1", records);
         EvaluationContext ctx = contextNoClassification(t);
 
@@ -66,7 +59,7 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(1L, "THESIS", RuleCategory.GRADUATION_REQ,
-                "종합설계1과 종합설계2 또는 개별연구를 이수해야 합니다.", config);
+        return new GraduationRuleView(
+                1L, "THESIS", RuleCategory.GRADUATION_REQ, "종합설계1과 종합설계2 또는 개별연구를 이수해야 합니다.", config);
     }
 }

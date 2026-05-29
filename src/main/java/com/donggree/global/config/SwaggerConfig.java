@@ -21,24 +21,26 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI donggreeOpenAPI() {
         return new OpenAPI()
-            .info(apiInfo())
-            .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
-            .components(securityComponents());
+                .info(apiInfo())
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                .components(securityComponents());
     }
 
     private Info apiInfo() {
         return new Info()
-            .title("Donggree API")
-            .description("PDF 기반 졸업 요건 자동 판정 서비스")
-            .version("0.0.1");
+                .title("Donggree API")
+                .description("PDF 기반 졸업 요건 자동 판정 서비스")
+                .version("0.0.1");
     }
 
     private Components securityComponents() {
         return new Components()
-            .addSecuritySchemes(SECURITY_SCHEME_NAME, new SecurityScheme()
-                .name(SECURITY_SCHEME_NAME)
-                .type(SecurityScheme.Type.HTTP)
-                .scheme("Bearer")
-                .bearerFormat("JWT"));
+                .addSecuritySchemes(
+                        SECURITY_SCHEME_NAME,
+                        new SecurityScheme()
+                                .name(SECURITY_SCHEME_NAME)
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("Bearer")
+                                .bearerFormat("JWT"));
     }
 }

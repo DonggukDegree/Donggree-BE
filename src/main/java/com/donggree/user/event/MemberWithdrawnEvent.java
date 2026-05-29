@@ -6,5 +6,4 @@ package com.donggree.user.event;
  *
  * @param memberId 탈퇴한 회원 ID
  */
-public record MemberWithdrawnEvent(Long memberId) {
-}
+public record MemberWithdrawnEvent(Long memberId) {}

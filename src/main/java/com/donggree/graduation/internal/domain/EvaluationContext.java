@@ -24,8 +24,8 @@ public class EvaluationContext {
     private final TranscriptView transcript;
     private final Map<String, CourseClassificationView> classificationByCourseCode;
 
-    public EvaluationContext(TranscriptView transcript,
-                             Map<String, CourseClassificationView> classificationByCourseCode) {
+    public EvaluationContext(
+            TranscriptView transcript, Map<String, CourseClassificationView> classificationByCourseCode) {
         this.transcript = transcript;
         this.classificationByCourseCode = Map.copyOf(classificationByCourseCode);
     }
@@ -72,8 +72,7 @@ public class EvaluationContext {
 
     /** 주어진 과목명을 이수한 과목이 있는지 확인한다. */
     public boolean hasPassedCourseByName(String courseName) {
-        return getPassedCourses().stream()
-                .anyMatch(cr -> courseName.equals(cr.courseName()));
+        return getPassedCourses().stream().anyMatch(cr -> courseName.equals(cr.courseName()));
     }
 
     /**
@@ -95,8 +94,7 @@ public class EvaluationContext {
     }
 
     /** 특정 courseType + subCategory 목록의 이수 학점 합계를 반환한다. */
-    public int getTotalPassedCreditsByTypeAndSubCategories(
-            CourseType courseType, List<String> subCategories) {
+    public int getTotalPassedCreditsByTypeAndSubCategories(CourseType courseType, List<String> subCategories) {
         return getPassedCoursesByTypeAndSubCategories(courseType, subCategories).stream()
                 .mapToInt(CourseRecordView::credits)
                 .sum();
@@ -113,12 +111,13 @@ public class EvaluationContext {
         if (parts.length != 2) return 0;
         try {
             int year = Integer.parseInt(parts[0]);
-            int term = switch (parts[1]) {
-                case "1" -> 1;
-                case "하", "동" -> 5;
-                case "2" -> 10;
-                default -> 0;
-            };
+            int term =
+                    switch (parts[1]) {
+                        case "1" -> 1;
+                        case "하", "동" -> 5;
+                        case "2" -> 10;
+                        default -> 0;
+                    };
             return year * 100 + term;
         } catch (NumberFormatException e) {
             return 0;

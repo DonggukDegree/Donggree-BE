@@ -36,16 +36,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String email = (kakaoAccount != null) ? (String) kakaoAccount.get("email") : null;
 
         // 탈퇴 회원 포함 전체 조회 → 탈퇴 상태면 재활성화 → 없으면 신규 등록
-        Member member = memberRepository.findByOauthIdIncludingDeleted(oauthId)
+        Member member = memberRepository
+                .findByOauthIdIncludingDeleted(oauthId)
                 .map(m -> {
                     if (m.isDeleted()) {
                         m.reactivate();
                     }
                     return m;
                 })
-                .orElseGet(() -> memberRepository.save(
-                        Member.registerKakaoMember(oauthId, email)
-                ));
+                .orElseGet(() -> memberRepository.save(Member.registerKakaoMember(oauthId, email)));
 
         return new OAuthMember(member, oAuth2User.getAttributes());
     }

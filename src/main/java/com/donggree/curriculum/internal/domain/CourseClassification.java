@@ -52,9 +52,14 @@ public class CourseClassification {
     @Column(name = "subject_domain", length = 20)
     private String subjectDomain;
 
-    private CourseClassification(Long courseId, int studentYearStart, int studentYearEnd,
-                                  CourseType courseType, Long areaTypeId,
-                                  String subCategory, String subjectDomain) {
+    private CourseClassification(
+            Long courseId,
+            int studentYearStart,
+            int studentYearEnd,
+            CourseType courseType,
+            Long areaTypeId,
+            String subCategory,
+            String subjectDomain) {
         if (courseId == null) {
             throw new IllegalArgumentException("courseId must not be null");
         }
@@ -76,10 +81,15 @@ public class CourseClassification {
         this.subjectDomain = subjectDomain;
     }
 
-    public static CourseClassification create(Long courseId, int studentYearStart, int studentYearEnd,
-                                               CourseType courseType, Long areaTypeId,
-                                               String subCategory, String subjectDomain) {
-        return new CourseClassification(courseId, studentYearStart, studentYearEnd,
-                courseType, areaTypeId, subCategory, subjectDomain);
+    public static CourseClassification create(
+            Long courseId,
+            int studentYearStart,
+            int studentYearEnd,
+            CourseType courseType,
+            Long areaTypeId,
+            String subCategory,
+            String subjectDomain) {
+        return new CourseClassification(
+                courseId, studentYearStart, studentYearEnd, courseType, areaTypeId, subCategory, subjectDomain);
     }
 }

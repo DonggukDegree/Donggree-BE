@@ -5,10 +5,4 @@ package com.donggree.transcript;
  * passed는 내부 Grade enum 노출 없이 이수 여부를 전달한다 (F·NP = false, 나머지 = true).
  */
 public record CourseRecordView(
-        String semester,
-        String courseCode,
-        String courseName,
-        int credits,
-        boolean passed,
-        boolean retake
-) {}
+        String semester, String courseCode, String courseName, int credits, boolean passed, boolean retake) {}

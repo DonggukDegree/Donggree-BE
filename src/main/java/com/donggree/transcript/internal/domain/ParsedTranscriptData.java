@@ -19,8 +19,4 @@ import java.util.Map;
  * @param meta    메타 정보 키-값 맵. 값이 없는 항목은 null
  * @param courses 파싱된 교과목 목록
  */
-public record ParsedTranscriptData(
-        Map<String, String> meta,
-        List<ParsedCourse> courses
-) {
-}
+public record ParsedTranscriptData(Map<String, String> meta, List<ParsedCourse> courses) {}

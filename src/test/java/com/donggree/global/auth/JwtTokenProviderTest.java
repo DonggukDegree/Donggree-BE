@@ -6,12 +6,10 @@ import org.junit.jupiter.api.Test;
 
 class JwtTokenProviderTest {
 
-    private static final String TEST_SECRET =
-            "donggree-test-jwt-secret-key-must-be-at-least-256-bits-long";
+    private static final String TEST_SECRET = "donggree-test-jwt-secret-key-must-be-at-least-256-bits-long";
 
-    private final JwtTokenProvider jwtTokenProvider = new JwtTokenProvider(
-            new JwtProperties(TEST_SECRET, 1_800_000L, 604_800_000L)
-    );
+    private final JwtTokenProvider jwtTokenProvider =
+            new JwtTokenProvider(new JwtProperties(TEST_SECRET, 1_800_000L, 604_800_000L));
 
     @Test
     void 액세스_토큰을_생성하고_memberId를_추출한다() {
@@ -45,9 +43,7 @@ class JwtTokenProviderTest {
 
     @Test
     void 만료된_토큰은_검증에_실패한다() throws InterruptedException {
-        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(
-                new JwtProperties(TEST_SECRET, 1L, 1L)
-        );
+        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(new JwtProperties(TEST_SECRET, 1L, 1L));
 
         String token = shortLivedProvider.generateAccessToken(1L);
         Thread.sleep(5);

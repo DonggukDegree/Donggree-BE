@@ -54,8 +54,8 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.completeOnboarding(memberId, "2023123456", "하승연"))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(UserErrorCode.MEMBER_NOT_FOUND));
+                .satisfies(
+                        ex -> assertThat(((GeneralException) ex).getCode()).isEqualTo(UserErrorCode.MEMBER_NOT_FOUND));
     }
 
     @Test
@@ -67,8 +67,8 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.completeOnboarding(memberId, "2023999999", "홍길동"))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(UserErrorCode.ALREADY_ONBOARDED));
+                .satisfies(
+                        ex -> assertThat(((GeneralException) ex).getCode()).isEqualTo(UserErrorCode.ALREADY_ONBOARDED));
     }
 
     @Test
@@ -80,8 +80,8 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.completeOnboarding(memberId, "2023123456", "하승연"))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(UserErrorCode.DUPLICATE_STUDENT_ID));
+                .satisfies(ex ->
+                        assertThat(((GeneralException) ex).getCode()).isEqualTo(UserErrorCode.DUPLICATE_STUDENT_ID));
     }
 
     // --- updateUserInfo 테스트 ---
@@ -107,8 +107,8 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.updateUserInfo(memberId, "2023123456", "하승연", "동동이"))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(UserErrorCode.MEMBER_NOT_FOUND));
+                .satisfies(
+                        ex -> assertThat(((GeneralException) ex).getCode()).isEqualTo(UserErrorCode.MEMBER_NOT_FOUND));
     }
 
     @Test
@@ -119,8 +119,7 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.updateUserInfo(memberId, "2023123456", "하승연", "동동이"))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(UserErrorCode.NOT_ONBOARDED));
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode()).isEqualTo(UserErrorCode.NOT_ONBOARDED));
     }
 
     @Test
@@ -154,12 +153,13 @@ class UserServiceTest {
         Long memberId = 1L;
         Member member = createOnboardedMember(memberId, "2023123456", "하승연");
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(memberRepository.existsByStudentIdAndIdNot("2023999999", memberId)).willReturn(true);
+        given(memberRepository.existsByStudentIdAndIdNot("2023999999", memberId))
+                .willReturn(true);
 
         assertThatThrownBy(() -> userService.updateUserInfo(memberId, "2023999999", "하승연", "동동이"))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(UserErrorCode.DUPLICATE_STUDENT_ID));
+                .satisfies(ex ->
+                        assertThat(((GeneralException) ex).getCode()).isEqualTo(UserErrorCode.DUPLICATE_STUDENT_ID));
     }
 
     // --- deleteUser 테스트 ---
@@ -187,8 +187,8 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.deleteUser(memberId))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(UserErrorCode.MEMBER_NOT_FOUND));
+                .satisfies(
+                        ex -> assertThat(((GeneralException) ex).getCode()).isEqualTo(UserErrorCode.MEMBER_NOT_FOUND));
     }
 
     /**

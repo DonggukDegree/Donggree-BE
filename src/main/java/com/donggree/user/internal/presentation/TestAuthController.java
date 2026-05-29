@@ -28,13 +28,12 @@ public class TestAuthController {
      */
     @Transactional
     @PostMapping("/test-login")
-    public ApiResponse<TestLoginResponse> testLogin(
-            @RequestParam(defaultValue = "test@donggree.com") String email
-    ) {
+    public ApiResponse<TestLoginResponse> testLogin(@RequestParam(defaultValue = "test@donggree.com") String email) {
         String targetEmail = (email.isBlank()) ? "test@donggree.com" : email;
         String oauthId = "test_" + targetEmail;
 
-        Member member = memberRepository.findByOauthIdIncludingDeleted(oauthId)
+        Member member = memberRepository
+                .findByOauthIdIncludingDeleted(oauthId)
                 .map(m -> {
                     if (m.isDeleted()) m.reactivate();
                     return m;

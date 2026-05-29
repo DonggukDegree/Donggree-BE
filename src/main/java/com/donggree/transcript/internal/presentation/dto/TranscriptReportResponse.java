@@ -7,10 +7,7 @@ import java.util.List;
  * GET /api/users/me/reports 응답 DTO.
  * 이 응답에서만 사용하는 중첩 타입은 내부 record로 정의한다.
  */
-public record TranscriptReportResponse(
-        Meta meta,
-        List<SemesterCourses> courses
-) {
+public record TranscriptReportResponse(Meta meta, List<SemesterCourses> courses) {
 
     public record Meta(
             Long reportId,
@@ -23,12 +20,9 @@ public record TranscriptReportResponse(
             String academicStatus,
             int totalCredits,
             BigDecimal gpa,
-            int completedSemesters
-    ) {
-    }
+            int completedSemesters) {}
 
-    public record SemesterCourses(String semester, List<CourseRecord> records) {
-    }
+    public record SemesterCourses(String semester, List<CourseRecord> records) {}
 
     public record CourseRecord(
             Long id,
@@ -38,7 +32,5 @@ public record TranscriptReportResponse(
             String courseType,
             String areaName,
             String grade,
-            boolean retake
-    ) {
-    }
+            boolean retake) {}
 }

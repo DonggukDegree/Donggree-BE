@@ -2,7 +2,6 @@ package com.donggree.graduation.internal.domain.evaluator;
 
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
-
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -38,8 +37,8 @@ public class ThesisEvaluator implements RuleEvaluator {
         }
 
         List<List<String>> courseSets = config.requiredCourseSets();
-        boolean satisfied = courseSets != null && courseSets.stream()
-                .anyMatch(set -> set.stream().allMatch(context::hasPassedCourseByName));
+        boolean satisfied = courseSets != null
+                && courseSets.stream().anyMatch(set -> set.stream().allMatch(context::hasPassedCourseByName));
 
         return new RuleResult(rule.ruleName(), satisfied);
     }

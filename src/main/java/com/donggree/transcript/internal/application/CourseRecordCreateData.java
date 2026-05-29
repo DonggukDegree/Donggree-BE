@@ -14,6 +14,4 @@ public record CourseRecordCreateData(
         String courseName,
         int credits,
         Grade grade,
-        boolean retake
-) {
-}
+        boolean retake) {}

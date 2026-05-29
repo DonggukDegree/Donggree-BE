@@ -12,11 +12,9 @@ import com.donggree.curriculum.internal.domain.CourseRepository;
 import com.donggree.curriculum.internal.domain.Department;
 import com.donggree.curriculum.internal.domain.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.GraduationRule;
-import com.donggree.curriculum.internal.domain.RequirementSet;
 import com.donggree.curriculum.internal.domain.RequirementSetRepository;
 import com.donggree.curriculum.internal.domain.RuleType;
 import com.donggree.curriculum.internal.domain.RuleTypeRepository;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +41,7 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
         if (departmentName == null || departmentName.isBlank()) {
             return Optional.empty();
         }
-        return departmentRepository.findByDepartmentName(departmentName)
-                .map(Department::getId);
+        return departmentRepository.findByDepartmentName(departmentName).map(Department::getId);
     }
 
     @Override
@@ -61,12 +58,14 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
         return requirementSetRepository.findByDepartmentIdAndActiveTrue(departmentId).stream()
                 .filter(rs -> rs.appliesTo(admissionYear))
                 .findFirst()
-                .map(rs -> new RequirementSetView(rs.getId(), rs.getDepartmentId(), rs.getYearStart(), rs.getYearEnd()));
+                .map(rs ->
+                        new RequirementSetView(rs.getId(), rs.getDepartmentId(), rs.getYearStart(), rs.getYearEnd()));
     }
 
     @Override
     public List<GraduationRuleView> findGraduationRules(Long requirementSetId) {
-        return requirementSetRepository.findById(requirementSetId)
+        return requirementSetRepository
+                .findById(requirementSetId)
                 .map(rs -> {
                     List<GraduationRule> rules = rs.getRules();
                     if (rules.isEmpty()) {
@@ -86,8 +85,7 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
                                         rt != null ? rt.getTypeName() : "UNKNOWN",
                                         rt != null ? rt.getCategory() : null,
                                         rule.getRuleName(),
-                                        rule.getRuleConfig()
-                                );
+                                        rule.getRuleConfig());
                             })
                             .toList();
                 })
@@ -102,9 +100,12 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
         return courseRepository.findByCourseCodeIn(courseCodes).stream()
                 .collect(Collectors.toMap(
                         Course::getCourseCode,
-                        c -> new CourseView(c.getId(), c.getCourseCode(), c.getCourseName(),
-                                c.getCredits(), c.getEquivalentCourseId())
-                ));
+                        c -> new CourseView(
+                                c.getId(),
+                                c.getCourseCode(),
+                                c.getCourseName(),
+                                c.getCredits(),
+                                c.getEquivalentCourseId())));
     }
 
     @Override
@@ -114,15 +115,15 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
             return Map.of();
         }
         return courseClassificationRepository.findByCourseIdIn(courseIds).stream()
-                .filter(cc -> admissionYear >= cc.getStudentYearStart()
-                        && admissionYear <= cc.getStudentYearEnd())
+                .filter(cc -> admissionYear >= cc.getStudentYearStart() && admissionYear <= cc.getStudentYearEnd())
                 .collect(Collectors.toMap(
                         CourseClassification::getCourseId,
                         cc -> new CourseClassificationView(
-                                cc.getCourseId(), cc.getCourseType(), cc.getAreaTypeId(),
-                                cc.getSubCategory(), cc.getSubjectDomain()
-                        ),
-                        (existing, replacement) -> existing
-                ));
+                                cc.getCourseId(),
+                                cc.getCourseType(),
+                                cc.getAreaTypeId(),
+                                cc.getSubCategory(),
+                                cc.getSubjectDomain()),
+                        (existing, replacement) -> existing));
     }
 }

@@ -27,8 +27,11 @@ jobs:
       - name: Grant execute permission
         run: chmod +x gradlew
 
+      - name: Spotless Check
+        run: ./gradlew spotlessCheck
+
       - name: Build & Test
-        run: ./gradlew build
+        run: ./gradlew build -x spotlessCheck
 
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v5

@@ -62,9 +62,15 @@ public class CourseRecord {
     @Column(name = "is_retake", nullable = false)
     private boolean retake;
 
-    private CourseRecord(String semester, String courseTypeName, String areaName,
-                         String courseCode, String courseName, int credits,
-                         Grade grade, boolean retake) {
+    private CourseRecord(
+            String semester,
+            String courseTypeName,
+            String areaName,
+            String courseCode,
+            String courseName,
+            int credits,
+            Grade grade,
+            boolean retake) {
         if (semester == null) {
             throw new IllegalArgumentException("semester must not be null");
         }
@@ -87,9 +93,15 @@ public class CourseRecord {
         this.retake = retake;
     }
 
-    static CourseRecord create(String semester, String courseTypeName, String areaName,
-                               String courseCode, String courseName, int credits,
-                               Grade grade, boolean retake) {
+    static CourseRecord create(
+            String semester,
+            String courseTypeName,
+            String areaName,
+            String courseCode,
+            String courseName,
+            int credits,
+            Grade grade,
+            boolean retake) {
         return new CourseRecord(semester, courseTypeName, areaName, courseCode, courseName, credits, grade, retake);
     }
 

@@ -10,9 +10,7 @@ import java.util.List;
  * PATCH /api/users/me/reports 요청 DTO.
  * 수동으로 추가할 수강 이력 목록을 받는다.
  */
-public record CourseRecordAddRequest(
-        @NotEmpty List<@Valid CourseItem> courses
-) {
+public record CourseRecordAddRequest(@NotEmpty List<@Valid CourseItem> courses) {
 
     public record CourseItem(
             @NotBlank String semester,
@@ -22,7 +20,5 @@ public record CourseRecordAddRequest(
             @NotBlank String courseName,
             @Positive int credits,
             @NotBlank String grade,
-            boolean retake
-    ) {
-    }
+            boolean retake) {}
 }

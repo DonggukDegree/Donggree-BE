@@ -3,7 +3,6 @@ package com.donggree.user.internal.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.JwtProperties;
@@ -17,12 +16,10 @@ import org.mockito.Mockito;
 
 class AuthServiceTest {
 
-    private static final String TEST_SECRET =
-            "donggree-test-jwt-secret-key-must-be-at-least-256-bits-long";
+    private static final String TEST_SECRET = "donggree-test-jwt-secret-key-must-be-at-least-256-bits-long";
 
-    private final JwtTokenProvider jwtTokenProvider = new JwtTokenProvider(
-            new JwtProperties(TEST_SECRET, 1_800_000L, 604_800_000L)
-    );
+    private final JwtTokenProvider jwtTokenProvider =
+            new JwtTokenProvider(new JwtProperties(TEST_SECRET, 1_800_000L, 604_800_000L));
 
     private final MemberRepository memberRepository = Mockito.mock(MemberRepository.class);
 
@@ -54,8 +51,8 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.refreshAccessToken(refreshToken))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
+                .satisfies(ex ->
+                        assertThat(((GeneralException) ex).getCode()).isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
     }
 
     @Test
@@ -67,23 +64,21 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.refreshAccessToken(refreshToken))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
+                .satisfies(ex ->
+                        assertThat(((GeneralException) ex).getCode()).isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
     }
 
     @Test
     void 위변조된_리프레시_토큰이면_예외를_던진다() {
         assertThatThrownBy(() -> authService.refreshAccessToken("invalid.token.value"))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
+                .satisfies(ex ->
+                        assertThat(((GeneralException) ex).getCode()).isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
     }
 
     @Test
     void 만료된_리프레시_토큰이면_예외를_던진다() throws InterruptedException {
-        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(
-                new JwtProperties(TEST_SECRET, 1L, 1L)
-        );
+        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(new JwtProperties(TEST_SECRET, 1L, 1L));
         AuthService shortLivedAuthService = new AuthService(shortLivedProvider, memberRepository);
 
         String refreshToken = shortLivedProvider.generateRefreshToken(1L);
@@ -91,16 +86,16 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> shortLivedAuthService.refreshAccessToken(refreshToken))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
+                .satisfies(ex ->
+                        assertThat(((GeneralException) ex).getCode()).isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
     }
 
     @Test
     void null_리프레시_토큰이면_예외를_던진다() {
         assertThatThrownBy(() -> authService.refreshAccessToken(null))
                 .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
+                .satisfies(ex ->
+                        assertThat(((GeneralException) ex).getCode()).isEqualTo(AuthErrorCode.INVALID_REFRESH_TOKEN));
     }
 
     @Test

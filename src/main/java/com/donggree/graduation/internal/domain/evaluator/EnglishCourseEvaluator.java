@@ -1,10 +1,8 @@
 package com.donggree.graduation.internal.domain.evaluator;
 
 import com.donggree.curriculum.CourseClassificationView;
-import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
-
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.transcript.CourseRecordView;
@@ -54,8 +52,7 @@ public class EnglishCourseEvaluator implements RuleEvaluator {
         return courseName != null && courseName.contains("<영어>");
     }
 
-    private boolean matchesCourseTypes(CourseRecordView cr, List<String> courseTypes,
-                                       EvaluationContext context) {
+    private boolean matchesCourseTypes(CourseRecordView cr, List<String> courseTypes, EvaluationContext context) {
         if (courseTypes == null) return true;
         CourseClassificationView cls = context.getClassification(cr.courseCode());
         if (cls == null || cls.courseType() == null) return false;

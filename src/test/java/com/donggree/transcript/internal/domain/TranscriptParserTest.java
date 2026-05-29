@@ -69,9 +69,8 @@ class TranscriptParserTest {
         @DisplayName("메타 총취득학점과 파싱된 과목 학점 합계가 일치한다")
         void total_credits_matches_sum() {
             int metaTotal = Integer.parseInt(result.meta().get("총취득학점"));
-            int parsedTotal = result.courses().stream()
-                    .mapToInt(ParsedCourse::credits)
-                    .sum();
+            int parsedTotal =
+                    result.courses().stream().mapToInt(ParsedCourse::credits).sum();
 
             assertThat(parsedTotal).isEqualTo(metaTotal);
         }
@@ -111,9 +110,8 @@ class TranscriptParserTest {
         @Test
         @DisplayName("재수강 과목이 올바르게 파싱된다")
         void retake_course_is_parsed() {
-            List<ParsedCourse> retakes = result.courses().stream()
-                    .filter(ParsedCourse::retake)
-                    .toList();
+            List<ParsedCourse> retakes =
+                    result.courses().stream().filter(ParsedCourse::retake).toList();
 
             assertThat(retakes).hasSize(1);
             assertThat(retakes.get(0).courseCode()).isEqualTo("CSE3001");
@@ -129,8 +127,7 @@ class TranscriptParserTest {
                     "CSE1001", "기초",
                     "CSE2001", "전문",
                     "DBA2001", "1",
-                    "PRI4001", "4"
-            );
+                    "PRI4001", "4");
 
             for (ParsedCourse course : result.courses()) {
                 if (expectedAreas.containsKey(course.courseCode())) {
@@ -144,8 +141,7 @@ class TranscriptParserTest {
         @Test
         @DisplayName("성적이 유효한 값이다")
         void grades_are_valid() {
-            Set<String> validGrades = Set.of(
-                    "A+", "A0", "B+", "B0", "C+", "C0", "D+", "D0", "F", "P", "NP");
+            Set<String> validGrades = Set.of("A+", "A0", "B+", "B0", "C+", "C0", "D+", "D0", "F", "P", "NP");
 
             for (ParsedCourse course : result.courses()) {
                 assertThat(validGrades)
@@ -182,8 +178,7 @@ class TranscriptParserTest {
         }
 
         private ParsedTranscriptData parseFixture() {
-            try (InputStream is = getClass().getClassLoader()
-                    .getResourceAsStream("transcript-fixture.txt")) {
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream("transcript-fixture.txt")) {
                 String text = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 return parser.parse(text);
             } catch (IOException e) {
@@ -259,8 +254,7 @@ class TranscriptParserTest {
          */
         private ParsedTranscriptData parsePdfIfAvailable(String resourcePath) throws IOException {
             InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath);
-            assumeTrue(is != null,
-                    resourcePath + " 파일이 없어 스킵합니다 (로컬에 PDF를 배치하면 실행됩니다)");
+            assumeTrue(is != null, resourcePath + " 파일이 없어 스킵합니다 (로컬에 PDF를 배치하면 실행됩니다)");
 
             byte[] pdfBytes = is.readAllBytes();
             is.close();

@@ -87,8 +87,7 @@ class RequirementSetTest {
     void ruleTypeId가_null이면_예외가_발생한다() {
         RequirementSet set = createRequirementSet();
 
-        assertThatThrownBy(() -> set.addRule(null, "전공 최소학점", "{}", null))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> set.addRule(null, "전공 최소학점", "{}", null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -96,8 +95,7 @@ class RequirementSetTest {
         RequirementSet set = createRequirementSet();
         set.addRule(1L, "전공 최소학점", "{\"minCredits\": 60}", null);
 
-        assertThatThrownBy(() -> set.getRules().add(
-                GraduationRule.create(2L, "다른 규칙", "{}", null)))
+        assertThatThrownBy(() -> set.getRules().add(GraduationRule.create(2L, "다른 규칙", "{}", null)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
@@ -105,8 +103,7 @@ class RequirementSetTest {
 
     @Test
     void GraduationRule_생성_시_필드가_올바르게_저장된다() {
-        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점",
-                "{\"minCredits\": 60}", "전공 최소 60학점 이수");
+        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점", "{\"minCredits\": 60}", "전공 최소 60학점 이수");
 
         assertThat(rule.getRuleTypeId()).isEqualTo(1L);
         assertThat(rule.getRuleName()).isEqualTo("전공 최소학점");
@@ -116,13 +113,11 @@ class RequirementSetTest {
 
     @Test
     void GraduationRule_생성_시_ruleTypeId가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> GraduationRule.create(null, "전공 최소학점",
-                "{\"minCredits\": 60}", null))
+        assertThatThrownBy(() -> GraduationRule.create(null, "전공 최소학점", "{\"minCredits\": 60}", null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     private RequirementSet createRequirementSet() {
-        return RequirementSet.create(1L, 2023, 2025, 1,
-                "컴퓨터·AI학부 23~25학번 졸업 요건", null);
+        return RequirementSet.create(1L, 2023, 2025, 1, "컴퓨터·AI학부 23~25학번 졸업 요건", null);
     }
 }

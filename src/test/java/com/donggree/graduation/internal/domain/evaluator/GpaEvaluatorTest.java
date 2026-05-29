@@ -43,7 +43,6 @@ class GpaEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(1L, "GPA", RuleCategory.GRADUATION_REQ,
-                "총 평점평균이 2.0 이상이어야 합니다.", config);
+        return new GraduationRuleView(1L, "GPA", RuleCategory.GRADUATION_REQ, "총 평점평균이 2.0 이상이어야 합니다.", config);
     }
 }
