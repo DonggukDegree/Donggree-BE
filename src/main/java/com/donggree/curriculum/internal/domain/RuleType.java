@@ -39,6 +39,9 @@ public class RuleType {
     private String description;
 
     private RuleType(String typeName, RuleCategory category, String description) {
+        if (typeName == null || typeName.isBlank()) {
+            throw new IllegalArgumentException("typeName must not be null or blank");
+        }
         if (category == null) {
             throw new IllegalArgumentException("category must not be null");
         }

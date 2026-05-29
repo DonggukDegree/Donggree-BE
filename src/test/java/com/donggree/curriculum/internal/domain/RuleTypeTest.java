@@ -32,4 +32,18 @@ class RuleTypeTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("category");
     }
+
+    @Test
+    void typeName이_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> RuleType.create(null, RuleCategory.GRADUATION_REQ, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("typeName");
+    }
+
+    @Test
+    void typeName이_빈_문자열이면_예외가_발생한다() {
+        assertThatThrownBy(() -> RuleType.create("  ", RuleCategory.GRADUATION_REQ, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("typeName");
+    }
 }

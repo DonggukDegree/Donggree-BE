@@ -61,6 +61,9 @@ public class CourseClassification {
         if (courseType == null) {
             throw new IllegalArgumentException("courseType must not be null");
         }
+        if (studentYearStart <= 0 || studentYearEnd <= 0) {
+            throw new IllegalArgumentException("student years must be positive");
+        }
         if (studentYearStart > studentYearEnd) {
             throw new IllegalArgumentException("studentYearStart must be <= studentYearEnd");
         }

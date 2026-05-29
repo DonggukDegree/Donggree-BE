@@ -55,6 +55,9 @@ public class Course {
      * 연도별로 학수번호가 달라도 같은 내용으로 인정할 과목끼리 묶을 때 호출한다.
      */
     public void assignEquivalentCourse(Long equivalentCourseId) {
+        if (equivalentCourseId != null && equivalentCourseId <= 0) {
+            throw new IllegalArgumentException("equivalentCourseId must be positive");
+        }
         this.equivalentCourseId = equivalentCourseId;
     }
 }

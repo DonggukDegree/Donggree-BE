@@ -57,6 +57,22 @@ class CourseClassificationTest {
     }
 
     @Test
+    void studentYearStart가_0_이하이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseClassification.create(
+                1L, 0, 2023, CourseType.FIRST_MAJOR, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("positive");
+    }
+
+    @Test
+    void studentYearEnd가_음수이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseClassification.create(
+                1L, 2023, -1, CourseType.FIRST_MAJOR, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("positive");
+    }
+
+    @Test
     void yearStart와_yearEnd가_같으면_단일_연도_분류로_생성된다() {
         CourseClassification cc = CourseClassification.create(
                 1L, 2023, 2023, CourseType.LIBERAL_ARTS, null, null, null);

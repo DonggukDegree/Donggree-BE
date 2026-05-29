@@ -40,4 +40,26 @@ class CourseTest {
 
         assertThat(course.getEquivalentCourseId()).isNull();
     }
+
+    @Test
+    void equivalentCourseId가_0_이하이면_예외가_발생한다() {
+        Course course = Course.create("CSE1001", "컴퓨터프로그래밍", 3);
+
+        assertThatThrownBy(() -> course.assignEquivalentCourse(0L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("equivalentCourseId");
+
+        assertThatThrownBy(() -> course.assignEquivalentCourse(-1L))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void equivalentCourseId에_null을_지정하면_그룹_해제된다() {
+        Course course = Course.create("CSE1001", "컴퓨터프로그래밍", 3);
+        course.assignEquivalentCourse(5L);
+
+        course.assignEquivalentCourse(null);
+
+        assertThat(course.getEquivalentCourseId()).isNull();
+    }
 }

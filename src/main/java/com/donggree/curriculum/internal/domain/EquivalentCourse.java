@@ -30,6 +30,9 @@ public class EquivalentCourse {
     private String name;
 
     private EquivalentCourse(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("name must not be null or blank");
+        }
         this.name = name;
     }
 

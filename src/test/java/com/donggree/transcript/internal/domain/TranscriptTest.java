@@ -171,6 +171,22 @@ class TranscriptTest {
     }
 
     @Test
+    void CourseRecord_생성_시_credits가_음수이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseRecord.create(
+                "2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", -1, Grade.A_PLUS, false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("credits");
+    }
+
+    @Test
+    void CourseRecord_생성_시_credits가_0이면_생성된다() {
+        CourseRecord record = CourseRecord.create(
+                "2023-1", "전공", null, "GEN0000", "영점학점과목", 0, Grade.P, false);
+
+        assertThat(record.getCredits()).isEqualTo(0);
+    }
+
+    @Test
     void CourseRecord_생성_시_grade가_null이면_예외가_발생한다() {
         assertThatThrownBy(() -> CourseRecord.create(
                 "2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, null, false))
