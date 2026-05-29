@@ -89,6 +89,7 @@ ext {
 
 spotless {
     java {
+        targetExclude('build/generated/**')
         palantirJavaFormat('2.50.0')
         removeUnusedImports()
         trimTrailingWhitespace()
