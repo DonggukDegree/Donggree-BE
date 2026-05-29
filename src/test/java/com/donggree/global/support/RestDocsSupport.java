@@ -23,6 +23,7 @@ public abstract class RestDocsSupport {
     @BeforeEach
     void setUp(RestDocumentationContextProvider restDocumentation) {
         this.mockMvc = MockMvcBuilders.standaloneSetup(initController())
+                .setControllerAdvice(controllerAdvices())
                 .setCustomArgumentResolvers(argumentResolvers().toArray(new HandlerMethodArgumentResolver[0]))
                 .addFilters(new CharacterEncodingFilter(StandardCharsets.UTF_8.name(), true))
                 .apply(documentationConfiguration(restDocumentation)
@@ -40,5 +41,10 @@ public abstract class RestDocsSupport {
      */
     protected List<HandlerMethodArgumentResolver> argumentResolvers() {
         return List.of(new LoginMemberIdArgumentResolver());
+    }
+
+    /** 테스트에서 사용할 @ControllerAdvice 목록. 예외 핸들링이 필요한 테스트에서 오버라이드한다. */
+    protected Object[] controllerAdvices() {
+        return new Object[0];
     }
 }
