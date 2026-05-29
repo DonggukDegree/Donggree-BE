@@ -45,53 +45,44 @@ class AuthControllerTest extends RestDocsSupport {
         String newAccessToken = "new-access-token";
         given(authService.refreshAccessToken(refreshToken)).willReturn(newAccessToken);
 
-        mockMvc.perform(post("/auth/refresh")
-                        .cookie(new Cookie("refreshToken", refreshToken)))
+        mockMvc.perform(post("/auth/refresh").cookie(new Cookie("refreshToken", refreshToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.accessToken").value(newAccessToken))
-                .andDo(document("auth-refresh",
-                        requestCookies(
-                                cookieWithName("refreshToken").description("리프레시 토큰 (HttpOnly)")
-                        ),
+                .andDo(document(
+                        "auth-refresh",
+                        requestCookies(cookieWithName("refreshToken").description("리프레시 토큰 (HttpOnly)")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result.accessToken").description("새로 발급된 액세스 토큰")
-                        )
-                ));
+                                fieldWithPath("result.accessToken").description("새로 발급된 액세스 토큰"))));
     }
 
     @Test
     void 리프레시_토큰_쿠키가_없으면_400을_반환한다() throws Exception {
-        mockMvc.perform(post("/auth/refresh"))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/auth/refresh")).andExpect(status().isBadRequest());
     }
 
     @Test
     void 로그아웃하면_리프레시_토큰_쿠키가_삭제되고_서버_토큰이_파기된다() throws Exception {
         Long memberId = 1L;
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList())
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
         mockMvc.perform(post("/auth/logout"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(header().exists(HttpHeaders.SET_COOKIE))
-                .andDo(document("auth-logout",
+                .andDo(document(
+                        "auth-logout",
                         responseHeaders(
-                                headerWithName(HttpHeaders.SET_COOKIE)
-                                        .description("refreshToken 쿠키 삭제 (Max-Age=0)")
-                        ),
+                                headerWithName(HttpHeaders.SET_COOKIE).description("refreshToken 쿠키 삭제 (Max-Age=0)")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result").description("없음")
-                        )
-                ));
+                                fieldWithPath("result").description("없음"))));
 
         verify(authService).logout(memberId);
     }

@@ -6,9 +6,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -36,14 +36,14 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     private static final String[] PERMIT_URIS = {
-            "/auth/refresh",
-            "/oauth2/authorization/**",
-            "/swagger-ui.html",
-            "/swagger-ui/**",
-            "/swagger-resources/**",
-            "/v3/api-docs/**",
-            "/docs/**",
-            "/actuator/health"
+        "/auth/refresh",
+        "/oauth2/authorization/**",
+        "/swagger-ui.html",
+        "/swagger-ui/**",
+        "/swagger-resources/**",
+        "/v3/api-docs/**",
+        "/docs/**",
+        "/actuator/health"
     };
 
     @Bean
@@ -52,12 +52,11 @@ public class SecurityConfig {
             JwtTokenProvider jwtTokenProvider,
             OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService,
             AuthenticationSuccessHandler oAuthSuccessHandler,
-            Environment env
-    ) throws Exception {
+            Environment env)
+            throws Exception {
         JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtTokenProvider);
         boolean isLocal = Arrays.asList(env.getActiveProfiles()).contains("local");
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -68,17 +67,13 @@ public class SecurityConfig {
                     }
                     auth.anyRequest().authenticated();
                 })
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) ->
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) ->
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                response.sendError(HttpServletResponse.SC_FORBIDDEN))
-                )
-                .oauth2Login(oauth -> oauth
-                        .redirectionEndpoint(endpoint -> endpoint.baseUri("/oauth/callback/*"))
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN)))
+                .oauth2Login(oauth -> oauth.redirectionEndpoint(endpoint -> endpoint.baseUri("/oauth/callback/*"))
                         .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
-                        .successHandler(oAuthSuccessHandler)
-                )
+                        .successHandler(oAuthSuccessHandler))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

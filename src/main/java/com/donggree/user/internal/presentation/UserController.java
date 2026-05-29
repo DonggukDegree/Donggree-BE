@@ -28,18 +28,14 @@ public class UserController implements UserApi {
     @Override
     @PostMapping("/onboarding")
     public ApiResponse<Void> completeOnboarding(
-            @LoginMemberId Long memberId,
-            @Valid @RequestBody OnboardingRequest request
-    ) {
+            @LoginMemberId Long memberId, @Valid @RequestBody OnboardingRequest request) {
         userService.completeOnboarding(memberId, request.studentId(), request.name());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }
 
     @Override
     @GetMapping
-    public ApiResponse<UserInfoResponse> getUserInfo(
-        @LoginMemberId Long memberId
-    ) {
+    public ApiResponse<UserInfoResponse> getUserInfo(@LoginMemberId Long memberId) {
         UserInfoResponse response = userService.getUserInfo(memberId);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
@@ -47,20 +43,15 @@ public class UserController implements UserApi {
     @Override
     @PatchMapping
     public ApiResponse<UserInfoResponse> updateUserInfo(
-            @LoginMemberId Long memberId,
-            @Valid @RequestBody UserInfoUpdateRequest request
-    ) {
-        UserInfoResponse response = userService.updateUserInfo(
-                memberId, request.studentId(), request.name(), request.nickname()
-        );
+            @LoginMemberId Long memberId, @Valid @RequestBody UserInfoUpdateRequest request) {
+        UserInfoResponse response =
+                userService.updateUserInfo(memberId, request.studentId(), request.name(), request.nickname());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, response);
     }
 
     @Override
     @DeleteMapping
-    public ApiResponse<Void> deleteUser(
-            @LoginMemberId Long memberId
-    ) {
+    public ApiResponse<Void> deleteUser(@LoginMemberId Long memberId) {
         userService.deleteUser(memberId);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }

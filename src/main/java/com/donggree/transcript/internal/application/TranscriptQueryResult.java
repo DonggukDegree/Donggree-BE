@@ -8,10 +8,7 @@ import java.util.List;
  * course_name, credits, area_name은 course_record에 반정규화되어 있으므로
  * 컨트롤러에서 별도 curriculum 조회 없이 바로 응답 DTO로 변환 가능하다.
  */
-public record TranscriptQueryResult(
-        RawMeta meta,
-        List<RawSemesterGroup> semesterGroups
-) {
+public record TranscriptQueryResult(RawMeta meta, List<RawSemesterGroup> semesterGroups) {
 
     public record RawMeta(
             Long reportId,
@@ -24,12 +21,9 @@ public record TranscriptQueryResult(
             String academicStatus,
             int totalCredits,
             BigDecimal gpa,
-            int completedSemesters
-    ) {
-    }
+            int completedSemesters) {}
 
-    public record RawSemesterGroup(String semester, List<RawCourseRecord> records) {
-    }
+    public record RawSemesterGroup(String semester, List<RawCourseRecord> records) {}
 
     public record RawCourseRecord(
             Long id,
@@ -39,7 +33,5 @@ public record TranscriptQueryResult(
             String areaName,
             String courseType,
             String grade,
-            boolean retake
-    ) {
-    }
+            boolean retake) {}
 }

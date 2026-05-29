@@ -8,8 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 @ConfigurationPropertiesScan
 public class DonggreeApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(DonggreeApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(DonggreeApplication.class, args);
+    }
 }

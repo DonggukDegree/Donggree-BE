@@ -2,7 +2,6 @@ package com.donggree.graduation.internal.domain.evaluator;
 
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
-
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
 import org.springframework.stereotype.Component;

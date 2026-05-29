@@ -11,10 +11,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 @AllArgsConstructor
 public enum AuthErrorCode implements BaseErrorCode {
-
-    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED,
-            "AUTH401_2",
-            "유효하지 않은 리프레시 토큰입니다."),
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH401_2", "유효하지 않은 리프레시 토큰입니다."),
     ;
 
     private final HttpStatus status;

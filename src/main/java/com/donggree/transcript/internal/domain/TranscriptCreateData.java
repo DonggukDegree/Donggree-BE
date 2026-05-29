@@ -27,6 +27,4 @@ public record TranscriptCreateData(
         boolean englishCourseTarget,
         Boolean completedEnglishResult,
         Integer teachingAptitudeCount,
-        boolean thesisStatus
-) {
-}
+        boolean thesisStatus) {}

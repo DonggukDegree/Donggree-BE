@@ -2,7 +2,6 @@ package com.donggree.graduation.internal.domain.evaluator;
 
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
-
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -63,9 +62,5 @@ public class PrerequisiteEvaluator implements RuleEvaluator {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record Config(
-            String targetCourseName,
-            String prerequisiteCourseName,
-            String conditionField,
-            String conditionValue
-    ) {}
+            String targetCourseName, String prerequisiteCourseName, String conditionField, String conditionValue) {}
 }

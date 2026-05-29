@@ -71,8 +71,7 @@ class MemberTest {
     void 온보딩_완료_시_학번이_비어있거나_길이_제한을_넘으면_예외가_발생한다() {
         Member member = createMember();
 
-        assertThatThrownBy(() -> member.completeOnboarding("", "하승연"))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> member.completeOnboarding("", "하승연")).isInstanceOf(IllegalArgumentException.class);
 
         assertThatThrownBy(() -> member.completeOnboarding("20231234567", "하승연"))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -129,8 +128,7 @@ class MemberTest {
         Member member = createMember();
         member.withdraw();
 
-        assertThatThrownBy(member::withdraw)
-                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(member::withdraw).isInstanceOf(IllegalStateException.class);
     }
 
     // --- reactivate 테스트 ---
@@ -173,8 +171,7 @@ class MemberTest {
     void 활성_상태의_회원을_재활성화하면_예외가_발생한다() {
         Member member = createMember();
 
-        assertThatThrownBy(member::reactivate)
-                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(member::reactivate).isInstanceOf(IllegalStateException.class);
     }
 
     private Member createMember() {

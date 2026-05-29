@@ -2,10 +2,10 @@ package com.donggree.user.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.event.MemberWithdrawnEvent;
+import com.donggree.user.internal.application.dto.UserInfoResponse;
 import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
-import com.donggree.user.internal.application.dto.UserInfoResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,8 @@ public class UserService {
         String trimmedStudentId = studentId.trim();
         String trimmedName = name.trim();
 
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository
+                .findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
         if (member.hasCompletedOnboarding()) {
@@ -58,7 +59,8 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public UserInfoResponse getUserInfo(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository
+                .findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
         return UserInfoResponse.from(member);
@@ -81,7 +83,8 @@ public class UserService {
         String trimmedName = name.trim();
         String trimmedNickname = nickname.trim();
 
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository
+                .findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
         if (!member.hasCompletedOnboarding()) {
@@ -90,7 +93,7 @@ public class UserService {
 
         if (member.isIdentityVerified()
                 && (!member.getStudentId().equals(trimmedStudentId)
-                || !member.getName().equals(trimmedName))) {
+                        || !member.getName().equals(trimmedName))) {
             throw new GeneralException(UserErrorCode.IDENTITY_ALREADY_VERIFIED);
         }
 
@@ -113,7 +116,8 @@ public class UserService {
      */
     @Transactional
     public void deleteUser(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository
+                .findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
         member.withdraw();

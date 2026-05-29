@@ -44,9 +44,8 @@ class UserControllerTest extends RestDocsSupport {
     @Test
     void 온보딩_정보를_저장한다() throws Exception {
         Long memberId = 1L;
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList())
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
         OnboardingRequest request = new OnboardingRequest("2023123456", "하승연");
 
@@ -57,18 +56,16 @@ class UserControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("COMMON200_1"))
                 .andExpect(jsonPath("$.result").isEmpty())
-                .andDo(document("user-onboarding",
+                .andDo(document(
+                        "user-onboarding",
                         requestFields(
                                 fieldWithPath("studentId").description("학번"),
-                                fieldWithPath("name").description("이름")
-                        ),
+                                fieldWithPath("name").description("이름")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result").description("없음")
-                        )
-                ));
+                                fieldWithPath("result").description("없음"))));
 
         Mockito.verify(userService).completeOnboarding(memberId, "2023123456", "하승연");
     }
@@ -76,12 +73,10 @@ class UserControllerTest extends RestDocsSupport {
     @Test
     void 사용자_정보를_조회한다() throws Exception {
         Long memberId = 1L;
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList())
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
-        given(userService.getUserInfo(memberId))
-                .willReturn(new UserInfoResponse("2023123456", "하승연", "하승연", false));
+        given(userService.getUserInfo(memberId)).willReturn(new UserInfoResponse("2023123456", "하승연", "하승연", false));
 
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk())
@@ -91,7 +86,8 @@ class UserControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.result.name").value("하승연"))
                 .andExpect(jsonPath("$.result.nickname").value("하승연"))
                 .andExpect(jsonPath("$.result.identityVerified").value(false))
-                .andDo(document("user-info",
+                .andDo(document(
+                        "user-info",
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
@@ -99,17 +95,14 @@ class UserControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.studentId").description("학번"),
                                 fieldWithPath("result.name").description("이름"),
                                 fieldWithPath("result.nickname").description("닉네임"),
-                                fieldWithPath("result.identityVerified").description("본인 인증 완료 여부")
-                        )
-                ));
+                                fieldWithPath("result.identityVerified").description("본인 인증 완료 여부"))));
     }
 
     @Test
     void 사용자_정보를_수정한다() throws Exception {
         Long memberId = 1L;
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList())
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
         UserInfoUpdateRequest request = new UserInfoUpdateRequest("2023123456", "하승연", "동동이");
 
@@ -126,12 +119,12 @@ class UserControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.result.name").value("하승연"))
                 .andExpect(jsonPath("$.result.nickname").value("동동이"))
                 .andExpect(jsonPath("$.result.identityVerified").value(false))
-                .andDo(document("user-info-update",
+                .andDo(document(
+                        "user-info-update",
                         requestFields(
                                 fieldWithPath("studentId").description("학번"),
                                 fieldWithPath("name").description("이름"),
-                                fieldWithPath("nickname").description("닉네임")
-                        ),
+                                fieldWithPath("nickname").description("닉네임")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
@@ -139,31 +132,27 @@ class UserControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.studentId").description("학번"),
                                 fieldWithPath("result.name").description("이름"),
                                 fieldWithPath("result.nickname").description("닉네임"),
-                                fieldWithPath("result.identityVerified").description("본인 인증 완료 여부")
-                        )
-                ));
+                                fieldWithPath("result.identityVerified").description("본인 인증 완료 여부"))));
     }
 
     @Test
     void 회원_탈퇴를_처리한다() throws Exception {
         Long memberId = 1L;
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList())
-        );
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
         mockMvc.perform(delete("/api/users/me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("COMMON200_1"))
                 .andExpect(jsonPath("$.result").isEmpty())
-                .andDo(document("user-delete",
+                .andDo(document(
+                        "user-delete",
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result").description("없음")
-                        )
-                ));
+                                fieldWithPath("result").description("없음"))));
 
         Mockito.verify(userService).deleteUser(memberId);
     }

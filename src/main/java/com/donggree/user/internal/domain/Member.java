@@ -102,9 +102,7 @@ public class Member extends BaseEntity {
         String validatedName = requireText(name, "name", 5);
         String validatedNickname = requireText(nickname, "nickname", 8);
 
-        if (identityVerified
-            && (!this.studentId.equals(validatedStudentId)
-            || !this.name.equals(validatedName))) {
+        if (identityVerified && (!this.studentId.equals(validatedStudentId) || !this.name.equals(validatedName))) {
             throw new IllegalStateException("본인 인증 완료 후에는 학번과 이름을 변경할 수 없습니다.");
         }
 
@@ -176,5 +174,4 @@ public class Member extends BaseEntity {
 
         return trimmed;
     }
-
 }

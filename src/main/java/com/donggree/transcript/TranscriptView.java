@@ -19,5 +19,4 @@ public record TranscriptView(
         boolean englishCourseTarget,
         Boolean completedEnglishResult,
         boolean thesisStatus,
-        List<CourseRecordView> courseRecords
-) {}
+        List<CourseRecordView> courseRecords) {}

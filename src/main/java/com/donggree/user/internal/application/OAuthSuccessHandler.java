@@ -34,10 +34,8 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
     @Override
     @Transactional
     public void onAuthenticationSuccess(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Authentication authentication
-    ) throws IOException {
+            HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+            throws IOException {
         OAuthMember oAuthMember = (OAuthMember) authentication.getPrincipal();
         Member member = oAuthMember.getMember();
         Long memberId = member.getId();
@@ -62,7 +60,8 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
         // 액세스 토큰을 쿼리 파라미터로 프론트엔드에 전달
         String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUrl)
                 .queryParam("accessToken", accessToken)
-                .build().toUriString();
+                .build()
+                .toUriString();
 
         response.sendRedirect(redirectUrl);
     }

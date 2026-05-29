@@ -18,11 +18,9 @@ class CourseTest {
 
     @Test
     void 학점이_0_이하이면_예외가_발생한다() {
-        assertThatThrownBy(() -> Course.create("CSE1001", "컴퓨터프로그래밍", 0))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Course.create("CSE1001", "컴퓨터프로그래밍", 0)).isInstanceOf(IllegalArgumentException.class);
 
-        assertThatThrownBy(() -> Course.create("CSE1001", "컴퓨터프로그래밍", -1))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Course.create("CSE1001", "컴퓨터프로그래밍", -1)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -49,8 +47,7 @@ class CourseTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("equivalentCourseId");
 
-        assertThatThrownBy(() -> course.assignEquivalentCourse(-1L))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> course.assignEquivalentCourse(-1L)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

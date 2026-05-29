@@ -25,9 +25,7 @@ public class AuthController implements AuthApi {
 
     @Override
     @PostMapping("/refresh")
-    public ApiResponse<TokenRefreshResponse> refresh(
-            @CookieValue("refreshToken") String refreshToken
-    ) {
+    public ApiResponse<TokenRefreshResponse> refresh(@CookieValue("refreshToken") String refreshToken) {
         String accessToken = authService.refreshAccessToken(refreshToken);
         TokenRefreshResponse response = new TokenRefreshResponse(accessToken);
 
@@ -37,10 +35,7 @@ public class AuthController implements AuthApi {
     @Override
     @PostMapping("/logout")
     public ApiResponse<Void> logout(
-            @LoginMemberId Long memberId,
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) {
+            @LoginMemberId Long memberId, HttpServletRequest request, HttpServletResponse response) {
         authService.logout(memberId);
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", "")

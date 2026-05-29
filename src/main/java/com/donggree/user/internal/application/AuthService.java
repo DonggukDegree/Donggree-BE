@@ -35,7 +35,8 @@ public class AuthService {
         }
 
         Long memberId = jwtTokenProvider.extractMemberId(refreshToken);
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository
+                .findById(memberId)
                 .orElseThrow(() -> new GeneralException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 
         if (!refreshToken.equals(member.getRefreshToken())) {
@@ -52,7 +53,8 @@ public class AuthService {
      */
     @Transactional
     public void logout(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository
+                .findById(memberId)
                 .orElseThrow(() -> new GeneralException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 
         member.clearRefreshToken();

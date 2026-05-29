@@ -27,8 +27,7 @@ public class LoginMemberIdArgumentResolver implements HandlerMethodArgumentResol
             MethodParameter parameter,
             ModelAndViewContainer mavContainer,
             NativeWebRequest webRequest,
-            WebDataBinderFactory binderFactory
-    ) {
+            WebDataBinderFactory binderFactory) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new IllegalStateException("인증 정보가 존재하지 않습니다.");
@@ -39,6 +38,7 @@ public class LoginMemberIdArgumentResolver implements HandlerMethodArgumentResol
             return memberId;
         }
 
-        throw new IllegalStateException("인증 principal 타입이 올바르지 않습니다: " + principal.getClass().getName());
+        throw new IllegalStateException(
+                "인증 principal 타입이 올바르지 않습니다: " + principal.getClass().getName());
     }
 }

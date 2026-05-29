@@ -41,7 +41,7 @@ public class Transcript extends BaseEntity {
     @Column(name = "member_id")
     private Long memberId;
 
-@JdbcTypeCode(SqlTypes.JSON)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_data", nullable = false, columnDefinition = "jsonb")
     private String rawData;
 
@@ -159,11 +159,17 @@ public class Transcript extends BaseEntity {
      * 생성된 CourseRecord를 반환하여 저장 후 ID를 참조할 수 있도록 한다.
      * courseTypeName은 PDF 원시 문자열 그대로 저장한다 (ex. "공교", "전필", "학기").
      */
-    public CourseRecord addCourseRecord(String semester, String courseTypeName, String areaName,
-                                        String courseCode, String courseName, int credits,
-                                        Grade grade, boolean retake) {
-        CourseRecord record = CourseRecord.create(semester, courseTypeName, areaName,
-                courseCode, courseName, credits, grade, retake);
+    public CourseRecord addCourseRecord(
+            String semester,
+            String courseTypeName,
+            String areaName,
+            String courseCode,
+            String courseName,
+            int credits,
+            Grade grade,
+            boolean retake) {
+        CourseRecord record =
+                CourseRecord.create(semester, courseTypeName, areaName, courseCode, courseName, credits, grade, retake);
         courseRecords.add(record);
         record.assignTranscript(this);
         return record;

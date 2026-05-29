@@ -21,8 +21,7 @@ public class TranscriptParser {
             "전필", Set.of("기초", "전문"),
             "일교", Set.of("1", "2", "3", "4", "5", "6"),
             "학기", Set.of("1", "2", "3", "4", "5", "6"),
-            "자선", Set.of("기초", "전문")
-    );
+            "자선", Set.of("기초", "전문"));
 
     // ====== 정규표현식 구성 요소 ======
 
@@ -33,43 +32,55 @@ public class TranscriptParser {
     private static final String CODE_RE = "[A-Z]{2,3}\\d{3,5}|\\d{6}";
 
     /** 과목 행 시작 패턴: 학기 학년 이수구분 과목코드 */
-    private static final Pattern COURSE_START = Pattern.compile(
-            "(" + SEMESTER_RE + ")\\s+(\\d)\\s+(" + CATEGORY_RE + ")\\s+(" + CODE_RE + ")\\s+"
-    );
+    private static final Pattern COURSE_START =
+            Pattern.compile("(" + SEMESTER_RE + ")\\s+(\\d)\\s+(" + CATEGORY_RE + ")\\s+(" + CODE_RE + ")\\s+");
 
     /** 과목 행 꼬리 패턴: 학점 성적 [영역] [재수강] */
-    private static final Pattern TAIL = Pattern.compile(
-            "\\s+(\\d{1,2})\\s+(" + GRADE_RE + ")(?:\\s+(" + AREA_RE + "))?(?:\\s+(R))?"
-    );
+    private static final Pattern TAIL =
+            Pattern.compile("\\s+(\\d{1,2})\\s+(" + GRADE_RE + ")(?:\\s+(" + AREA_RE + "))?(?:\\s+(R))?");
 
     // ====== 메타 파싱용 키 목록 ======
 
     /** PDF 상단 메타 영역에 등장하는 키 (정규표현식 이스케이프 포함) */
     private static final String[] META_KEYS = {
-            "교육과정 적용년도", "과정", "공학인증심화대상",
-            "레벨테스트\\(텝스\\)", "레벨테스트\\(인터뷰\\)", "글로벌인재트랙여부",
-            "대학", "특기", "학적상태", "전적대", "전과\\(학과\\)",
-            "학과", "학번", "성명",
-            "부전공1", "부전공2", "복수1", "복수2",
-            "캠퍼스전입여부", "선택적수료승인",
+        "교육과정 적용년도",
+        "과정",
+        "공학인증심화대상",
+        "레벨테스트\\(텝스\\)",
+        "레벨테스트\\(인터뷰\\)",
+        "글로벌인재트랙여부",
+        "대학",
+        "특기",
+        "학적상태",
+        "전적대",
+        "전과\\(학과\\)",
+        "학과",
+        "학번",
+        "성명",
+        "부전공1",
+        "부전공2",
+        "복수1",
+        "복수2",
+        "캠퍼스전입여부",
+        "선택적수료승인",
     };
 
     /** PDF 하단 요약 영역의 파싱 규칙: [키 이름, 정규표현식] */
     private static final String[][] SUMMARY_RULES = {
-            {"총취득학점", "총취득학점\\s*:?\\s*(\\d+)"},
-            {"평점평균", "평점평균\\s*:?\\s*([\\d.]+)"},
-            {"제1전공총학점", "제1전공\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
-            {"제1전공평점", "제1전공평점\\s*:?\\s*([\\d.]+)"},
-            {"공통교양총학점", "공통교양\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
-            {"교양선택총학점", "교양선택\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
-            {"자유선택총학점", "자선\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
-            {"영어강의이수대상", "영어강의이수\\s*:?\\s*(대상)"},
-            {"영어강의이수결과", "영어강의이수\\s*:?.*?(PASS|FAIL)"},
-            {"영어패스제결과", "영어패스제.*?(PASS|FAIL)"},
-            {"졸업논문심사", "졸업논문.*?심사.*?:\\s*([가-힣]+)"},
-            {"교직인적성합격횟수", "교직인적성합격횟수\\s*:\\s*(\\d+)"},
-            {"주전공", "주전공\\s*:?\\s*(.+?)\\s+DC"},
-            {"주전공코드", "(DC-\\d+(?:\\([^)]*\\))?)"},
+        {"총취득학점", "총취득학점\\s*:?\\s*(\\d+)"},
+        {"평점평균", "평점평균\\s*:?\\s*([\\d.]+)"},
+        {"제1전공총학점", "제1전공\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
+        {"제1전공평점", "제1전공평점\\s*:?\\s*([\\d.]+)"},
+        {"공통교양총학점", "공통교양\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
+        {"교양선택총학점", "교양선택\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
+        {"자유선택총학점", "자선\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
+        {"영어강의이수대상", "영어강의이수\\s*:?\\s*(대상)"},
+        {"영어강의이수결과", "영어강의이수\\s*:?.*?(PASS|FAIL)"},
+        {"영어패스제결과", "영어패스제.*?(PASS|FAIL)"},
+        {"졸업논문심사", "졸업논문.*?심사.*?:\\s*([가-힣]+)"},
+        {"교직인적성합격횟수", "교직인적성합격횟수\\s*:\\s*(\\d+)"},
+        {"주전공", "주전공\\s*:?\\s*(.+?)\\s+DC"},
+        {"주전공코드", "(DC-\\d+(?:\\([^)]*\\))?)"},
     };
 
     /**
@@ -100,16 +111,14 @@ public class TranscriptParser {
 
         Matcher km = Pattern.compile(keyPattern).matcher(text);
         while (km.find()) {
-            keyPositions.add(new int[]{km.start(), km.end()});
+            keyPositions.add(new int[] {km.start(), km.end()});
             keyNames.add(km.group(1));
         }
 
         for (int i = 0; i < keyPositions.size(); i++) {
             String key = keyNames.get(i);
             int valStart = keyPositions.get(i)[1];
-            int valEnd = (i + 1 < keyPositions.size())
-                    ? keyPositions.get(i + 1)[0]
-                    : valStart + 100;
+            int valEnd = (i + 1 < keyPositions.size()) ? keyPositions.get(i + 1)[0] : valStart + 100;
             valEnd = Math.min(valEnd, text.length());
 
             String value = text.substring(valStart, valEnd).trim();
@@ -137,7 +146,8 @@ public class TranscriptParser {
         }
 
         // 3단계: 이수학기 계산 — <<등록사항>>에서 등필 정규학기 수 (여름/겨울 제외)
-        Matcher sem = Pattern.compile("(\\d{4})\\s*-\\s*([12여름겨울]+)\\s+\\d학년\\s+등필").matcher(text);
+        Matcher sem =
+                Pattern.compile("(\\d{4})\\s*-\\s*([12여름겨울]+)\\s+\\d학년\\s+등필").matcher(text);
         int regularSemesters = 0;
         while (sem.find()) {
             String term = sem.group(2);
@@ -160,15 +170,14 @@ public class TranscriptParser {
 
         Matcher sm = COURSE_START.matcher(text);
         while (sm.find()) {
-            positions.add(new int[]{sm.start(), sm.end()});
-            groups.add(new String[]{sm.group(1), sm.group(2), sm.group(3), sm.group(4)});
+            positions.add(new int[] {sm.start(), sm.end()});
+            groups.add(new String[] {sm.group(1), sm.group(2), sm.group(3), sm.group(4)});
         }
 
         for (int i = 0; i < positions.size(); i++) {
             int nameStart = positions.get(i)[1];
-            int searchEnd = (i + 1 < positions.size())
-                    ? positions.get(i + 1)[0]
-                    : Math.min(nameStart + 200, text.length());
+            int searchEnd =
+                    (i + 1 < positions.size()) ? positions.get(i + 1)[0] : Math.min(nameStart + 200, text.length());
             String region = text.substring(nameStart, searchEnd);
 
             Matcher tm = TAIL.matcher(region);
@@ -186,13 +195,10 @@ public class TranscriptParser {
             boolean retake = "R".equals(tm.group(4));
 
             String rawArea = tm.group(3) != null ? tm.group(3).trim() : "";
-            String area = AREA_BY_CATEGORY.getOrDefault(category, Set.of()).contains(rawArea)
-                    ? rawArea : "";
+            String area = AREA_BY_CATEGORY.getOrDefault(category, Set.of()).contains(rawArea) ? rawArea : "";
 
-            courses.add(new ParsedCourse(
-                    semester, year, category, courseCode,
-                    courseName, credits, grade, area, retake
-            ));
+            courses.add(
+                    new ParsedCourse(semester, year, category, courseCode, courseName, credits, grade, area, retake));
         }
 
         return courses;
@@ -205,19 +211,11 @@ public class TranscriptParser {
     private String preprocessText(String text) {
         // 학기+학년 / 이수구분 / 과목코드가 줄바꿈으로 분리된 경우
         text = text.replaceAll(
-                "(" + SEMESTER_RE + "\\s+\\d)\\s*\\n\\s*(" + CATEGORY_RE + ")\\s*\\n\\s*(" + CODE_RE + ")",
-                "$1 $2 $3"
-        );
+                "(" + SEMESTER_RE + "\\s+\\d)\\s*\\n\\s*(" + CATEGORY_RE + ")\\s*\\n\\s*(" + CODE_RE + ")", "$1 $2 $3");
         // 과목코드 / 과목명이 줄바꿈으로 분리된 경우
-        text = text.replaceAll(
-                "(" + CODE_RE + ")\\s*\\n\\s*([가-힣<])",
-                "$1 $2"
-        );
+        text = text.replaceAll("(" + CODE_RE + ")\\s*\\n\\s*([가-힣<])", "$1 $2");
         // 과목명 / 학점 / 성적이 줄바꿈으로 분리된 경우
-        text = text.replaceAll(
-                "([)가-힣\\w])\\s*\\n\\s*(\\d)\\s*\\n\\s*(" + GRADE_RE + ")",
-                "$1 $2 $3"
-        );
+        text = text.replaceAll("([)가-힣\\w])\\s*\\n\\s*(\\d)\\s*\\n\\s*(" + GRADE_RE + ")", "$1 $2 $3");
         return text;
     }
 }

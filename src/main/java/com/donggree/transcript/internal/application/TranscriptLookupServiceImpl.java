@@ -22,28 +22,30 @@ public class TranscriptLookupServiceImpl implements TranscriptLookupService {
 
     @Override
     public Optional<TranscriptView> findById(Long transcriptId) {
-        return transcriptRepository.findWithCourseRecordsById(transcriptId)
-                .map(this::toView);
+        return transcriptRepository.findWithCourseRecordsById(transcriptId).map(this::toView);
     }
 
     private TranscriptView toView(Transcript t) {
-        List<CourseRecordView> records = t.getCourseRecords().stream()
-                .map(this::toCourseRecordView)
-                .toList();
+        List<CourseRecordView> records =
+                t.getCourseRecords().stream().map(this::toCourseRecordView).toList();
         return new TranscriptView(
-                t.getId(), t.getMemberId(), t.getDepartmentId(),
-                t.getAdmissionYear(), t.getStudentType(),
-                t.getTotalCredits(), t.getGpa(), t.getEnglishLevel(),
-                t.isEnglishCourseTarget(), t.getCompletedEnglishResult(),
-                t.isThesisStatus(), records
-        );
+                t.getId(),
+                t.getMemberId(),
+                t.getDepartmentId(),
+                t.getAdmissionYear(),
+                t.getStudentType(),
+                t.getTotalCredits(),
+                t.getGpa(),
+                t.getEnglishLevel(),
+                t.isEnglishCourseTarget(),
+                t.getCompletedEnglishResult(),
+                t.isThesisStatus(),
+                records);
     }
 
     private CourseRecordView toCourseRecordView(CourseRecord cr) {
         boolean passed = cr.getGrade() != null && cr.getGrade() != Grade.F && cr.getGrade() != Grade.NP;
         return new CourseRecordView(
-                cr.getSemester(), cr.getCourseCode(), cr.getCourseName(),
-                cr.getCredits(), passed, cr.isRetake()
-        );
+                cr.getSemester(), cr.getCourseCode(), cr.getCourseName(), cr.getCredits(), passed, cr.isRetake());
     }
 }

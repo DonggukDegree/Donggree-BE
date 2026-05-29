@@ -55,8 +55,8 @@ public class RequirementSet extends BaseEntity {
     @OneToMany(mappedBy = "requirementSet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<GraduationRule> rules = new ArrayList<>();
 
-    private RequirementSet(Long departmentId, int yearStart, int yearEnd,
-                           int version, String description, String sheetImageUrl) {
+    private RequirementSet(
+            Long departmentId, int yearStart, int yearEnd, int version, String description, String sheetImageUrl) {
         if (departmentId == null) {
             throw new IllegalArgumentException("departmentId must not be null");
         }
@@ -75,8 +75,8 @@ public class RequirementSet extends BaseEntity {
         this.active = true;
     }
 
-    public static RequirementSet create(Long departmentId, int yearStart, int yearEnd,
-                                        int version, String description, String sheetImageUrl) {
+    public static RequirementSet create(
+            Long departmentId, int yearStart, int yearEnd, int version, String description, String sheetImageUrl) {
         return new RequirementSet(departmentId, yearStart, yearEnd, version, description, sheetImageUrl);
     }
 

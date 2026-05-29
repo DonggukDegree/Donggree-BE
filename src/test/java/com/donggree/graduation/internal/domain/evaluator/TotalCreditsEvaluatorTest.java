@@ -50,7 +50,7 @@ class TotalCreditsEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(1L, "TOTAL_CREDITS", RuleCategory.GRADUATION_REQ,
-                "총 취득학점이 130학점 이상이어야 합니다.", config);
+        return new GraduationRuleView(
+                1L, "TOTAL_CREDITS", RuleCategory.GRADUATION_REQ, "총 취득학점이 130학점 이상이어야 합니다.", config);
     }
 }

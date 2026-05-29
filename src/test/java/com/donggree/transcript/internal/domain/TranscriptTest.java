@@ -45,11 +45,28 @@ class TranscriptTest {
     @Test
     void memberId가_null이면_예외가_발생한다() {
         TranscriptCreateData data = new TranscriptCreateData(
-                null, "{}",
-                2023, "재학", null, null, null, null, null, null,
-                0, BigDecimal.ZERO, 0, null,
-                false, false, false, false, false,
-                null, null, false);
+                null,
+                "{}",
+                2023,
+                "재학",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                BigDecimal.ZERO,
+                0,
+                null,
+                false,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                false);
 
         assertThatThrownBy(() -> Transcript.create(data))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -59,11 +76,28 @@ class TranscriptTest {
     @Test
     void rawData가_null이면_예외가_발생한다() {
         TranscriptCreateData data = new TranscriptCreateData(
-                1L, null,
-                2023, "재학", null, null, null, null, null, null,
-                0, BigDecimal.ZERO, 0, null,
-                false, false, false, false, false,
-                null, null, false);
+                1L,
+                null,
+                2023,
+                "재학",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                BigDecimal.ZERO,
+                0,
+                null,
+                false,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                false);
 
         assertThatThrownBy(() -> Transcript.create(data))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -73,11 +107,28 @@ class TranscriptTest {
     @Test
     void academicStatus가_null이면_예외가_발생한다() {
         TranscriptCreateData data = new TranscriptCreateData(
-                1L, "{}",
-                2023, null, null, null, null, null, null, null,
-                0, BigDecimal.ZERO, 0, null,
-                false, false, false, false, false,
-                null, null, false);
+                1L,
+                "{}",
+                2023,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                BigDecimal.ZERO,
+                0,
+                null,
+                false,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                false);
 
         assertThatThrownBy(() -> Transcript.create(data))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -125,9 +176,9 @@ class TranscriptTest {
         Transcript transcript = createTranscript();
         transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
 
-        assertThatThrownBy(() -> transcript.getCourseRecords().add(
-                CourseRecord.create("2023-2", "공교",
-                        null, "GEN2001", "교양강의", 2, Grade.B_PLUS, false)))
+        assertThatThrownBy(() -> transcript
+                        .getCourseRecords()
+                        .add(CourseRecord.create("2023-2", "공교", null, "GEN2001", "교양강의", 2, Grade.B_PLUS, false)))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
@@ -157,8 +208,7 @@ class TranscriptTest {
 
     @Test
     void CourseRecord_생성_시_필드가_올바르게_저장된다() {
-        CourseRecord record = CourseRecord.create(
-                "2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, true);
+        CourseRecord record = CourseRecord.create("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, true);
 
         assertThat(record.getSemester()).isEqualTo("2023-1");
         assertThat(record.getCourseTypeName()).isEqualTo("전공");
@@ -172,40 +222,36 @@ class TranscriptTest {
 
     @Test
     void CourseRecord_생성_시_credits가_음수이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseRecord.create(
-                "2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", -1, Grade.A_PLUS, false))
+        assertThatThrownBy(
+                        () -> CourseRecord.create("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", -1, Grade.A_PLUS, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("credits");
     }
 
     @Test
     void CourseRecord_생성_시_credits가_0이면_생성된다() {
-        CourseRecord record = CourseRecord.create(
-                "2023-1", "전공", null, "GEN0000", "영점학점과목", 0, Grade.P, false);
+        CourseRecord record = CourseRecord.create("2023-1", "전공", null, "GEN0000", "영점학점과목", 0, Grade.P, false);
 
         assertThat(record.getCredits()).isEqualTo(0);
     }
 
     @Test
     void CourseRecord_생성_시_grade가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseRecord.create(
-                "2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, null, false))
+        assertThatThrownBy(() -> CourseRecord.create("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, null, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("grade");
     }
 
     @Test
     void CourseRecord_생성_시_semester가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseRecord.create(
-                null, "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false))
+        assertThatThrownBy(() -> CourseRecord.create(null, "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("semester");
     }
 
     @Test
     void CourseRecord_생성_시_courseCode가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseRecord.create(
-                "2023-1", "전공", "전문", null, "특강", 1, Grade.A_PLUS, false))
+        assertThatThrownBy(() -> CourseRecord.create("2023-1", "전공", "전문", null, "특강", 1, Grade.A_PLUS, false))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("courseCode");
     }
@@ -236,27 +282,60 @@ class TranscriptTest {
 
     @Test
     void Grade_fromValue에_존재하지_않는_값을_넘기면_예외가_발생한다() {
-        assertThatThrownBy(() -> Grade.fromValue("X"))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Grade.fromValue("X")).isInstanceOf(IllegalArgumentException.class);
     }
 
     // --- 헬퍼 메서드 ---
 
     private Transcript createTranscript() {
         return Transcript.create(new TranscriptCreateData(
-                1L, "{\"pages\": []}",
-                2023, "재학", null, null, null, null, null, null,
-                0, BigDecimal.ZERO, 0, null,
-                false, false, false, false, false,
-                null, null, false));
+                1L,
+                "{\"pages\": []}",
+                2023,
+                "재학",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                BigDecimal.ZERO,
+                0,
+                null,
+                false,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                false));
     }
 
     private Transcript createFullTranscript() {
         return Transcript.create(new TranscriptCreateData(
-                1L, "{\"pages\": []}",
-                2023, "재학", "단일", 100L, null, null, null, null,
-                80, new BigDecimal("3.95"), 4, "S1",
-                true, false, false, false, true,
-                true, null, false));
+                1L,
+                "{\"pages\": []}",
+                2023,
+                "재학",
+                "단일",
+                100L,
+                null,
+                null,
+                null,
+                null,
+                80,
+                new BigDecimal("3.95"),
+                4,
+                "S1",
+                true,
+                false,
+                false,
+                false,
+                true,
+                true,
+                null,
+                false));
     }
 }

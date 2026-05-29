@@ -13,18 +13,32 @@ import java.util.Map;
 class EvaluatorTestSupport {
 
     static TranscriptView transcript(int totalCredits, double gpa, List<CourseRecordView> records) {
-        return new TranscriptView(1L, 1L, 100L, 2023, "단일",
-                totalCredits, BigDecimal.valueOf(gpa), "S1",
-                false, null, false, records);
+        return new TranscriptView(
+                1L, 1L, 100L, 2023, "단일", totalCredits, BigDecimal.valueOf(gpa), "S1", false, null, false, records);
     }
 
-    static TranscriptView transcriptWith(int totalCredits, double gpa, boolean englishTarget,
-                                         Boolean completedEnglish, boolean thesisStatus,
-                                         String studentType, String englishLevel,
-                                         List<CourseRecordView> records) {
-        return new TranscriptView(1L, 1L, 100L, 2023, studentType,
-                totalCredits, BigDecimal.valueOf(gpa), englishLevel,
-                englishTarget, completedEnglish, thesisStatus, records);
+    static TranscriptView transcriptWith(
+            int totalCredits,
+            double gpa,
+            boolean englishTarget,
+            Boolean completedEnglish,
+            boolean thesisStatus,
+            String studentType,
+            String englishLevel,
+            List<CourseRecordView> records) {
+        return new TranscriptView(
+                1L,
+                1L,
+                100L,
+                2023,
+                studentType,
+                totalCredits,
+                BigDecimal.valueOf(gpa),
+                englishLevel,
+                englishTarget,
+                completedEnglish,
+                thesisStatus,
+                records);
     }
 
     static CourseRecordView passed(String code, String name, int credits, String semester) {
@@ -43,8 +57,8 @@ class EvaluatorTestSupport {
         return new EvaluationContext(t, Map.of());
     }
 
-    static CourseClassificationView classification(Long courseId, CourseType type,
-                                                    String subCategory, String subjectDomain) {
+    static CourseClassificationView classification(
+            Long courseId, CourseType type, String subCategory, String subjectDomain) {
         return new CourseClassificationView(courseId, type, null, subCategory, subjectDomain);
     }
 
