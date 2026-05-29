@@ -1,7 +1,6 @@
 package com.donggree.transcript.internal.domain;
 
 import com.donggree.global.entity.BaseEntity;
-import com.donggree.transcript.internal.domain.enums.CourseType;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -158,11 +157,12 @@ public class Transcript extends BaseEntity {
      * 수강 이력을 생성하여 추가하고 양방향 관계를 설정한다.
      * CourseRecord는 Transcript의 하위 엔티티이므로 반드시 루트를 통해 생성한다.
      * 생성된 CourseRecord를 반환하여 저장 후 ID를 참조할 수 있도록 한다.
+     * courseTypeName은 PDF 원시 문자열 그대로 저장한다 (ex. "공교", "전필", "학기").
      */
-    public CourseRecord addCourseRecord(String semester, CourseType courseType, String areaName,
+    public CourseRecord addCourseRecord(String semester, String courseTypeName, String areaName,
                                         String courseCode, String courseName, int credits,
                                         Grade grade, boolean retake) {
-        CourseRecord record = CourseRecord.create(semester, courseType, areaName,
+        CourseRecord record = CourseRecord.create(semester, courseTypeName, areaName,
                 courseCode, courseName, credits, grade, retake);
         courseRecords.add(record);
         record.assignTranscript(this);

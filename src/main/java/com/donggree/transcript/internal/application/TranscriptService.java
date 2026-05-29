@@ -110,7 +110,7 @@ public class TranscriptService {
 
         for (CourseRecordCreateData course : courses) {
             transcript.addCourseRecord(
-                    course.semester(), course.courseType(), course.areaName(),
+                    course.semester(), course.courseTypeName(), course.areaName(),
                     course.courseCode(), course.courseName(), course.credits(),
                     course.grade(), course.retake()
             );
@@ -137,7 +137,7 @@ public class TranscriptService {
         List<CourseRecord> added = new ArrayList<>();
         for (CourseRecordCreateData course : courses) {
             added.add(transcript.addCourseRecord(
-                    course.semester(), course.courseType(), course.areaName(),
+                    course.semester(), course.courseTypeName(), course.areaName(),
                     course.courseCode(), course.courseName(), course.credits(),
                     course.grade(), course.retake()
             ));
@@ -172,7 +172,7 @@ public class TranscriptService {
                                 r.getCourseName(),
                                 r.getCredits(),
                                 r.getAreaName(),
-                                r.getCourseType() != null ? r.getCourseType().name() : null,
+                                r.getCourseTypeName(),
                                 r.getGrade().getValue(),
                                 r.isRetake()
                         )).toList()

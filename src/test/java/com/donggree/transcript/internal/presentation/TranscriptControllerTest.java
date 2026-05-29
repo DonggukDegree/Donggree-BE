@@ -74,7 +74,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         authenticate(memberId);
 
         RawMeta rawMeta = new RawMeta(1L, 2023, 10L, null, null, null, null, "재학", 60, new BigDecimal("3.50"), 4);
-        RawCourseRecord rawRecord = new RawCourseRecord(1L, "CSE1101", "프로그래밍기초", 3, null, "FIRST_MAJOR", "A+", false);
+        RawCourseRecord rawRecord = new RawCourseRecord(1L, "CSE1101", "프로그래밍기초", 3, null, "전공", "A+", false);
         TranscriptQueryResult queryResult = new TranscriptQueryResult(
                 rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
 
@@ -106,7 +106,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.courses[].records[].courseCode").description("과목 코드"),
                                 fieldWithPath("result.courses[].records[].courseName").description("과목명"),
                                 fieldWithPath("result.courses[].records[].credits").description("학점"),
-                                fieldWithPath("result.courses[].records[].courseType").description("이수 구분 (COMMON_GENERAL, LIBERAL_ARTS, ACADEMIC_FOUNDATION, FIRST_MAJOR, SECOND_MAJOR, FREE_ELECTIVE)"),
+                                fieldWithPath("result.courses[].records[].courseType").description("이수 구분 — PDF 원시 문자열 (예: 전공, 공교, 일교, 학기)"),
                                 fieldWithPath("result.courses[].records[].areaName").type(JsonFieldType.NULL).optional().description("이수 영역명 (없으면 null)"),
                                 fieldWithPath("result.courses[].records[].grade").description("성적 (A+, A0, B+, B0, C+, C0, D+, D0, F, P, NP)"),
                                 fieldWithPath("result.courses[].records[].retake").description("재수강 여부")
@@ -174,7 +174,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         authenticate(memberId);
 
         CourseRecordAddRequest request = new CourseRecordAddRequest(List.of(
-                new CourseItem("2024-1", "FIRST_MAJOR", "전공필수", "CSE2101", "자료구조", 3, "B+", false)
+                new CourseItem("2024-1", "전공", "전공필수", "CSE2101", "자료구조", 3, "B+", false)
         ));
 
         given(transcriptService.addCourseRecords(any(), any())).willReturn(List.of(10L));
@@ -189,7 +189,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                         requestFields(
                                 fieldWithPath("courses").description("추가할 수강 이력 목록"),
                                 fieldWithPath("courses[].semester").description("학기 (예: 2024-1, 2024-여름)"),
-                                fieldWithPath("courses[].courseType").description("이수 구분 (COMMON_GENERAL, LIBERAL_ARTS, ACADEMIC_FOUNDATION, FIRST_MAJOR, SECOND_MAJOR, FREE_ELECTIVE, 대소문자 무관)"),
+                                fieldWithPath("courses[].courseType").description("이수 구분 — PDF 원시 문자열 그대로 입력 (예: 전공, 공교, 일교, 학기)"),
                                 fieldWithPath("courses[].areaName").optional().description("이수 영역명 (없으면 null 또는 생략)"),
                                 fieldWithPath("courses[].courseCode").description("과목 코드"),
                                 fieldWithPath("courses[].courseName").description("과목명"),

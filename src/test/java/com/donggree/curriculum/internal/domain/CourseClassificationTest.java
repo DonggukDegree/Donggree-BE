@@ -1,0 +1,83 @@
+package com.donggree.curriculum.internal.domain;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.donggree.curriculum.CourseType;
+import org.junit.jupiter.api.Test;
+
+class CourseClassificationTest {
+
+    @Test
+    void 과목분류_생성_시_모든_필드가_저장된다() {
+        CourseClassification cc = CourseClassification.create(
+                1L, 2023, 2025, CourseType.ACADEMIC_FOUNDATION, 10L, "개론", "물리");
+
+        assertThat(cc.getCourseId()).isEqualTo(1L);
+        assertThat(cc.getStudentYearStart()).isEqualTo(2023);
+        assertThat(cc.getStudentYearEnd()).isEqualTo(2025);
+        assertThat(cc.getCourseType()).isEqualTo(CourseType.ACADEMIC_FOUNDATION);
+        assertThat(cc.getAreaTypeId()).isEqualTo(10L);
+        assertThat(cc.getSubCategory()).isEqualTo("개론");
+        assertThat(cc.getSubjectDomain()).isEqualTo("물리");
+    }
+
+    @Test
+    void areaTypeId와_subCategory와_subjectDomain이_null이어도_생성된다() {
+        CourseClassification cc = CourseClassification.create(
+                1L, 2023, 2025, CourseType.FIRST_MAJOR, null, null, null);
+
+        assertThat(cc.getAreaTypeId()).isNull();
+        assertThat(cc.getSubCategory()).isNull();
+        assertThat(cc.getSubjectDomain()).isNull();
+    }
+
+    @Test
+    void courseId가_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseClassification.create(
+                null, 2023, 2025, CourseType.FIRST_MAJOR, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("courseId");
+    }
+
+    @Test
+    void courseType이_null이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseClassification.create(
+                1L, 2023, 2025, null, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("courseType");
+    }
+
+    @Test
+    void yearStart가_yearEnd보다_크면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseClassification.create(
+                1L, 2025, 2023, CourseType.FIRST_MAJOR, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("studentYearStart");
+    }
+
+    @Test
+    void studentYearStart가_0_이하이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseClassification.create(
+                1L, 0, 2023, CourseType.FIRST_MAJOR, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("positive");
+    }
+
+    @Test
+    void studentYearEnd가_음수이면_예외가_발생한다() {
+        assertThatThrownBy(() -> CourseClassification.create(
+                1L, 2023, -1, CourseType.FIRST_MAJOR, null, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("positive");
+    }
+
+    @Test
+    void yearStart와_yearEnd가_같으면_단일_연도_분류로_생성된다() {
+        CourseClassification cc = CourseClassification.create(
+                1L, 2023, 2023, CourseType.LIBERAL_ARTS, null, null, null);
+
+        assertThat(cc.getStudentYearStart()).isEqualTo(2023);
+        assertThat(cc.getStudentYearEnd()).isEqualTo(2023);
+    }
+}
