@@ -25,7 +25,9 @@ public class GpaEvaluator implements RuleEvaluator {
     public RuleResult evaluate(GraduationRuleView rule, EvaluationContext context) {
         Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
         BigDecimal minGpa = BigDecimal.valueOf(config.minGpa());
-        boolean satisfied = context.getTranscript().gpa().compareTo(minGpa) >= 0;
+        BigDecimal gpa = context.getTranscript().gpa();
+        BigDecimal currentGpa = gpa != null ? gpa : BigDecimal.ZERO;
+        boolean satisfied = currentGpa.compareTo(minGpa) >= 0;
         return new RuleResult(rule.ruleName(), satisfied);
     }
 

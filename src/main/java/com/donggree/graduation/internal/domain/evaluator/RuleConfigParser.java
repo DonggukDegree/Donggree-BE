@@ -13,6 +13,9 @@ final class RuleConfigParser {
     private RuleConfigParser() {}
 
     static <T> T parse(String json, Class<T> configType) {
+        if (json == null || json.isBlank()) {
+            throw new IllegalStateException("rule_config가 비어 있습니다.");
+        }
         try {
             return MAPPER.readValue(json, configType);
         } catch (JsonProcessingException e) {

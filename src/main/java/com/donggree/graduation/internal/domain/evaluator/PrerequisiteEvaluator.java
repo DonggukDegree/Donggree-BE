@@ -47,8 +47,9 @@ public class PrerequisiteEvaluator implements RuleEvaluator {
             return new RuleResult(rule.ruleName(), false);
         }
 
-        boolean satisfied = EvaluationContext.semesterOrdinal(prereqSemester.get())
-                < EvaluationContext.semesterOrdinal(targetSemester.get());
+        int prereqOrdinal = EvaluationContext.semesterOrdinal(prereqSemester.get());
+        int targetOrdinal = EvaluationContext.semesterOrdinal(targetSemester.get());
+        boolean satisfied = prereqOrdinal > 0 && targetOrdinal > 0 && prereqOrdinal < targetOrdinal;
         return new RuleResult(rule.ruleName(), satisfied);
     }
 

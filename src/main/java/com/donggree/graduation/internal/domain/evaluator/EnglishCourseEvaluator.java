@@ -58,7 +58,7 @@ public class EnglishCourseEvaluator implements RuleEvaluator {
                                        EvaluationContext context) {
         if (courseTypes == null) return true;
         CourseClassificationView cls = context.getClassification(cr.courseCode());
-        if (cls == null) return false;
+        if (cls == null || cls.courseType() == null) return false;
         return courseTypes.contains(cls.courseType().name());
     }
 

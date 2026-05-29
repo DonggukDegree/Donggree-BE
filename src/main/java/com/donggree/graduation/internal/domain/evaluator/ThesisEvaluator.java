@@ -37,7 +37,8 @@ public class ThesisEvaluator implements RuleEvaluator {
             return new RuleResult(rule.ruleName(), true);
         }
 
-        boolean satisfied = config.requiredCourseSets().stream()
+        List<List<String>> courseSets = config.requiredCourseSets();
+        boolean satisfied = courseSets != null && courseSets.stream()
                 .anyMatch(set -> set.stream().allMatch(context::hasPassedCourseByName));
 
         return new RuleResult(rule.ruleName(), satisfied);
