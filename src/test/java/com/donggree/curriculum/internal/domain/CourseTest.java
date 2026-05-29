@@ -24,4 +24,20 @@ class CourseTest {
         assertThatThrownBy(() -> Course.create("CSE1001", "컴퓨터프로그래밍", -1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void 동치과목_그룹_지정_후_equivalentCourseId가_저장된다() {
+        Course course = Course.create("AWS2019", "기초프로그래밍", 3);
+
+        course.assignEquivalentCourse(5L);
+
+        assertThat(course.getEquivalentCourseId()).isEqualTo(5L);
+    }
+
+    @Test
+    void 동치과목_그룹_미지정_시_equivalentCourseId는_null이다() {
+        Course course = Course.create("CSE1001", "컴퓨터프로그래밍", 3);
+
+        assertThat(course.getEquivalentCourseId()).isNull();
+    }
 }

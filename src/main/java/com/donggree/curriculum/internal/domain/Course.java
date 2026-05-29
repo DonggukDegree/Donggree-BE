@@ -34,6 +34,9 @@ public class Course {
     @Column(nullable = false)
     private int credits;
 
+    @Column(name = "equivalent_course_id")
+    private Long equivalentCourseId;
+
     private Course(String courseCode, String courseName, int credits) {
         if (credits <= 0) {
             throw new IllegalArgumentException("credits must be positive");
@@ -45,5 +48,13 @@ public class Course {
 
     public static Course create(String courseCode, String courseName, int credits) {
         return new Course(courseCode, courseName, credits);
+    }
+
+    /**
+     * 동치 과목 그룹을 지정한다.
+     * 연도별로 학수번호가 달라도 같은 내용으로 인정할 과목끼리 묶을 때 호출한다.
+     */
+    public void assignEquivalentCourse(Long equivalentCourseId) {
+        this.equivalentCourseId = equivalentCourseId;
     }
 }
