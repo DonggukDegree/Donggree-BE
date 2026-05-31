@@ -46,6 +46,12 @@ public class TranscriptLookupServiceImpl implements TranscriptLookupService {
     private CourseRecordView toCourseRecordView(CourseRecord cr) {
         boolean passed = cr.getGrade() != null && cr.getGrade() != Grade.F && cr.getGrade() != Grade.NP;
         return new CourseRecordView(
-                cr.getSemester(), cr.getCourseCode(), cr.getCourseName(), cr.getCredits(), passed, cr.isRetake());
+                cr.getSemester(),
+                cr.getCourseCode(),
+                cr.getCourseTypeName(),
+                cr.getCourseName(),
+                cr.getCredits(),
+                passed,
+                cr.isRetake());
     }
 }
