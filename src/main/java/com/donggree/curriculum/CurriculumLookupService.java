@@ -36,9 +36,11 @@ public interface CurriculumLookupService {
     Map<String, CourseView> findCoursesByCodes(List<String> courseCodes);
 
     /**
-     * course_id 목록과 입학년도로 과목 분류를 일괄 조회한다.
+     * course_id 목록과 입학년도·학과로 과목 분류를 일괄 조회한다.
      * admissionYear가 studentYearStart ~ studentYearEnd 범위에 속하는 분류만 반환한다.
+     * 학과 전용 분류(departmentId 일치)가 공통 분류(departmentId = null)보다 우선 적용된다.
      * 결과는 courseId → CourseClassificationView 맵으로 반환한다.
      */
-    Map<Long, CourseClassificationView> findCourseClassificationsByCourseIds(List<Long> courseIds, int admissionYear);
+    Map<Long, CourseClassificationView> findCourseClassificationsByCourseIds(
+            List<Long> courseIds, int admissionYear, Long departmentId);
 }

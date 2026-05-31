@@ -69,7 +69,8 @@ public class GraduationReportService {
                 courseByCode.values().stream().map(CourseView::id).toList();
 
         Map<Long, CourseClassificationView> classificationByCourseId =
-                curriculumLookupService.findCourseClassificationsByCourseIds(courseIds, transcript.admissionYear());
+                curriculumLookupService.findCourseClassificationsByCourseIds(
+                        courseIds, transcript.admissionYear(), transcript.departmentId());
 
         Map<String, CourseClassificationView> classificationByCourseCode = courseCodes.stream()
                 .filter(courseByCode::containsKey)

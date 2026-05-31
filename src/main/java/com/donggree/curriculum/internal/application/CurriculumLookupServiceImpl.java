@@ -110,12 +110,22 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
 
     @Override
     public Map<Long, CourseClassificationView> findCourseClassificationsByCourseIds(
-            List<Long> courseIds, int admissionYear) {
+            List<Long> courseIds, int admissionYear, Long departmentId) {
         if (courseIds == null || courseIds.isEmpty()) {
             return Map.of();
         }
-        return courseClassificationRepository.findByCourseIdIn(courseIds).stream()
+        // 학과 전용(departmentId 일치) 또는 공통(null)만 후보로 삼고,
+        // 같은 courseId에 둘 다 있으면 학과 전용을 우선 적용한다.
+        Map<Long, CourseClassification> byId = courseClassificationRepository.findByCourseIdIn(courseIds).stream()
                 .filter(cc -> admissionYear >= cc.getStudentYearStart() && admissionYear <= cc.getStudentYearEnd())
+                .filter(cc ->
+                        cc.getDepartmentId() == null || cc.getDepartmentId().equals(departmentId))
+                .collect(Collectors.toMap(
+                        CourseClassification::getCourseId,
+                        Function.identity(),
+                        (existing, replacement) -> replacement.getDepartmentId() != null ? replacement : existing));
+
+        return byId.values().stream()
                 .collect(Collectors.toMap(
                         CourseClassification::getCourseId,
                         cc -> new CourseClassificationView(
@@ -123,7 +133,6 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
                                 cc.getCourseType(),
                                 cc.getAreaTypeId(),
                                 cc.getSubCategory(),
-                                cc.getSubjectDomain()),
-                        (existing, replacement) -> existing));
+                                cc.getSubjectDomain())));
     }
 }

@@ -33,6 +33,9 @@ public class CourseClassification {
     @Column(name = "course_id", nullable = false)
     private Long courseId;
 
+    @Column(name = "department_id")
+    private Long departmentId;
+
     @Column(name = "student_year_start", nullable = false)
     private int studentYearStart;
 
@@ -54,6 +57,7 @@ public class CourseClassification {
 
     private CourseClassification(
             Long courseId,
+            Long departmentId,
             int studentYearStart,
             int studentYearEnd,
             CourseType courseType,
@@ -73,6 +77,7 @@ public class CourseClassification {
             throw new IllegalArgumentException("studentYearStart must be <= studentYearEnd");
         }
         this.courseId = courseId;
+        this.departmentId = departmentId;
         this.studentYearStart = studentYearStart;
         this.studentYearEnd = studentYearEnd;
         this.courseType = courseType;
@@ -81,8 +86,10 @@ public class CourseClassification {
         this.subjectDomain = subjectDomain;
     }
 
+    // departmentId = null이면 전 학과 공통 분류, 값이 있으면 해당 학과 전용 분류
     public static CourseClassification create(
             Long courseId,
+            Long departmentId,
             int studentYearStart,
             int studentYearEnd,
             CourseType courseType,
@@ -90,6 +97,13 @@ public class CourseClassification {
             String subCategory,
             String subjectDomain) {
         return new CourseClassification(
-                courseId, studentYearStart, studentYearEnd, courseType, areaTypeId, subCategory, subjectDomain);
+                courseId,
+                departmentId,
+                studentYearStart,
+                studentYearEnd,
+                courseType,
+                areaTypeId,
+                subCategory,
+                subjectDomain);
     }
 }
