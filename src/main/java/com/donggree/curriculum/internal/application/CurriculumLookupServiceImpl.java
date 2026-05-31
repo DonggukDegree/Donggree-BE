@@ -83,7 +83,7 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
                                 return new GraduationRuleView(
                                         rule.getId(),
                                         rt != null ? rt.getTypeName() : "UNKNOWN",
-                                        rt != null ? rt.getCategory() : null,
+                                        rt != null ? rt.getCourseType() : null,
                                         rule.getRuleName(),
                                         rule.getRuleConfig());
                             })

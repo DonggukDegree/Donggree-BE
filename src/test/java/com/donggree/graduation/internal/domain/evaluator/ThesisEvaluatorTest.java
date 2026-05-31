@@ -3,7 +3,6 @@ package com.donggree.graduation.internal.domain.evaluator;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.curriculum.RuleCategory;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -59,7 +58,6 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(
-                1L, "THESIS", RuleCategory.GRADUATION_REQ, "종합설계1과 종합설계2 또는 개별연구를 이수해야 합니다.", config);
+        return new GraduationRuleView(1L, "THESIS", null, "종합설계1과 종합설계2 또는 개별연구를 이수해야 합니다.", config);
     }
 }

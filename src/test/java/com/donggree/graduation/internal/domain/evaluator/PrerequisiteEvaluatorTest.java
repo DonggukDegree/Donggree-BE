@@ -2,8 +2,8 @@ package com.donggree.graduation.internal.domain.evaluator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.curriculum.RuleCategory;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -80,6 +80,7 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(1L, "PREREQUISITE", RuleCategory.MAJOR, "자료구조 이전에 기초프로그래밍을 선이수해야 합니다.", config);
+        return new GraduationRuleView(
+                1L, "PREREQUISITE", CourseType.FIRST_MAJOR, "자료구조 이전에 기초프로그래밍을 선이수해야 합니다.", config);
     }
 }

@@ -3,7 +3,6 @@ package com.donggree.graduation.internal.domain.evaluator;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.curriculum.RuleCategory;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import java.util.List;
@@ -43,6 +42,6 @@ class GpaEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(1L, "GPA", RuleCategory.GRADUATION_REQ, "총 평점평균이 2.0 이상이어야 합니다.", config);
+        return new GraduationRuleView(1L, "GPA", null, "총 평점평균이 2.0 이상이어야 합니다.", config);
     }
 }

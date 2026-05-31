@@ -6,7 +6,6 @@ import com.donggree.curriculum.CourseView;
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
-import com.donggree.curriculum.RuleCategory;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
 import com.donggree.graduation.internal.domain.EvaluationContext;
@@ -52,13 +51,10 @@ public class GraduationReportService {
 
         List<GraduationRuleView> rules = curriculumLookupService.findGraduationRules(requirementSet.id());
         EvaluationContext context = buildContext(transcript);
-
         Map<Long, RuleResult> resultByRuleId = evaluateRules(rules, context);
 
-        Summary summary = buildSummary(transcript, rules, resultByRuleId);
-        List<AreaOverview> areaOverviews = buildAreaOverviews(rules, resultByRuleId, context);
-
-        return new GraduationReportResponse(summary, areaOverviews);
+        return new GraduationReportResponse(
+                buildSummary(transcript, rules, resultByRuleId), buildAreaOverviews(rules, resultByRuleId, context));
     }
 
     private EvaluationContext buildContext(TranscriptView transcript) {
@@ -69,7 +65,6 @@ public class GraduationReportService {
                 .toList();
 
         Map<String, CourseView> courseByCode = curriculumLookupService.findCoursesByCodes(courseCodes);
-
         List<Long> courseIds =
                 courseByCode.values().stream().map(CourseView::id).toList();
 
@@ -120,8 +115,9 @@ public class GraduationReportService {
         boolean graduated =
                 !resultByRuleId.isEmpty() && resultByRuleId.values().stream().allMatch(RuleResult::satisfied);
 
+        // courseType == null인 규칙이 졸업요건 규칙 — 미충족된 것만 사유로 노출
         List<String> unsatisfiedReasons = rules.stream()
-                .filter(r -> r.category() == RuleCategory.GRADUATION_REQ)
+                .filter(r -> r.courseType() == null)
                 .filter(r -> {
                     RuleResult result = resultByRuleId.get(r.id());
                     return result != null && !result.satisfied();
@@ -141,64 +137,68 @@ public class GraduationReportService {
 
     private List<AreaOverview> buildAreaOverviews(
             List<GraduationRuleView> rules, Map<Long, RuleResult> resultByRuleId, EvaluationContext context) {
-        // courseType별 MIN_AREA_CREDITS 규칙 그룹핑
-        Map<CourseType, List<GraduationRuleView>> minAreaRulesByCourseType = rules.stream()
-                .filter(r -> "MIN_AREA_CREDITS".equals(r.typeName()))
-                .collect(Collectors.groupingBy(r -> parseCourseType(r.ruleConfig())));
+        // courseType별 전체 규칙 그룹핑 (null = 졸업요건 제외)
+        Map<CourseType, List<GraduationRuleView>> rulesByCourseType = rules.stream()
+                .filter(r -> r.courseType() != null)
+                .collect(Collectors.groupingBy(GraduationRuleView::courseType));
 
-        // 표시할 courseType 결정: MIN_AREA_CREDITS 규칙이 있거나 이수 과목이 있는 것
+        // MIN_AREA_CREDITS 규칙만 별도 그룹핑 (잔여 학점 계산용)
+        Map<CourseType, List<GraduationRuleView>> minAreaRulesByCourseType = rules.stream()
+                .filter(r -> r.courseType() != null && "MIN_AREA_CREDITS".equals(r.typeName()))
+                .collect(Collectors.groupingBy(GraduationRuleView::courseType));
+
+        // 규칙이 있거나 이수 과목이 있는 courseType만 포함
         List<CourseType> relevantCourseTypes = new ArrayList<>();
         for (CourseType ct : CourseType.values()) {
-            boolean hasRule = minAreaRulesByCourseType.containsKey(ct);
-            boolean hasCredits = context.getTotalPassedCreditsByType(ct) > 0;
-            if (hasRule || hasCredits) {
+            if (rulesByCourseType.containsKey(ct) || context.getTotalPassedCreditsByType(ct) > 0) {
                 relevantCourseTypes.add(ct);
             }
         }
 
         return relevantCourseTypes.stream()
-                .map(courseType -> buildAreaOverview(courseType, minAreaRulesByCourseType, resultByRuleId, context))
+                .map(ct -> buildAreaOverview(ct, rulesByCourseType, minAreaRulesByCourseType, resultByRuleId, context))
                 .toList();
     }
 
     private AreaOverview buildAreaOverview(
             CourseType courseType,
+            Map<CourseType, List<GraduationRuleView>> rulesByCourseType,
             Map<CourseType, List<GraduationRuleView>> minAreaRulesByCourseType,
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context) {
-        int earnedCredits = context.getTotalPassedCreditsByType(courseType);
-        List<GraduationRuleView> areaRules = minAreaRulesByCourseType.getOrDefault(courseType, List.of());
 
-        // targetCredits: subCategories=null인 규칙 우선, 없으면 가장 큰 값
-        int targetCredits = areaRules.stream()
-                .filter(r -> isNullSubCategories(r.ruleConfig()))
-                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
-                .max()
-                .orElseGet(() -> areaRules.stream()
-                        .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
-                        .sum());
+        List<GraduationRuleView> areaRules = rulesByCourseType.getOrDefault(courseType, List.of());
+        List<GraduationRuleView> minAreaRules = minAreaRulesByCourseType.getOrDefault(courseType, List.of());
 
-        int remainingCredits = Math.max(0, targetCredits - earnedCredits);
-        int achievementRate = targetCredits > 0 ? Math.min(100, earnedCredits * 100 / targetCredits) : 100;
+        // 달성률: 해당 courseType의 모든 규칙 기준
+        long satisfiedCount = areaRules.stream()
+                .filter(r -> {
+                    RuleResult result = resultByRuleId.get(r.id());
+                    return result != null && result.satisfied();
+                })
+                .count();
+        int achievementRate = areaRules.isEmpty() ? 100 : (int) (satisfiedCount * 100 / areaRules.size());
 
-        // 해당 courseType의 모든 MIN_AREA_CREDITS 규칙이 충족되어야 satisfied
+        // 충족 여부: 해당 courseType의 모든 규칙 충족
         boolean satisfied = areaRules.isEmpty()
                 || areaRules.stream().allMatch(r -> {
                     RuleResult result = resultByRuleId.get(r.id());
                     return result != null && result.satisfied();
                 });
 
+        // 잔여 학점: MIN_AREA_CREDITS 기준 (subCategories=null 우선, 없으면 합산)
+        int earnedCredits = context.getTotalPassedCreditsByType(courseType);
+        int targetCredits = minAreaRules.stream()
+                .filter(r -> isNullSubCategories(r.ruleConfig()))
+                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+                .max()
+                .orElseGet(() -> minAreaRules.stream()
+                        .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+                        .sum());
+        int remainingCredits = Math.max(0, targetCredits - earnedCredits);
+
         return new AreaOverview(
                 courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
-    }
-
-    private CourseType parseCourseType(String ruleConfig) {
-        try {
-            JsonNode node = MAPPER.readTree(ruleConfig);
-            return CourseType.valueOf(node.path("courseType").asText());
-        } catch (JsonProcessingException | IllegalArgumentException e) {
-            throw new IllegalStateException("MIN_AREA_CREDITS ruleConfig에서 courseType 파싱 실패: " + ruleConfig, e);
-        }
     }
 
     private boolean isNullSubCategories(String ruleConfig) {

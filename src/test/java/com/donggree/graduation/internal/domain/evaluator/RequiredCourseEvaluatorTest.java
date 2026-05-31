@@ -2,8 +2,8 @@ package com.donggree.graduation.internal.domain.evaluator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.curriculum.RuleCategory;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import java.util.List;
@@ -44,6 +44,6 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(1L, "REQUIRED_COURSE", RuleCategory.MAJOR, "기초프로그래밍은 필수 과목입니다.", config);
+        return new GraduationRuleView(1L, "REQUIRED_COURSE", CourseType.FIRST_MAJOR, "기초프로그래밍은 필수 과목입니다.", config);
     }
 }

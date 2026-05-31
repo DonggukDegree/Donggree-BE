@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.curriculum.RuleCategory;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +86,6 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(1L, "ENGLISH_COURSE", RuleCategory.GRADUATION_REQ, "영어강의 이수 규칙", config);
+        return new GraduationRuleView(1L, "ENGLISH_COURSE", null, "영어강의 이수 규칙", config);
     }
 }

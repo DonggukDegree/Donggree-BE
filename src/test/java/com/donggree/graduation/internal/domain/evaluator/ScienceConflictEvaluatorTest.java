@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.curriculum.RuleCategory;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +53,6 @@ class ScienceConflictEvaluatorTest extends EvaluatorTestSupport {
 
     private GraduationRuleView rule(String config) {
         return new GraduationRuleView(
-                1L, "SCIENCE_CONFLICT", RuleCategory.LIBERAL, "동일한 실험 교과목과 개론 교과목을 이수할 수 없습니다.", config);
+                1L, "SCIENCE_CONFLICT", CourseType.ACADEMIC_FOUNDATION, "동일한 실험 교과목과 개론 교과목을 이수할 수 없습니다.", config);
     }
 }
