@@ -17,8 +17,8 @@ class ScienceConflictEvaluatorTest extends EvaluatorTestSupport {
     void 같은_subject_domain의_실험과_개론을_이수하면_미충족이다() {
         var records = List.of(passed("SCI001", "일반물리학및실험1", 3, "2023-1"), passed("SCI002", "물리학개론", 3, "2023-2"));
         var cls = Map.of(
-                "SCI001", classification(1L, CourseType.ACADEMIC_FOUNDATION, "실험", "물리"),
-                "SCI002", classification(2L, CourseType.ACADEMIC_FOUNDATION, "개론", "물리"));
+                "SCI001", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리"),
+                "SCI002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "개론", "물리"));
         EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
 
         assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isFalse();
@@ -28,8 +28,8 @@ class ScienceConflictEvaluatorTest extends EvaluatorTestSupport {
     void 다른_subject_domain의_실험과_개론은_충돌하지_않는다() {
         var records = List.of(passed("SCI001", "일반물리학및실험1", 3, "2023-1"), passed("SCI002", "생물학개론", 3, "2023-2"));
         var cls = Map.of(
-                "SCI001", classification(1L, CourseType.ACADEMIC_FOUNDATION, "실험", "물리"),
-                "SCI002", classification(2L, CourseType.ACADEMIC_FOUNDATION, "개론", "생물"));
+                "SCI001", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리"),
+                "SCI002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "개론", "생물"));
         EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
 
         assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isTrue();
@@ -38,7 +38,7 @@ class ScienceConflictEvaluatorTest extends EvaluatorTestSupport {
     @Test
     void 실험만_이수하고_개론이_없으면_충족이다() {
         var records = List.of(passed("SCI001", "일반물리학및실험1", 3, "2023-1"));
-        var cls = Map.of("SCI001", classification(1L, CourseType.ACADEMIC_FOUNDATION, "실험", "물리"));
+        var cls = Map.of("SCI001", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리"));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
         assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isTrue();

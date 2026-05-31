@@ -14,11 +14,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 과목별 입학년도 기준 졸업 판정 분류 엔티티.
- * PDF의 course_type_name·area_name은 수강년도 기준이라 졸업 판정에 쓸 수 없다.
- * graduation 모듈은 course_record.course_code → course.id → 이 테이블 순으로
- * 해당 학생 입학년도에 맞는 분류를 조회하여 판정한다.
- * sub_category, subject_domain은 과학 영역의 실험/개론 구분 및 충돌 규칙 평가에 사용한다.
+ * 과목별 입학년도·학과 기준 졸업 판정 분류 엔티티.
+ * course_code를 직접 참조하여 course 테이블 조인 없이 분류를 조회한다.
+ * classification이 없는 과목은 PDF의 course_type_name으로 courseType을 추론한다.
+ * departmentId = null이면 전 학과 공통, non-null이면 해당 학과 전용 (전용이 공통보다 우선).
  */
 @Entity
 @Table(name = "course_classification")
@@ -30,8 +29,8 @@ public class CourseClassification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "course_id", nullable = false)
-    private Long courseId;
+    @Column(name = "course_code", nullable = false, length = 20)
+    private String courseCode;
 
     @Column(name = "department_id")
     private Long departmentId;
@@ -56,7 +55,7 @@ public class CourseClassification {
     private String subjectDomain;
 
     private CourseClassification(
-            Long courseId,
+            String courseCode,
             Long departmentId,
             int studentYearStart,
             int studentYearEnd,
@@ -64,8 +63,8 @@ public class CourseClassification {
             Long areaTypeId,
             String subCategory,
             String subjectDomain) {
-        if (courseId == null) {
-            throw new IllegalArgumentException("courseId must not be null");
+        if (courseCode == null || courseCode.isBlank()) {
+            throw new IllegalArgumentException("courseCode must not be null or blank");
         }
         if (courseType == null) {
             throw new IllegalArgumentException("courseType must not be null");
@@ -76,7 +75,7 @@ public class CourseClassification {
         if (studentYearStart > studentYearEnd) {
             throw new IllegalArgumentException("studentYearStart must be <= studentYearEnd");
         }
-        this.courseId = courseId;
+        this.courseCode = courseCode;
         this.departmentId = departmentId;
         this.studentYearStart = studentYearStart;
         this.studentYearEnd = studentYearEnd;
@@ -86,9 +85,8 @@ public class CourseClassification {
         this.subjectDomain = subjectDomain;
     }
 
-    // departmentId = null이면 전 학과 공통 분류, 값이 있으면 해당 학과 전용 분류
     public static CourseClassification create(
-            Long courseId,
+            String courseCode,
             Long departmentId,
             int studentYearStart,
             int studentYearEnd,
@@ -97,7 +95,7 @@ public class CourseClassification {
             String subCategory,
             String subjectDomain) {
         return new CourseClassification(
-                courseId,
+                courseCode,
                 departmentId,
                 studentYearStart,
                 studentYearEnd,

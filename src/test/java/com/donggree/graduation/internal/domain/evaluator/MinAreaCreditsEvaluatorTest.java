@@ -25,16 +25,15 @@ class MinAreaCreditsEvaluatorTest extends EvaluatorTestSupport {
                 passed("GEN006", "EAS2", 3, "2024-1"),
                 passed("GEN007", "어드벤처디자인", 3, "2024-1"));
         var cls = Map.of(
-                "GEN001", classification(1L, CourseType.COMMON_GENERAL),
-                "GEN002", classification(2L, CourseType.COMMON_GENERAL),
-                "GEN003", classification(3L, CourseType.COMMON_GENERAL),
-                "GEN004", classification(4L, CourseType.COMMON_GENERAL),
-                "GEN005", classification(5L, CourseType.COMMON_GENERAL),
-                "GEN006", classification(6L, CourseType.COMMON_GENERAL),
-                "GEN007", classification(7L, CourseType.COMMON_GENERAL));
+                "GEN001", classification(CourseType.COMMON_GENERAL, "동국인성"),
+                "GEN002", classification(CourseType.COMMON_GENERAL, "동국인성"),
+                "GEN003", classification(CourseType.COMMON_GENERAL, "동국인성"),
+                "GEN004", classification(CourseType.COMMON_GENERAL, "동국인성"),
+                "GEN005", classification(CourseType.COMMON_GENERAL),
+                "GEN006", classification(CourseType.COMMON_GENERAL),
+                "GEN007", classification(CourseType.COMMON_GENERAL));
         EvaluationContext ctx = context(transcript(17, 4.0, records), cls);
-        GraduationRuleView rule =
-                rule("{\"courseType\": \"COMMON_GENERAL\", \"subCategories\": null, \"minCredits\": 17}");
+        GraduationRuleView rule = rule("{\"courseType\": \"COMMON_GENERAL\", \"areaNames\": null, \"minCredits\": 17}");
 
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
     }
@@ -42,28 +41,47 @@ class MinAreaCreditsEvaluatorTest extends EvaluatorTestSupport {
     @Test
     void 공통교양_학점이_부족하면_미충족이다() {
         var records = List.of(passed("GEN001", "불교와인간", 2, "2023-1"));
-        var cls = Map.of("GEN001", classification(1L, CourseType.COMMON_GENERAL));
+        var cls = Map.of("GEN001", classification(CourseType.COMMON_GENERAL, "동국인성"));
         EvaluationContext ctx = context(transcript(2, 4.0, records), cls);
-        GraduationRuleView rule =
-                rule("{\"courseType\": \"COMMON_GENERAL\", \"subCategories\": null, \"minCredits\": 17}");
+        GraduationRuleView rule = rule("{\"courseType\": \"COMMON_GENERAL\", \"areaNames\": null, \"minCredits\": 17}");
 
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
     }
 
     @Test
-    void subCategory_필터링으로_기본소양만_집계한다() {
+    void areaName_필터링으로_기본소양만_집계한다() {
         var records = List.of(
                 passed("BSM001", "미적분학및연습1", 3, "2023-1"),
                 passed("BSM002", "물리학개론", 3, "2023-1"),
                 passed("BSM003", "기술과문명", 3, "2023-2") // 기본소양
                 );
         var cls = Map.of(
-                "BSM001", new CourseClassificationView(1L, CourseType.ACADEMIC_FOUNDATION, null, "수학", null),
-                "BSM002", new CourseClassificationView(2L, CourseType.ACADEMIC_FOUNDATION, null, "과학", null),
-                "BSM003", new CourseClassificationView(3L, CourseType.ACADEMIC_FOUNDATION, null, "기본소양", null));
+                "BSM001",
+                new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "수학", null, null),
+                "BSM002",
+                new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "과학", "개론", "물리"),
+                "BSM003",
+                new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "기본소양", null, null));
         EvaluationContext ctx = context(transcript(9, 4.0, records), cls);
         GraduationRuleView rule =
-                rule("{\"courseType\": \"ACADEMIC_FOUNDATION\", \"subCategories\": [\"기본소양\"], \"minCredits\": 3}");
+                rule("{\"courseType\": \"ACADEMIC_FOUNDATION\", \"areaNames\": [\"기본소양\"], \"minCredits\": 3}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+    }
+
+    @Test
+    void areaName_필터링으로_수학과_과학을_합산한다() {
+        var records = List.of(
+                passed("MT001", "미적분학및연습1", 3, "2023-1"),
+                passed("SC001", "일반물리학및실험1", 3, "2023-1"),
+                passed("BS001", "SW와인공지능의이해", 3, "2023-2")); // 기본소양 — 제외 대상
+        var cls = Map.of(
+                "MT001", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "수학", null, null),
+                "SC001", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리"),
+                "BS001", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "기본소양", null, null));
+        EvaluationContext ctx = context(transcript(9, 4.0, records), cls);
+        GraduationRuleView rule =
+                rule("{\"courseType\": \"ACADEMIC_FOUNDATION\", \"areaNames\": [\"수학\",\"과학\"], \"minCredits\": 6}");
 
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
     }
@@ -71,10 +89,9 @@ class MinAreaCreditsEvaluatorTest extends EvaluatorTestSupport {
     @Test
     void 이수_실패_과목은_학점에_포함되지_않는다() {
         var records = List.of(failed("MAJOR001", "자료구조", 3, "2023-1"));
-        var cls = Map.of("MAJOR001", classification(1L, CourseType.FIRST_MAJOR));
+        var cls = Map.of("MAJOR001", classification(CourseType.FIRST_MAJOR));
         EvaluationContext ctx = context(transcript(0, 0.0, records), cls);
-        GraduationRuleView rule =
-                rule("{\"courseType\": \"FIRST_MAJOR\", \"subCategories\": null, \"minCredits\": 60}");
+        GraduationRuleView rule = rule("{\"courseType\": \"FIRST_MAJOR\", \"areaNames\": null, \"minCredits\": 60}");
 
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
     }

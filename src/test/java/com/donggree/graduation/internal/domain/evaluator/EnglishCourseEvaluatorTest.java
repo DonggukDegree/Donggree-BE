@@ -40,8 +40,8 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
     void 전공_영어강의를_충분히_이수하면_충족이다() {
         var records = List.of(passed("MAJOR001", "<영어>알고리즘", 3, "2023-1"), passed("MAJOR002", "<영어>자료구조", 3, "2023-2"));
         var cls = Map.of(
-                "MAJOR001", new CourseClassificationView(1L, CourseType.FIRST_MAJOR, null, null, null),
-                "MAJOR002", new CourseClassificationView(2L, CourseType.FIRST_MAJOR, null, null, null));
+                "MAJOR001", new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null),
+                "MAJOR002", new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null));
         var t = transcriptWith(6, 4.0, true, null, false, "단일", "S1", records);
         EvaluationContext ctx = context(t, cls);
 
@@ -54,7 +54,7 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
     @Test
     void 전공_영어강의가_부족하면_미충족이다() {
         var records = List.of(passed("MAJOR001", "<영어>알고리즘", 3, "2023-1"));
-        var cls = Map.of("MAJOR001", new CourseClassificationView(1L, CourseType.FIRST_MAJOR, null, null, null));
+        var cls = Map.of("MAJOR001", new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null));
         var t = transcriptWith(3, 4.0, true, null, false, "단일", "S1", records);
         EvaluationContext ctx = context(t, cls);
 
@@ -72,10 +72,10 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
                 passed("GEN002", "<영어>글쓰기", 2, "2024-1"),
                 passed("MAJOR002", "<영어>자료구조", 3, "2024-2"));
         var cls = Map.of(
-                "GEN001", new CourseClassificationView(1L, CourseType.COMMON_GENERAL, null, null, null),
-                "MAJOR001", new CourseClassificationView(2L, CourseType.FIRST_MAJOR, null, null, null),
-                "GEN002", new CourseClassificationView(3L, CourseType.LIBERAL_ARTS, null, null, null),
-                "MAJOR002", new CourseClassificationView(4L, CourseType.FIRST_MAJOR, null, null, null));
+                "GEN001", new CourseClassificationView(CourseType.COMMON_GENERAL, null, null, null),
+                "MAJOR001", new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null),
+                "GEN002", new CourseClassificationView(CourseType.LIBERAL_ARTS, null, null, null),
+                "MAJOR002", new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null));
         var t = transcriptWith(10, 4.0, true, null, false, "단일", "S1", records);
         EvaluationContext ctx = context(t, cls);
 

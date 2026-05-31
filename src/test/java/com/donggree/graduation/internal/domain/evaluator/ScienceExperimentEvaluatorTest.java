@@ -16,7 +16,7 @@ class ScienceExperimentEvaluatorTest extends EvaluatorTestSupport {
     @Test
     void 실험_과목을_1개_이상_이수하면_충족이다() {
         var records = List.of(passed("SCI001", "일반물리학및실험1", 3, "2023-1"));
-        var cls = Map.of("SCI001", classification(1L, CourseType.ACADEMIC_FOUNDATION, "실험", "물리"));
+        var cls = Map.of("SCI001", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리"));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
         assertThat(evaluator.evaluate(rule("{\"minCount\": 1}"), ctx).satisfied())
@@ -26,7 +26,7 @@ class ScienceExperimentEvaluatorTest extends EvaluatorTestSupport {
     @Test
     void 실험_과목이_없으면_미충족이다() {
         var records = List.of(passed("SCI002", "물리학개론", 3, "2023-1"));
-        var cls = Map.of("SCI002", classification(2L, CourseType.ACADEMIC_FOUNDATION, "개론", "물리"));
+        var cls = Map.of("SCI002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "개론", "물리"));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
         assertThat(evaluator.evaluate(rule("{\"minCount\": 1}"), ctx).satisfied())
@@ -36,7 +36,7 @@ class ScienceExperimentEvaluatorTest extends EvaluatorTestSupport {
     @Test
     void 실험_과목_이수_실패는_카운트되지_않는다() {
         var records = List.of(failed("SCI001", "일반물리학및실험1", 3, "2023-1"));
-        var cls = Map.of("SCI001", classification(1L, CourseType.ACADEMIC_FOUNDATION, "실험", "물리"));
+        var cls = Map.of("SCI001", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리"));
         EvaluationContext ctx = context(transcript(0, 0.0, records), cls);
 
         assertThat(evaluator.evaluate(rule("{\"minCount\": 1}"), ctx).satisfied())

@@ -2,7 +2,6 @@ package com.donggree.graduation.internal.application;
 
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.CourseView;
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
@@ -64,24 +63,34 @@ public class GraduationReportService {
                 .distinct()
                 .toList();
 
-        Map<String, CourseView> courseByCode = curriculumLookupService.findCoursesByCodes(courseCodes);
-        List<Long> courseIds =
-                courseByCode.values().stream().map(CourseView::id).toList();
+        // course_classification에 등록된 과목: 명시적 분류 사용
+        Map<String, CourseClassificationView> explicit = curriculumLookupService.findCourseClassifications(
+                courseCodes, transcript.admissionYear(), transcript.departmentId());
 
-        Map<Long, CourseClassificationView> classificationByCourseId =
-                curriculumLookupService.findCourseClassificationsByCourseIds(
-                        courseIds, transcript.admissionYear(), transcript.departmentId());
-
-        Map<String, CourseClassificationView> classificationByCourseCode = courseCodes.stream()
-                .filter(courseByCode::containsKey)
-                .filter(code -> classificationByCourseId.containsKey(
-                        courseByCode.get(code).id()))
+        // 미등록 과목: PDF course_type_name → courseType 추론 (areaName 등은 null)
+        Map<String, CourseClassificationView> classificationByCourseCode = transcript.courseRecords().stream()
+                .filter(cr -> cr.courseCode() != null)
+                .filter(cr -> !explicit.containsKey(cr.courseCode()))
                 .collect(Collectors.toMap(
-                        Function.identity(),
-                        code -> classificationByCourseId.get(
-                                courseByCode.get(code).id())));
+                        CourseRecordView::courseCode,
+                        cr -> new CourseClassificationView(inferCourseType(cr.courseTypeName()), null, null, null),
+                        (a, b) -> a));
+
+        classificationByCourseCode.putAll(explicit);
 
         return new EvaluationContext(transcript, classificationByCourseCode);
+    }
+
+    /** PDF course_type_name 원시값을 CourseType으로 추론한다. 매핑 불가 시 null 반환. */
+    private static CourseType inferCourseType(String courseTypeName) {
+        if (courseTypeName == null) return null;
+        return switch (courseTypeName) {
+            case "공교" -> CourseType.COMMON_GENERAL;
+            case "학기" -> CourseType.ACADEMIC_FOUNDATION;
+            case "전공" -> CourseType.FIRST_MAJOR;
+            case "일교" -> CourseType.LIBERAL_ARTS;
+            default -> null;
+        };
     }
 
     private Map<Long, RuleResult> evaluateRules(List<GraduationRuleView> rules, EvaluationContext context) {
@@ -190,7 +199,7 @@ public class GraduationReportService {
         // 잔여 학점: MIN_AREA_CREDITS 기준 (subCategories=null 우선, 없으면 합산)
         int earnedCredits = context.getTotalPassedCreditsByType(courseType);
         int targetCredits = minAreaRules.stream()
-                .filter(r -> isNullSubCategories(r.ruleConfig()))
+                .filter(r -> isNullAreaNames(r.ruleConfig()))
                 .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
                 .max()
                 .orElseGet(() -> minAreaRules.stream()
@@ -202,11 +211,10 @@ public class GraduationReportService {
                 courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
     }
 
-    private boolean isNullSubCategories(String ruleConfig) {
+    private boolean isNullAreaNames(String ruleConfig) {
         try {
             JsonNode node = MAPPER.readTree(ruleConfig);
-            return node.path("subCategories").isNull()
-                    || node.path("subCategories").isMissingNode();
+            return node.path("areaNames").isNull() || node.path("areaNames").isMissingNode();
         } catch (JsonProcessingException e) {
             return false;
         }

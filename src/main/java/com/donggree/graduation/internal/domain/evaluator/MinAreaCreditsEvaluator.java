@@ -13,11 +13,12 @@ import org.springframework.stereotype.Component;
  * 영역별 최소 이수 학점 규칙 평가기.
  * 공통교양, 기본소양, MSC, 전공 최소학점 등에 공통으로 사용한다.
  * ruleConfig:
- *   {"courseType": "COMMON_GENERAL", "subCategories": null, "minCredits": 17}
- *   {"courseType": "ACADEMIC_FOUNDATION", "subCategories": ["기본소양"], "minCredits": 6}
- *   {"courseType": "ACADEMIC_FOUNDATION", "subCategories": ["수학", "과학"], "minCredits": 21}
+ *   {"courseType": "COMMON_GENERAL", "areaNames": null, "minCredits": 17}
+ *   {"courseType": "ACADEMIC_FOUNDATION", "areaNames": ["기본소양"], "minCredits": 6}
+ *   {"courseType": "ACADEMIC_FOUNDATION", "areaNames": ["수학", "과학"], "minCredits": 21}
+ *   {"courseType": "FIRST_MAJOR", "areaNames": null, "minCredits": 60}
  *
- * subCategories가 null이면 courseType 전체 학점을 합산한다.
+ * areaNames가 null이면 courseType 전체 학점을 합산한다.
  */
 @Component
 public class MinAreaCreditsEvaluator implements RuleEvaluator {
@@ -32,13 +33,13 @@ public class MinAreaCreditsEvaluator implements RuleEvaluator {
         Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
         CourseType courseType = CourseType.valueOf(config.courseType());
 
-        int earned = (config.subCategories() == null)
+        int earned = (config.areaNames() == null)
                 ? context.getTotalPassedCreditsByType(courseType)
-                : context.getTotalPassedCreditsByTypeAndSubCategories(courseType, config.subCategories());
+                : context.getTotalPassedCreditsByTypeAndAreaNames(courseType, config.areaNames());
 
         return new RuleResult(rule.ruleName(), earned >= config.minCredits());
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record Config(String courseType, List<String> subCategories, int minCredits) {}
+    private record Config(String courseType, List<String> areaNames, int minCredits) {}
 }

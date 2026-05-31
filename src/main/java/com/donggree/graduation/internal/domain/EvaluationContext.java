@@ -56,16 +56,15 @@ public class EvaluationContext {
     }
 
     /**
-     * 특정 courseType에서 지정한 subCategory 목록에 속하는 이수 수강 이력을 반환한다.
-     * subCategories가 null이면 subCategory 제한 없이 해당 courseType 전체를 반환한다.
+     * 특정 courseType에서 지정한 areaName 목록에 속하는 이수 수강 이력을 반환한다.
+     * areaNames가 null이면 영역 제한 없이 해당 courseType 전체를 반환한다.
      */
-    public List<CourseRecordView> getPassedCoursesByTypeAndSubCategories(
-            CourseType courseType, List<String> subCategories) {
+    public List<CourseRecordView> getPassedCoursesByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
         return getPassedCourses().stream()
                 .filter(cr -> {
                     CourseClassificationView cls = classificationByCourseCode.get(cr.courseCode());
                     if (cls == null || cls.courseType() != courseType) return false;
-                    return subCategories == null || subCategories.contains(cls.subCategory());
+                    return areaNames == null || areaNames.contains(cls.areaName());
                 })
                 .toList();
     }
@@ -93,9 +92,9 @@ public class EvaluationContext {
                 .sum();
     }
 
-    /** 특정 courseType + subCategory 목록의 이수 학점 합계를 반환한다. */
-    public int getTotalPassedCreditsByTypeAndSubCategories(CourseType courseType, List<String> subCategories) {
-        return getPassedCoursesByTypeAndSubCategories(courseType, subCategories).stream()
+    /** 특정 courseType + areaName 목록의 이수 학점 합계를 반환한다. */
+    public int getTotalPassedCreditsByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
+        return getPassedCoursesByTypeAndAreaNames(courseType, areaNames).stream()
                 .mapToInt(CourseRecordView::credits)
                 .sum();
     }
