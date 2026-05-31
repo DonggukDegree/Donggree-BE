@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,12 @@ import lombok.NoArgsConstructor;
  * course_type이 null이면 졸업요건 규칙(총학점, 평점 등), non-null이면 해당 영역 규칙이다.
  */
 @Entity
-@Table(name = "rule_type")
+@Table(
+        name = "rule_type",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_rule_type_name_course_type",
+                        columnNames = {"type_name", "course_type"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RuleType {
@@ -28,7 +34,7 @@ public class RuleType {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "type_name", nullable = false, unique = true, length = 50)
+    @Column(name = "type_name", nullable = false, length = 50)
     private String typeName;
 
     @Enumerated(EnumType.STRING)
