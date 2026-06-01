@@ -201,8 +201,8 @@ public class GraduationReportService {
                 .map(r -> {
                     try {
                         JsonNode node = MAPPER.readTree(r.ruleConfig());
-                        boolean isNullArea =
-                                node.path("areaNames").isNull() || node.path("areaNames").isMissingNode();
+                        boolean isNullArea = node.path("areaNames").isNull()
+                                || node.path("areaNames").isMissingNode();
                         int credits = node.path("minCredits").asInt(0);
                         return new AreaRuleConfig(isNullArea, credits);
                     } catch (JsonProcessingException e) {
@@ -216,7 +216,9 @@ public class GraduationReportService {
                 .filter(AreaRuleConfig::isNullArea)
                 .mapToInt(AreaRuleConfig::minCredits)
                 .max()
-                .orElseGet(() -> parsedConfigs.stream().mapToInt(AreaRuleConfig::minCredits).sum());
+                .orElseGet(() -> parsedConfigs.stream()
+                        .mapToInt(AreaRuleConfig::minCredits)
+                        .sum());
         int remainingCredits = Math.max(0, targetCredits - earnedCredits);
 
         return new AreaOverview(
