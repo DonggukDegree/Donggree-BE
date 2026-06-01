@@ -92,8 +92,9 @@ public class EvaluationContext {
 
     /** '*' 로 끝나면 prefix 매칭, 아니면 exact 매칭. */
     private static boolean matchesAny(String courseCode, List<String> patterns) {
-        return patterns.stream().anyMatch(p ->
-                p.endsWith("*") ? courseCode.startsWith(p.substring(0, p.length() - 1)) : courseCode.equals(p));
+        return patterns.stream()
+                .anyMatch(p ->
+                        p.endsWith("*") ? courseCode.startsWith(p.substring(0, p.length() - 1)) : courseCode.equals(p));
     }
 
     /** 특정 courseType의 이수 학점 합계를 반환한다. */
