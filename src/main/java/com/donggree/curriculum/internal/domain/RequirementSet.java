@@ -1,13 +1,14 @@
 package com.donggree.curriculum.internal.domain;
 
 import com.donggree.global.entity.BaseEntity;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +53,11 @@ public class RequirementSet extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
-    @OneToMany(mappedBy = "requirementSet", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany
+    @JoinTable(
+            name = "requirement_set_rule",
+            joinColumns = @JoinColumn(name = "requirement_set_id"),
+            inverseJoinColumns = @JoinColumn(name = "graduation_rule_id"))
     private List<GraduationRule> rules = new ArrayList<>();
 
     private RequirementSet(
@@ -88,13 +93,11 @@ public class RequirementSet extends BaseEntity {
     }
 
     /**
-     * 졸업 규칙을 생성하고 추가한다.
+     * 이미 저장된 졸업 규칙을 이 요건 세트에 연결한다.
+     * 동일한 규칙을 여러 RequirementSet에서 공유할 수 있다.
      */
-    public GraduationRule addRule(Long ruleTypeId, String ruleName, String ruleConfig, String description) {
-        GraduationRule rule = GraduationRule.create(ruleTypeId, ruleName, ruleConfig, description);
+    public void addRule(GraduationRule rule) {
         rules.add(rule);
-        rule.assignRequirementSet(this);
-        return rule;
     }
 
     /**

@@ -2,12 +2,9 @@ package com.donggree.curriculum.internal.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,8 +13,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * 개별 졸업 규칙을 나타내는 엔티티.
- * RequirementSet 애그리거트의 하위 엔티티로, 반드시 RequirementSet을 통해 생성된다.
+ * 개별 졸업 규칙을 나타내는 독립 엔티티.
+ * 여러 RequirementSet에서 공유될 수 있으며, RequirementSet과 N:M 관계를 갖는다.
  * ruleConfig에 JSON 형태의 규칙 설정을 저장하며, graduation 모듈에서 파싱하여 사용한다.
  */
 @Entity
@@ -29,10 +26,6 @@ public class GraduationRule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requirement_set_id")
-    private RequirementSet requirementSet;
 
     @Column(name = "rule_type_id", nullable = false)
     private Long ruleTypeId;
@@ -57,11 +50,7 @@ public class GraduationRule {
         this.description = description;
     }
 
-    static GraduationRule create(Long ruleTypeId, String ruleName, String ruleConfig, String description) {
+    public static GraduationRule create(Long ruleTypeId, String ruleName, String ruleConfig, String description) {
         return new GraduationRule(ruleTypeId, ruleName, ruleConfig, description);
-    }
-
-    void assignRequirementSet(RequirementSet requirementSet) {
-        this.requirementSet = requirementSet;
     }
 }
