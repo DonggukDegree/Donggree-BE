@@ -14,10 +14,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 과목별 입학년도·학과 기준 졸업 판정 분류 엔티티.
- * course_code를 직접 참조하여 course 테이블 조인 없이 분류를 조회한다.
+ * 과목별 입학년도 기준 졸업 판정 분류 엔티티.
+ * course_code를 직접 참조하여 과목의 courseType, areaName 등 분류 메타데이터를 제공한다.
  * classification이 없는 과목은 PDF의 course_type_name으로 courseType을 추론한다.
- * departmentId = null이면 전 학과 공통, non-null이면 해당 학과 전용 (전용이 공통보다 우선).
  */
 @Entity
 @Table(name = "course_classification")
@@ -31,9 +30,6 @@ public class CourseClassification {
 
     @Column(name = "course_code", nullable = false, length = 20)
     private String courseCode;
-
-    @Column(name = "department_id")
-    private Long departmentId;
 
     @Column(name = "student_year_start", nullable = false)
     private int studentYearStart;
@@ -56,7 +52,6 @@ public class CourseClassification {
 
     private CourseClassification(
             String courseCode,
-            Long departmentId,
             int studentYearStart,
             int studentYearEnd,
             CourseType courseType,
@@ -76,7 +71,6 @@ public class CourseClassification {
             throw new IllegalArgumentException("studentYearStart must be <= studentYearEnd");
         }
         this.courseCode = courseCode;
-        this.departmentId = departmentId;
         this.studentYearStart = studentYearStart;
         this.studentYearEnd = studentYearEnd;
         this.courseType = courseType;
@@ -87,7 +81,6 @@ public class CourseClassification {
 
     public static CourseClassification create(
             String courseCode,
-            Long departmentId,
             int studentYearStart,
             int studentYearEnd,
             CourseType courseType,
@@ -96,7 +89,6 @@ public class CourseClassification {
             String subjectDomain) {
         return new CourseClassification(
                 courseCode,
-                departmentId,
                 studentYearStart,
                 studentYearEnd,
                 courseType,

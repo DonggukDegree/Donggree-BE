@@ -26,11 +26,9 @@ public interface CurriculumLookupService {
     List<GraduationRuleView> findGraduationRules(Long requirementSetId);
 
     /**
-     * course_code 목록과 입학년도·학과로 과목 분류를 일괄 조회한다.
+     * course_code 목록과 입학년도로 과목 분류를 일괄 조회한다.
      * course_classification에 등록된 과목만 반환하며, 미등록 과목은 포함되지 않는다.
-     * 학과 전용 분류(departmentId 일치)가 공통 분류(departmentId = null)보다 우선 적용된다.
      * 결과는 courseCode → CourseClassificationView 맵으로 반환한다.
      */
-    Map<String, CourseClassificationView> findCourseClassifications(
-            List<String> courseCodes, int admissionYear, Long departmentId);
+    Map<String, CourseClassificationView> findCourseClassifications(List<String> courseCodes, int admissionYear);
 }

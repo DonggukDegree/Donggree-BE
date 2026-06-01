@@ -64,8 +64,8 @@ public class GraduationReportService {
                 .toList();
 
         // course_classification에 등록된 과목: 명시적 분류 사용
-        Map<String, CourseClassificationView> explicit = curriculumLookupService.findCourseClassifications(
-                courseCodes, transcript.admissionYear(), transcript.departmentId());
+        Map<String, CourseClassificationView> explicit =
+                curriculumLookupService.findCourseClassifications(courseCodes, transcript.admissionYear());
 
         // 미등록 과목: PDF course_type_name → courseType 추론 (areaName 등은 null)
         Map<String, CourseClassificationView> classificationByCourseCode = transcript.courseRecords().stream()

@@ -93,24 +93,17 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
 
     @Override
     public Map<String, CourseClassificationView> findCourseClassifications(
-            List<String> courseCodes, int admissionYear, Long departmentId) {
+            List<String> courseCodes, int admissionYear) {
         if (courseCodes == null || courseCodes.isEmpty()) {
             return Map.of();
         }
 
-        // 학과 전용(departmentId 일치) 또는 공통(null)만 후보로 삼고,
-        // 같은 courseCode에 둘 다 있으면 학과 전용을 우선 적용한다.
         Map<String, CourseClassification> byCode =
                 courseClassificationRepository.findByCourseCodeIn(courseCodes).stream()
                         .filter(cc ->
                                 admissionYear >= cc.getStudentYearStart() && admissionYear <= cc.getStudentYearEnd())
-                        .filter(cc -> cc.getDepartmentId() == null
-                                || cc.getDepartmentId().equals(departmentId))
                         .collect(Collectors.toMap(
-                                CourseClassification::getCourseCode,
-                                Function.identity(),
-                                (existing, replacement) ->
-                                        replacement.getDepartmentId() != null ? replacement : existing));
+                                CourseClassification::getCourseCode, Function.identity(), (a, b) -> a));
 
         // area_type_id → area_name 일괄 조회
         List<Long> areaTypeIds = byCode.values().stream()
