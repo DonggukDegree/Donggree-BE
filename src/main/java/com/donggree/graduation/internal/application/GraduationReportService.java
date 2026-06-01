@@ -20,24 +20,33 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class GraduationReportService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final TranscriptLookupService transcriptLookupService;
     private final CurriculumLookupService curriculumLookupService;
-    private final List<RuleEvaluator> evaluators;
+    private final Map<String, RuleEvaluator> evaluatorByTypeName;
+
+    public GraduationReportService(
+            TranscriptLookupService transcriptLookupService,
+            CurriculumLookupService curriculumLookupService,
+            List<RuleEvaluator> evaluators) {
+        this.transcriptLookupService = transcriptLookupService;
+        this.curriculumLookupService = curriculumLookupService;
+        this.evaluatorByTypeName =
+                evaluators.stream().collect(Collectors.toMap(RuleEvaluator::supportedTypeName, Function.identity()));
+    }
 
     public GraduationReportResponse getReport(Long reportId) {
         TranscriptView transcript = transcriptLookupService
@@ -68,15 +77,13 @@ public class GraduationReportService {
                 curriculumLookupService.findCourseClassifications(courseCodes, transcript.admissionYear());
 
         // 미등록 과목: PDF course_type_name → courseType 추론 (areaName 등은 null)
-        Map<String, CourseClassificationView> classificationByCourseCode = transcript.courseRecords().stream()
+        Map<String, CourseClassificationView> classificationByCourseCode = new HashMap<>(explicit);
+        transcript.courseRecords().stream()
                 .filter(cr -> cr.courseCode() != null)
                 .filter(cr -> !explicit.containsKey(cr.courseCode()))
-                .collect(Collectors.toMap(
-                        CourseRecordView::courseCode,
-                        cr -> new CourseClassificationView(inferCourseType(cr.courseTypeName()), null, null, null),
-                        (a, b) -> a));
-
-        classificationByCourseCode.putAll(explicit);
+                .forEach(cr -> classificationByCourseCode.put(
+                        cr.courseCode(),
+                        new CourseClassificationView(inferCourseType(cr.courseTypeName()), null, null, null)));
 
         return new EvaluationContext(transcript, classificationByCourseCode);
     }
@@ -94,9 +101,6 @@ public class GraduationReportService {
     }
 
     private Map<Long, RuleResult> evaluateRules(List<GraduationRuleView> rules, EvaluationContext context) {
-        Map<String, RuleEvaluator> evaluatorByTypeName =
-                evaluators.stream().collect(Collectors.toMap(RuleEvaluator::supportedTypeName, Function.identity()));
-
         Map<Long, RuleResult> results = new LinkedHashMap<>();
         for (GraduationRuleView rule : rules) {
             RuleEvaluator evaluator = evaluatorByTypeName.get(rule.typeName());
@@ -147,17 +151,14 @@ public class GraduationReportService {
 
     private List<AreaOverview> buildAreaOverviews(
             List<GraduationRuleView> rules, Map<Long, RuleResult> resultByRuleId, EvaluationContext context) {
-        // courseType별 전체 규칙 그룹핑 (null = 졸업요건 제외)
         Map<CourseType, List<GraduationRuleView>> rulesByCourseType = rules.stream()
                 .filter(r -> r.courseType() != null)
                 .collect(Collectors.groupingBy(GraduationRuleView::courseType));
 
-        // MIN_AREA_CREDITS 규칙만 별도 그룹핑 (잔여 학점 계산용)
         Map<CourseType, List<GraduationRuleView>> minAreaRulesByCourseType = rules.stream()
                 .filter(r -> r.courseType() != null && "MIN_AREA_CREDITS".equals(r.typeName()))
                 .collect(Collectors.groupingBy(GraduationRuleView::courseType));
 
-        // 규칙이 있거나 이수 과목이 있는 courseType만 포함
         List<CourseType> relevantCourseTypes = new ArrayList<>();
         for (CourseType ct : CourseType.values()) {
             if (rulesByCourseType.containsKey(ct) || context.getTotalPassedCreditsByType(ct) > 0) {
@@ -180,7 +181,6 @@ public class GraduationReportService {
         List<GraduationRuleView> areaRules = rulesByCourseType.getOrDefault(courseType, List.of());
         List<GraduationRuleView> minAreaRules = minAreaRulesByCourseType.getOrDefault(courseType, List.of());
 
-        // 달성률: 해당 courseType의 모든 규칙 기준
         long satisfiedCount = areaRules.stream()
                 .filter(r -> {
                     RuleResult result = resultByRuleId.get(r.id());
@@ -189,35 +189,38 @@ public class GraduationReportService {
                 .count();
         int achievementRate = areaRules.isEmpty() ? 100 : (int) (satisfiedCount * 100 / areaRules.size());
 
-        // 충족 여부: 해당 courseType의 모든 규칙 충족
         boolean satisfied = areaRules.isEmpty()
                 || areaRules.stream().allMatch(r -> {
                     RuleResult result = resultByRuleId.get(r.id());
                     return result != null && result.satisfied();
                 });
 
-        // 잔여 학점: MIN_AREA_CREDITS 기준 (subCategories=null 우선, 없으면 합산)
+        // MIN_AREA_CREDITS rule_config를 한 번만 파싱하여 재사용
+        record AreaRuleConfig(boolean isNullArea, int minCredits) {}
+        List<AreaRuleConfig> parsedConfigs = minAreaRules.stream()
+                .map(r -> {
+                    try {
+                        JsonNode node = MAPPER.readTree(r.ruleConfig());
+                        boolean isNullArea =
+                                node.path("areaNames").isNull() || node.path("areaNames").isMissingNode();
+                        int credits = node.path("minCredits").asInt(0);
+                        return new AreaRuleConfig(isNullArea, credits);
+                    } catch (JsonProcessingException e) {
+                        return new AreaRuleConfig(false, 0);
+                    }
+                })
+                .toList();
+
         int earnedCredits = context.getTotalPassedCreditsByType(courseType);
-        int targetCredits = minAreaRules.stream()
-                .filter(r -> isNullAreaNames(r.ruleConfig()))
-                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+        int targetCredits = parsedConfigs.stream()
+                .filter(AreaRuleConfig::isNullArea)
+                .mapToInt(AreaRuleConfig::minCredits)
                 .max()
-                .orElseGet(() -> minAreaRules.stream()
-                        .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
-                        .sum());
+                .orElseGet(() -> parsedConfigs.stream().mapToInt(AreaRuleConfig::minCredits).sum());
         int remainingCredits = Math.max(0, targetCredits - earnedCredits);
 
         return new AreaOverview(
                 courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
-    }
-
-    private boolean isNullAreaNames(String ruleConfig) {
-        try {
-            JsonNode node = MAPPER.readTree(ruleConfig);
-            return node.path("areaNames").isNull() || node.path("areaNames").isMissingNode();
-        } catch (JsonProcessingException e) {
-            return false;
-        }
     }
 
     private int parseIntField(String ruleConfig, String fieldName, int defaultValue) {
