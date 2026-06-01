@@ -70,23 +70,30 @@ public class EvaluationContext {
     }
 
     /**
-     * 주어진 course_code 목록 중 하나라도 이수했는지 확인한다.
+     * 주어진 코드 패턴 목록 중 하나라도 이수했는지 확인한다.
      * 단일 코드면 1개짜리 리스트, 동일유사 교과목이면 여러 코드 리스트를 넘긴다.
+     * "DAI*" 처럼 '*'로 끝나는 패턴은 prefix 매칭으로 처리한다.
      */
-    public boolean hasPassedAnyCourseByCode(List<String> courseCodes) {
+    public boolean hasPassedAnyCourseByCode(List<String> patterns) {
         return getPassedCourses().stream()
-                .anyMatch(cr -> cr.courseCode() != null && courseCodes.contains(cr.courseCode()));
+                .anyMatch(cr -> cr.courseCode() != null && matchesAny(cr.courseCode(), patterns));
     }
 
     /**
-     * 주어진 course_code 목록 중 가장 이른 이수 학기를 반환한다.
-     * 선이수체계 판정 시 이수 순서 비교에 사용한다.
+     * 주어진 코드 패턴 목록 중 가장 이른 이수 학기를 반환한다.
+     * 선이수체계 판정 시 이수 순서 비교에 사용한다. prefix 패턴 지원.
      */
-    public Optional<String> getEarliestSemesterByAnyCourseCode(List<String> courseCodes) {
+    public Optional<String> getEarliestSemesterByAnyCourseCode(List<String> patterns) {
         return getPassedCourses().stream()
-                .filter(cr -> cr.courseCode() != null && courseCodes.contains(cr.courseCode()))
+                .filter(cr -> cr.courseCode() != null && matchesAny(cr.courseCode(), patterns))
                 .map(CourseRecordView::semester)
                 .min(Comparator.comparingInt(EvaluationContext::semesterOrdinal));
+    }
+
+    /** '*' 로 끝나면 prefix 매칭, 아니면 exact 매칭. */
+    private static boolean matchesAny(String courseCode, List<String> patterns) {
+        return patterns.stream().anyMatch(p ->
+                p.endsWith("*") ? courseCode.startsWith(p.substring(0, p.length() - 1)) : courseCode.equals(p));
     }
 
     /** 특정 courseType의 이수 학점 합계를 반환한다. */
