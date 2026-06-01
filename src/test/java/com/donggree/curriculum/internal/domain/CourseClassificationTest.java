@@ -34,8 +34,8 @@ class CourseClassificationTest {
 
     @Test
     void courseCode가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() ->
-                        CourseClassification.create(null, 2023, 2025, CourseType.FIRST_MAJOR, null, null, null))
+        assertThatThrownBy(
+                        () -> CourseClassification.create(null, 2023, 2025, CourseType.FIRST_MAJOR, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("courseCode");
     }
@@ -57,16 +57,16 @@ class CourseClassificationTest {
 
     @Test
     void studentYearStart가_0_이하이면_예외가_발생한다() {
-        assertThatThrownBy(() ->
-                        CourseClassification.create("CS001", 0, 2023, CourseType.FIRST_MAJOR, null, null, null))
+        assertThatThrownBy(
+                        () -> CourseClassification.create("CS001", 0, 2023, CourseType.FIRST_MAJOR, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("positive");
     }
 
     @Test
     void studentYearEnd가_음수이면_예외가_발생한다() {
-        assertThatThrownBy(() ->
-                        CourseClassification.create("CS001", 2023, -1, CourseType.FIRST_MAJOR, null, null, null))
+        assertThatThrownBy(
+                        () -> CourseClassification.create("CS001", 2023, -1, CourseType.FIRST_MAJOR, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("positive");
     }

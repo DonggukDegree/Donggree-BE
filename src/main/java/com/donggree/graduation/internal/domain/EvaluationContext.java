@@ -11,13 +11,8 @@ import java.util.Optional;
 
 /**
  * 졸업 판정에 필요한 데이터를 묶는 값 객체.
- * transcript 데이터와 course_code별 분류(classificationByCourseCode)를 함께 보관하며,
+ * transcript 데이터와 courseCode별 분류를 함께 보관하며,
  * evaluator가 자주 사용하는 필터링 연산을 편의 메서드로 제공한다.
- *
- * classificationByCourseCode 맵은 서비스 레이어에서 아래 순서로 조립한다:
- *   1. course_record의 course_code 목록으로 Course 카탈로그 조회
- *   2. course.id 목록과 입학년도로 CourseClassification 조회
- *   3. courseCode → CourseClassificationView 맵 구성
  */
 public class EvaluationContext {
 
@@ -69,18 +64,27 @@ public class EvaluationContext {
                 .toList();
     }
 
-    /** 주어진 과목명을 이수한 과목이 있는지 확인한다. */
+    /** ThesisEvaluator에서 사용. 과목명으로 이수 여부를 확인한다. */
     public boolean hasPassedCourseByName(String courseName) {
         return getPassedCourses().stream().anyMatch(cr -> courseName.equals(cr.courseName()));
     }
 
     /**
-     * 주어진 과목명을 이수한 가장 이른 학기를 반환한다.
+     * 주어진 course_code 목록 중 하나라도 이수했는지 확인한다.
+     * 단일 코드면 1개짜리 리스트, 동일유사 교과목이면 여러 코드 리스트를 넘긴다.
+     */
+    public boolean hasPassedAnyCourseByCode(List<String> courseCodes) {
+        return getPassedCourses().stream()
+                .anyMatch(cr -> cr.courseCode() != null && courseCodes.contains(cr.courseCode()));
+    }
+
+    /**
+     * 주어진 course_code 목록 중 가장 이른 이수 학기를 반환한다.
      * 선이수체계 판정 시 이수 순서 비교에 사용한다.
      */
-    public Optional<String> getEarliestSemesterByCourseName(String courseName) {
+    public Optional<String> getEarliestSemesterByAnyCourseCode(List<String> courseCodes) {
         return getPassedCourses().stream()
-                .filter(cr -> courseName.equals(cr.courseName()))
+                .filter(cr -> cr.courseCode() != null && courseCodes.contains(cr.courseCode()))
                 .map(CourseRecordView::semester)
                 .min(Comparator.comparingInt(EvaluationContext::semesterOrdinal));
     }
@@ -102,7 +106,6 @@ public class EvaluationContext {
     /**
      * 학기 문자열을 정수 서수로 변환한다.
      * "YYYY-1" → YYYY*100+1, "YYYY-하/동" → YYYY*100+5, "YYYY-2" → YYYY*100+10
-     * 선이수체계 판정에서 이수 순서 비교용으로만 사용한다.
      */
     public static int semesterOrdinal(String semester) {
         if (semester == null) return 0;

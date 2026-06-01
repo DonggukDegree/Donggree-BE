@@ -88,12 +88,6 @@ public class CourseClassification {
             String subCategory,
             String subjectDomain) {
         return new CourseClassification(
-                courseCode,
-                studentYearStart,
-                studentYearEnd,
-                courseType,
-                areaTypeId,
-                subCategory,
-                subjectDomain);
+                courseCode, studentYearStart, studentYearEnd, courseType, areaTypeId, subCategory, subjectDomain);
     }
 }
