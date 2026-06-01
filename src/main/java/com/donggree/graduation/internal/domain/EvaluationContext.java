@@ -11,13 +11,8 @@ import java.util.Optional;
 
 /**
  * 졸업 판정에 필요한 데이터를 묶는 값 객체.
- * transcript 데이터와 course_code별 분류(classificationByCourseCode)를 함께 보관하며,
+ * transcript 데이터와 courseCode별 분류를 함께 보관하며,
  * evaluator가 자주 사용하는 필터링 연산을 편의 메서드로 제공한다.
- *
- * classificationByCourseCode 맵은 서비스 레이어에서 아래 순서로 조립한다:
- *   1. course_record의 course_code 목록으로 Course 카탈로그 조회
- *   2. course.id 목록과 입학년도로 CourseClassification 조회
- *   3. courseCode → CourseClassificationView 맵 구성
  */
 public class EvaluationContext {
 
@@ -56,34 +51,50 @@ public class EvaluationContext {
     }
 
     /**
-     * 특정 courseType에서 지정한 subCategory 목록에 속하는 이수 수강 이력을 반환한다.
-     * subCategories가 null이면 subCategory 제한 없이 해당 courseType 전체를 반환한다.
+     * 특정 courseType에서 지정한 areaName 목록에 속하는 이수 수강 이력을 반환한다.
+     * areaNames가 null이면 영역 제한 없이 해당 courseType 전체를 반환한다.
      */
-    public List<CourseRecordView> getPassedCoursesByTypeAndSubCategories(
-            CourseType courseType, List<String> subCategories) {
+    public List<CourseRecordView> getPassedCoursesByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
         return getPassedCourses().stream()
                 .filter(cr -> {
                     CourseClassificationView cls = classificationByCourseCode.get(cr.courseCode());
                     if (cls == null || cls.courseType() != courseType) return false;
-                    return subCategories == null || subCategories.contains(cls.subCategory());
+                    return areaNames == null || areaNames.contains(cls.areaName());
                 })
                 .toList();
     }
 
-    /** 주어진 과목명을 이수한 과목이 있는지 확인한다. */
+    /** ThesisEvaluator에서 사용. 과목명으로 이수 여부를 확인한다. */
     public boolean hasPassedCourseByName(String courseName) {
         return getPassedCourses().stream().anyMatch(cr -> courseName.equals(cr.courseName()));
     }
 
     /**
-     * 주어진 과목명을 이수한 가장 이른 학기를 반환한다.
-     * 선이수체계 판정 시 이수 순서 비교에 사용한다.
+     * 주어진 코드 패턴 목록 중 하나라도 이수했는지 확인한다.
+     * 단일 코드면 1개짜리 리스트, 동일유사 교과목이면 여러 코드 리스트를 넘긴다.
+     * "DAI*" 처럼 '*'로 끝나는 패턴은 prefix 매칭으로 처리한다.
      */
-    public Optional<String> getEarliestSemesterByCourseName(String courseName) {
+    public boolean hasPassedAnyCourseByCode(List<String> patterns) {
         return getPassedCourses().stream()
-                .filter(cr -> courseName.equals(cr.courseName()))
+                .anyMatch(cr -> cr.courseCode() != null && matchesAny(cr.courseCode(), patterns));
+    }
+
+    /**
+     * 주어진 코드 패턴 목록 중 가장 이른 이수 학기를 반환한다.
+     * 선이수체계 판정 시 이수 순서 비교에 사용한다. prefix 패턴 지원.
+     */
+    public Optional<String> getEarliestSemesterByAnyCourseCode(List<String> patterns) {
+        return getPassedCourses().stream()
+                .filter(cr -> cr.courseCode() != null && matchesAny(cr.courseCode(), patterns))
                 .map(CourseRecordView::semester)
                 .min(Comparator.comparingInt(EvaluationContext::semesterOrdinal));
+    }
+
+    /** '*' 로 끝나면 prefix 매칭, 아니면 exact 매칭. */
+    private static boolean matchesAny(String courseCode, List<String> patterns) {
+        return patterns.stream()
+                .anyMatch(p ->
+                        p.endsWith("*") ? courseCode.startsWith(p.substring(0, p.length() - 1)) : courseCode.equals(p));
     }
 
     /** 특정 courseType의 이수 학점 합계를 반환한다. */
@@ -93,9 +104,9 @@ public class EvaluationContext {
                 .sum();
     }
 
-    /** 특정 courseType + subCategory 목록의 이수 학점 합계를 반환한다. */
-    public int getTotalPassedCreditsByTypeAndSubCategories(CourseType courseType, List<String> subCategories) {
-        return getPassedCoursesByTypeAndSubCategories(courseType, subCategories).stream()
+    /** 특정 courseType + areaName 목록의 이수 학점 합계를 반환한다. */
+    public int getTotalPassedCreditsByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
+        return getPassedCoursesByTypeAndAreaNames(courseType, areaNames).stream()
                 .mapToInt(CourseRecordView::credits)
                 .sum();
     }
@@ -103,7 +114,6 @@ public class EvaluationContext {
     /**
      * 학기 문자열을 정수 서수로 변환한다.
      * "YYYY-1" → YYYY*100+1, "YYYY-하/동" → YYYY*100+5, "YYYY-2" → YYYY*100+10
-     * 선이수체계 판정에서 이수 순서 비교용으로만 사용한다.
      */
     public static int semesterOrdinal(String semester) {
         if (semester == null) return 0;

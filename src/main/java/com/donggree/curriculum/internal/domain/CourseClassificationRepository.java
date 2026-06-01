@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CourseClassificationRepository extends JpaRepository<CourseClassification, Long> {
 
-    List<CourseClassification> findByCourseIdIn(Collection<Long> courseIds);
+    List<CourseClassification> findByCourseCodeIn(Collection<String> courseCodes);
 }

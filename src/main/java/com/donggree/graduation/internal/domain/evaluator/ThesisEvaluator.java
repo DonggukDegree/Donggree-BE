@@ -13,11 +13,15 @@ import org.springframework.stereotype.Component;
  * ruleConfig:
  *   {
  *     "exemptStudentTypes": ["학석사연계과정"],
- *     "requiredCourseSets": [["종합설계1", "종합설계2"], ["종합설계1", "개별연구"]]
+ *     "requiredCourseSets": [
+ *       [["CSE4066","CSC4018"], ["CSE4067","CSC4019"]],
+ *       [["CSE4066","CSC4018"], ["CS_개별연구"]]
+ *     ]
  *   }
  *
  * exemptStudentTypes에 해당하는 학생은 자동 충족 처리한다.
- * requiredCourseSets 중 하나의 세트를 구성하는 모든 과목을 이수하면 충족이다.
+ * requiredCourseSets 중 하나의 세트에서 각 과목 그룹마다 하나 이상 이수하면 충족이다.
+ * 동일유사 교과목은 같은 그룹 배열에 여러 코드로 표현한다.
  */
 @Component
 public class ThesisEvaluator implements RuleEvaluator {
@@ -36,13 +40,14 @@ public class ThesisEvaluator implements RuleEvaluator {
             return new RuleResult(rule.ruleName(), true);
         }
 
-        List<List<String>> courseSets = config.requiredCourseSets();
+        List<List<List<String>>> courseSets = config.requiredCourseSets();
         boolean satisfied = courseSets != null
-                && courseSets.stream().anyMatch(set -> set.stream().allMatch(context::hasPassedCourseByName));
+                && courseSets.stream()
+                        .anyMatch(set -> set.stream().allMatch(codes -> context.hasPassedAnyCourseByCode(codes)));
 
         return new RuleResult(rule.ruleName(), satisfied);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record Config(List<String> exemptStudentTypes, List<List<String>> requiredCourseSets) {}
+    private record Config(List<String> exemptStudentTypes, List<List<List<String>>> requiredCourseSets) {}
 }

@@ -42,11 +42,11 @@ class EvaluatorTestSupport {
     }
 
     static CourseRecordView passed(String code, String name, int credits, String semester) {
-        return new CourseRecordView(semester, code, name, credits, true, false);
+        return new CourseRecordView(semester, code, null, name, credits, true, false);
     }
 
     static CourseRecordView failed(String code, String name, int credits, String semester) {
-        return new CourseRecordView(semester, code, name, credits, false, false);
+        return new CourseRecordView(semester, code, null, name, credits, false, false);
     }
 
     static EvaluationContext context(TranscriptView t, Map<String, CourseClassificationView> cls) {
@@ -58,11 +58,15 @@ class EvaluatorTestSupport {
     }
 
     static CourseClassificationView classification(
-            Long courseId, CourseType type, String subCategory, String subjectDomain) {
-        return new CourseClassificationView(courseId, type, null, subCategory, subjectDomain);
+            CourseType type, String areaName, String subCategory, String subjectDomain) {
+        return new CourseClassificationView(type, areaName, subCategory, subjectDomain);
     }
 
-    static CourseClassificationView classification(Long courseId, CourseType type) {
-        return new CourseClassificationView(courseId, type, null, null, null);
+    static CourseClassificationView classification(CourseType type, String areaName) {
+        return new CourseClassificationView(type, areaName, null, null);
+    }
+
+    static CourseClassificationView classification(CourseType type) {
+        return new CourseClassificationView(type, null, null, null);
     }
 }

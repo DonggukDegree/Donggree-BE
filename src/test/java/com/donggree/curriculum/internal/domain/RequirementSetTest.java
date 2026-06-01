@@ -63,37 +63,43 @@ class RequirementSetTest {
     // --- addRule 테스트 ---
 
     @Test
-    void 규칙_추가_시_양방향_관계가_설정된다() {
+    void 규칙_추가_시_요건세트에_포함된다() {
         RequirementSet set = createRequirementSet();
+        GraduationRule rule = GraduationRule.create(1L, "전공 최소학점", "{\"minCredits\": 60}", "전공 최소 60학점 이수");
 
-        GraduationRule rule = set.addRule(1L, "전공 최소학점", "{\"minCredits\": 60}", "전공 최소 60학점 이수");
+        set.addRule(rule);
 
         assertThat(set.getRules()).hasSize(1);
         assertThat(set.getRules().get(0)).isSameAs(rule);
-        assertThat(rule.getRequirementSet()).isSameAs(set);
     }
 
     @Test
     void 여러_규칙을_추가할_수_있다() {
         RequirementSet set = createRequirementSet();
 
-        set.addRule(1L, "전공 최소학점", "{\"minCredits\": 60}", null);
-        set.addRule(2L, "교양 필수과목", "{\"courses\": [\"GEN1001\"]}", null);
+        set.addRule(GraduationRule.create(1L, "전공 최소학점", "{\"minCredits\": 60}", null));
+        set.addRule(GraduationRule.create(2L, "교양 필수과목", "{\"courseCodes\": [\"GEN1001\"]}", null));
 
         assertThat(set.getRules()).hasSize(2);
     }
 
     @Test
-    void ruleTypeId가_null이면_예외가_발생한다() {
-        RequirementSet set = createRequirementSet();
+    void 동일한_규칙을_여러_요건세트에_연결할_수_있다() {
+        RequirementSet setA = createRequirementSet();
+        RequirementSet setB = RequirementSet.create(2L, 2023, 2025, 1, null, null);
+        GraduationRule sharedRule = GraduationRule.create(1L, "총 학점", "{\"minCredits\": 130}", null);
 
-        assertThatThrownBy(() -> set.addRule(null, "전공 최소학점", "{}", null)).isInstanceOf(IllegalArgumentException.class);
+        setA.addRule(sharedRule);
+        setB.addRule(sharedRule);
+
+        assertThat(setA.getRules()).contains(sharedRule);
+        assertThat(setB.getRules()).contains(sharedRule);
     }
 
     @Test
     void getRules는_불변_리스트를_반환한다() {
         RequirementSet set = createRequirementSet();
-        set.addRule(1L, "전공 최소학점", "{\"minCredits\": 60}", null);
+        set.addRule(GraduationRule.create(1L, "전공 최소학점", "{\"minCredits\": 60}", null));
 
         assertThatThrownBy(() -> set.getRules().add(GraduationRule.create(2L, "다른 규칙", "{}", null)))
                 .isInstanceOf(UnsupportedOperationException.class);

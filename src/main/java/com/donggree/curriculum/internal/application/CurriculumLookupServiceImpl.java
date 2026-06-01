@@ -1,14 +1,13 @@
 package com.donggree.curriculum.internal.application;
 
 import com.donggree.curriculum.CourseClassificationView;
-import com.donggree.curriculum.CourseView;
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
-import com.donggree.curriculum.internal.domain.Course;
+import com.donggree.curriculum.internal.domain.AreaType;
+import com.donggree.curriculum.internal.domain.AreaTypeRepository;
 import com.donggree.curriculum.internal.domain.CourseClassification;
 import com.donggree.curriculum.internal.domain.CourseClassificationRepository;
-import com.donggree.curriculum.internal.domain.CourseRepository;
 import com.donggree.curriculum.internal.domain.Department;
 import com.donggree.curriculum.internal.domain.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.GraduationRule;
@@ -33,8 +32,8 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     private final DepartmentRepository departmentRepository;
     private final RequirementSetRepository requirementSetRepository;
     private final RuleTypeRepository ruleTypeRepository;
-    private final CourseRepository courseRepository;
     private final CourseClassificationRepository courseClassificationRepository;
+    private final AreaTypeRepository areaTypeRepository;
 
     @Override
     public Optional<Long> findDepartmentIdByName(String departmentName) {
@@ -83,7 +82,7 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
                                 return new GraduationRuleView(
                                         rule.getId(),
                                         rt != null ? rt.getTypeName() : "UNKNOWN",
-                                        rt != null ? rt.getCategory() : null,
+                                        rt != null ? rt.getCourseType() : null,
                                         rule.getRuleName(),
                                         rule.getRuleConfig());
                             })
@@ -93,37 +92,35 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     }
 
     @Override
-    public Map<String, CourseView> findCoursesByCodes(List<String> courseCodes) {
+    public Map<String, CourseClassificationView> findCourseClassifications(
+            List<String> courseCodes, int admissionYear) {
         if (courseCodes == null || courseCodes.isEmpty()) {
             return Map.of();
         }
-        return courseRepository.findByCourseCodeIn(courseCodes).stream()
-                .collect(Collectors.toMap(
-                        Course::getCourseCode,
-                        c -> new CourseView(
-                                c.getId(),
-                                c.getCourseCode(),
-                                c.getCourseName(),
-                                c.getCredits(),
-                                c.getEquivalentCourseId())));
-    }
 
-    @Override
-    public Map<Long, CourseClassificationView> findCourseClassificationsByCourseIds(
-            List<Long> courseIds, int admissionYear) {
-        if (courseIds == null || courseIds.isEmpty()) {
-            return Map.of();
-        }
-        return courseClassificationRepository.findByCourseIdIn(courseIds).stream()
-                .filter(cc -> admissionYear >= cc.getStudentYearStart() && admissionYear <= cc.getStudentYearEnd())
-                .collect(Collectors.toMap(
-                        CourseClassification::getCourseId,
-                        cc -> new CourseClassificationView(
-                                cc.getCourseId(),
-                                cc.getCourseType(),
-                                cc.getAreaTypeId(),
-                                cc.getSubCategory(),
-                                cc.getSubjectDomain()),
-                        (existing, replacement) -> existing));
+        Map<String, CourseClassification> byCode =
+                courseClassificationRepository.findByCourseCodeIn(courseCodes).stream()
+                        .filter(cc ->
+                                admissionYear >= cc.getStudentYearStart() && admissionYear <= cc.getStudentYearEnd())
+                        .collect(Collectors.toMap(
+                                CourseClassification::getCourseCode, Function.identity(), (a, b) -> a));
+
+        // area_type_id → area_name 일괄 조회
+        List<Long> areaTypeIds = byCode.values().stream()
+                .map(CourseClassification::getAreaTypeId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        Map<Long, String> areaNameById = areaTypeRepository.findAllById(areaTypeIds).stream()
+                .collect(Collectors.toMap(AreaType::getId, AreaType::getAreaName));
+
+        return byCode.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> {
+            CourseClassification cc = e.getValue();
+            return new CourseClassificationView(
+                    cc.getCourseType(),
+                    cc.getAreaTypeId() != null ? areaNameById.get(cc.getAreaTypeId()) : null,
+                    cc.getSubCategory(),
+                    cc.getSubjectDomain());
+        }));
     }
 }

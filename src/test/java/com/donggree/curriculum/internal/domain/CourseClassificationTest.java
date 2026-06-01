@@ -11,9 +11,9 @@ class CourseClassificationTest {
     @Test
     void 과목분류_생성_시_모든_필드가_저장된다() {
         CourseClassification cc =
-                CourseClassification.create(1L, 2023, 2025, CourseType.ACADEMIC_FOUNDATION, 10L, "개론", "물리");
+                CourseClassification.create("CS001", 2023, 2025, CourseType.ACADEMIC_FOUNDATION, 10L, "개론", "물리");
 
-        assertThat(cc.getCourseId()).isEqualTo(1L);
+        assertThat(cc.getCourseCode()).isEqualTo("CS001");
         assertThat(cc.getStudentYearStart()).isEqualTo(2023);
         assertThat(cc.getStudentYearEnd()).isEqualTo(2025);
         assertThat(cc.getCourseType()).isEqualTo(CourseType.ACADEMIC_FOUNDATION);
@@ -24,7 +24,8 @@ class CourseClassificationTest {
 
     @Test
     void areaTypeId와_subCategory와_subjectDomain이_null이어도_생성된다() {
-        CourseClassification cc = CourseClassification.create(1L, 2023, 2025, CourseType.FIRST_MAJOR, null, null, null);
+        CourseClassification cc =
+                CourseClassification.create("CS001", 2023, 2025, CourseType.FIRST_MAJOR, null, null, null);
 
         assertThat(cc.getAreaTypeId()).isNull();
         assertThat(cc.getSubCategory()).isNull();
@@ -32,37 +33,40 @@ class CourseClassificationTest {
     }
 
     @Test
-    void courseId가_null이면_예외가_발생한다() {
+    void courseCode가_null이면_예외가_발생한다() {
         assertThatThrownBy(
                         () -> CourseClassification.create(null, 2023, 2025, CourseType.FIRST_MAJOR, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("courseId");
+                .hasMessageContaining("courseCode");
     }
 
     @Test
     void courseType이_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseClassification.create(1L, 2023, 2025, null, null, null, null))
+        assertThatThrownBy(() -> CourseClassification.create("CS001", 2023, 2025, null, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("courseType");
     }
 
     @Test
     void yearStart가_yearEnd보다_크면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseClassification.create(1L, 2025, 2023, CourseType.FIRST_MAJOR, null, null, null))
+        assertThatThrownBy(() ->
+                        CourseClassification.create("CS001", 2025, 2023, CourseType.FIRST_MAJOR, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("studentYearStart");
     }
 
     @Test
     void studentYearStart가_0_이하이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseClassification.create(1L, 0, 2023, CourseType.FIRST_MAJOR, null, null, null))
+        assertThatThrownBy(
+                        () -> CourseClassification.create("CS001", 0, 2023, CourseType.FIRST_MAJOR, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("positive");
     }
 
     @Test
     void studentYearEnd가_음수이면_예외가_발생한다() {
-        assertThatThrownBy(() -> CourseClassification.create(1L, 2023, -1, CourseType.FIRST_MAJOR, null, null, null))
+        assertThatThrownBy(
+                        () -> CourseClassification.create("CS001", 2023, -1, CourseType.FIRST_MAJOR, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("positive");
     }
@@ -70,7 +74,7 @@ class CourseClassificationTest {
     @Test
     void yearStart와_yearEnd가_같으면_단일_연도_분류로_생성된다() {
         CourseClassification cc =
-                CourseClassification.create(1L, 2023, 2023, CourseType.LIBERAL_ARTS, null, null, null);
+                CourseClassification.create("CS001", 2023, 2023, CourseType.LIBERAL_ARTS, null, null, null);
 
         assertThat(cc.getStudentYearStart()).isEqualTo(2023);
         assertThat(cc.getStudentYearEnd()).isEqualTo(2023);
