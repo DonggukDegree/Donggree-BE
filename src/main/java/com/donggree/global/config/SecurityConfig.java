@@ -16,8 +16,10 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -52,6 +54,7 @@ public class SecurityConfig {
             JwtTokenProvider jwtTokenProvider,
             OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService,
             AuthenticationSuccessHandler oAuthSuccessHandler,
+            AuthenticationFailureHandler oAuthFailureHandler,
             Environment env)
             throws Exception {
         JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtTokenProvider);
@@ -60,6 +63,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
+                // API 인증은 JWT(Bearer)로만 한다. OAuth 로그인 성공 인증을 세션에 저장/복원하지 않아
+                // 이후 요청이 OAuthMember 세션으로 인증되는 것을 막는다. (OAuth 핸드셰이크용 세션은 별개로 유지)
+                .securityContext(context -> context.securityContextRepository(new NullSecurityContextRepository()))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(PERMIT_URIS).permitAll();
                     if (isLocal) {
@@ -73,7 +79,8 @@ public class SecurityConfig {
                                 response.sendError(HttpServletResponse.SC_FORBIDDEN)))
                 .oauth2Login(oauth -> oauth.redirectionEndpoint(endpoint -> endpoint.baseUri("/oauth/callback/*"))
                         .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
-                        .successHandler(oAuthSuccessHandler))
+                        .successHandler(oAuthSuccessHandler)
+                        .failureHandler(oAuthFailureHandler))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
