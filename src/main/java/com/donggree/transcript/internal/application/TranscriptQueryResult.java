@@ -11,7 +11,6 @@ import java.util.List;
 public record TranscriptQueryResult(RawMeta meta, List<RawSemesterGroup> semesterGroups) {
 
     public record RawMeta(
-            Long reportId,
             int admissionYear,
             Long departmentId,
             Long subMajor1Id,
