@@ -4,15 +4,22 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.donggree.curriculum.CourseType;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.graduation.internal.application.GraduationReportService;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
+import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse;
+import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.AreaSection;
+import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.CourseItem;
+import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.CreditStatus;
 import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse;
 import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.AreaOverview;
 import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.Summary;
@@ -48,7 +55,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
 
         given(graduationReportService.getReport(1L)).willReturn(new GraduationReportResponse(summary, areaOverviews));
 
-        mockMvc.perform(get("/api/reports/{reportId}", 1L))
+        mockMvc.perform(get("/api/reports/{reportId}/summary", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andDo(document(
@@ -84,7 +91,71 @@ class GraduationReportControllerTest extends RestDocsSupport {
         given(graduationReportService.getReport(999L))
                 .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
-        mockMvc.perform(get("/api/reports/{reportId}", 999L))
+        mockMvc.perform(get("/api/reports/{reportId}/summary", 999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("GRADUATION404_1"));
+    }
+
+    @Test
+    void 영역별_이수_현황을_조회한다() throws Exception {
+        List<CourseItem> 동국인성Items =
+                List.of(new CourseItem("불교와인간", 2, "SATISFIED", null), new CourseItem("자아와명상1", 2, "OPTIONAL", null));
+        List<CourseItem> 자기계발Items = List.of(new CourseItem("진로탐색과비전", 1, "OPTIONAL", null));
+
+        List<AreaSection> areaSections =
+                List.of(new AreaSection("동국인성", 4, 0, true, 동국인성Items), new AreaSection("자기계발", 1, 0, true, 자기계발Items));
+
+        AreaDetailResponse response =
+                new AreaDetailResponse(areaSections, List.of("EAS2 이전에 EAS1을 선이수해야 합니다."), new CreditStatus(17, 17, 0));
+
+        given(graduationReportService.getAreaDetail(1L, CourseType.COMMON_GENERAL))
+                .willReturn(response);
+
+        mockMvc.perform(get("/api/reports/{reportId}", 1L).param("courseType", "COMMON_GENERAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andDo(document(
+                        "graduation-get-area-detail",
+                        queryParameters(parameterWithName("courseType")
+                                .description(
+                                        "이수 구분 코드 (COMMON_GENERAL, ACADEMIC_FOUNDATION, FIRST_MAJOR, LIBERAL_ARTS 등)")),
+                        responseFields(
+                                fieldWithPath("isSuccess").description("요청 성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("result.areaDetails[].areaName").description("영역(areaType) 이름"),
+                                fieldWithPath("result.areaDetails[].earnedCredits")
+                                        .description("해당 영역 이수 학점"),
+                                fieldWithPath("result.areaDetails[].targetCredits")
+                                        .description("해당 영역 최소 목표 학점 (규칙이 없으면 0)"),
+                                fieldWithPath("result.areaDetails[].satisfied").description("해당 영역 필수 요건 충족 여부"),
+                                fieldWithPath("result.areaDetails[].items[].title")
+                                        .description("과목명 또는 소분류 별명"),
+                                fieldWithPath("result.areaDetails[].items[].credit")
+                                        .description("이수 학점 (미이수 필수과목은 0)"),
+                                fieldWithPath("result.areaDetails[].items[].status")
+                                        .description("SATISFIED(필수 이수) | UNSATISFIED(필수 미이수) | OPTIONAL(선택 이수)"),
+                                fieldWithPath("result.areaDetails[].items[].detail")
+                                        .type(JsonFieldType.ARRAY)
+                                        .optional()
+                                        .description("소분류 별명인 경우 실제 수강 과목명 목록, 단일 과목이면 null"),
+                                fieldWithPath("result.unsatisfiedReasons")
+                                        .description("해당 courseType에서 미충족된 졸업 규칙 사유 목록"),
+                                fieldWithPath("result.creditStatus.earnedCredits")
+                                        .description("해당 courseType 총 이수 학점"),
+                                fieldWithPath("result.creditStatus.targetCredits")
+                                        .description("해당 courseType 최소 목표 학점"),
+                                fieldWithPath("result.creditStatus.remainingCredits")
+                                        .description("해당 courseType 잔여 학점"))));
+    }
+
+    @Test
+    void 영역별_이수_현황_조회_시_성적표_없으면_404를_반환한다() throws Exception {
+        given(graduationReportService.getAreaDetail(999L, CourseType.COMMON_GENERAL))
+                .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
+
+        mockMvc.perform(get("/api/reports/{reportId}", 999L).param("courseType", "COMMON_GENERAL"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("GRADUATION404_1"));

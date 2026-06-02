@@ -79,3 +79,9 @@ operation::transcript-add-course-records[]
 저장된 성적표를 기반으로 졸업 요건 판정 결과를 조회한다. reportId는 성적표 ID와 동일하다. 전체 달성률 요약과 courseType별 이수 현황을 반환한다.
 
 operation::graduation-get-report[]
+
+==== 영역별 이수 현황 조회
+
+courseType 내 areaType별 상세 이수 현황을 조회한다. areaType별 이수 과목 목록(필수/선택), 미충족 사유, 해당 courseType 전체 학점 현황을 반환한다.
+
+operation::graduation-get-area-detail[]
