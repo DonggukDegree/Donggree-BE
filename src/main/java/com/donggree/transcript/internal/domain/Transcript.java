@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
@@ -28,7 +29,7 @@ import org.hibernate.type.SqlTypes;
  * 개별 수강 이력(CourseRecord)을 하위 엔티티로 소유한다.
  */
 @Entity
-@Table(name = "transcript")
+@Table(name = "transcript", indexes = @Index(name = "idx_transcript_member_id", columnList = "member_id"))
 @SQLRestriction("deleted_at IS NULL")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

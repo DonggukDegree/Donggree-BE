@@ -72,7 +72,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         Long memberId = 1L;
         authenticate(memberId);
 
-        RawMeta rawMeta = new RawMeta(1L, 2023, 10L, null, null, null, null, "재학", 60, new BigDecimal("3.50"), 4);
+        RawMeta rawMeta = new RawMeta(2023, 10L, null, null, null, null, "재학", 60, new BigDecimal("3.50"), 4);
         RawCourseRecord rawRecord = new RawCourseRecord(1L, "CSE1101", "프로그래밍기초", 3, null, "전공", "A+", false);
         TranscriptQueryResult queryResult =
                 new TranscriptQueryResult(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
@@ -89,7 +89,6 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result.meta.reportId").description("성적표 ID"),
                                 fieldWithPath("result.meta.admissionYear").description("입학 연도"),
                                 fieldWithPath("result.meta.department").description("전공 학과명"),
                                 fieldWithPath("result.meta.subMajor1")
@@ -188,7 +187,6 @@ class TranscriptControllerTest extends RestDocsSupport {
         mockMvc.perform(multipart(HttpMethod.PUT, "/api/users/me/reports").file(pdfFile))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
-                .andExpect(jsonPath("$.result.reportId").value(1))
                 .andDo(document(
                         "transcript-create",
                         requestParts(partWithName("file").description("성적표 PDF 파일 (nDRIMS '취득교과목 영역별 분류표')")),
@@ -196,7 +194,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result.reportId").description("생성된 성적표 ID"))));
+                                fieldWithPath("result").description("응답 결과 (없음)"))));
     }
 
     @Test

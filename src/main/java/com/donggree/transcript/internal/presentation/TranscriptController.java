@@ -16,7 +16,6 @@ import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
-import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.CourseRecord;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.Meta;
@@ -66,7 +65,6 @@ public class TranscriptController implements TranscriptApi {
         Map<Long, String> deptNameMap = curriculumLookupService.findDepartmentNamesByIds(deptIds);
 
         Meta meta = new Meta(
-                raw.meta().reportId(),
                 raw.meta().admissionYear(),
                 deptName(deptNameMap, raw.meta().departmentId()),
                 deptName(deptNameMap, raw.meta().subMajor1Id()),
@@ -87,7 +85,7 @@ public class TranscriptController implements TranscriptApi {
 
     @Override
     @PutMapping
-    public ApiResponse<TranscriptCreateResponse> createTranscript(
+    public ApiResponse<Void> createTranscript(
             @LoginMemberId Long memberId, @RequestParam(value = "file", required = false) MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new GeneralException(TranscriptErrorCode.PDF_FILE_REQUIRED);
@@ -139,8 +137,8 @@ public class TranscriptController implements TranscriptApi {
                             c.retake()))
                     .toList();
 
-            Long reportId = transcriptService.createTranscript(createData, courses, pdfStudentId, pdfName);
-            return ApiResponse.onSuccess(GeneralSuccessCode.CREATED, new TranscriptCreateResponse(reportId));
+            transcriptService.createTranscript(createData, courses, pdfStudentId, pdfName);
+            return ApiResponse.onSuccess(GeneralSuccessCode.CREATED);
 
         } catch (IOException e) {
             throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);

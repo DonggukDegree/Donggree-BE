@@ -24,10 +24,14 @@ import com.donggree.graduation.internal.presentation.dto.GraduationReportRespons
 import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.AreaOverview;
 import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.Summary;
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.restdocs.payload.JsonFieldType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 class GraduationReportControllerTest extends RestDocsSupport {
 
@@ -43,8 +47,21 @@ class GraduationReportControllerTest extends RestDocsSupport {
         return new Object[] {new GeneralExceptionAdvice()};
     }
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void authenticate(Long memberId) {
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
+    }
+
     @Test
     void 학업_리포트를_조회한다() throws Exception {
+        Long memberId = 1L;
+        authenticate(memberId);
+
         Summary summary =
                 new Summary(72, 98, 130, 32, new BigDecimal("3.50"), false, List.of("총 평점평균이 2.0 이상이어야 합니다."));
 
@@ -53,9 +70,10 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("ACADEMIC_FOUNDATION", "학문기초", 90, 3, false),
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
-        given(graduationReportService.getReport(1L)).willReturn(new GraduationReportResponse(summary, areaOverviews));
+        given(graduationReportService.getReport(memberId))
+                .willReturn(new GraduationReportResponse(summary, areaOverviews));
 
-        mockMvc.perform(get("/api/reports/{reportId}/summary", 1L))
+        mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andDo(document(
@@ -88,10 +106,13 @@ class GraduationReportControllerTest extends RestDocsSupport {
 
     @Test
     void 존재하지_않는_리포트_조회_시_404를_반환한다() throws Exception {
-        given(graduationReportService.getReport(999L))
+        Long memberId = 999L;
+        authenticate(memberId);
+
+        given(graduationReportService.getReport(memberId))
                 .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
-        mockMvc.perform(get("/api/reports/{reportId}/summary", 999L))
+        mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("GRADUATION404_1"));
@@ -99,6 +120,9 @@ class GraduationReportControllerTest extends RestDocsSupport {
 
     @Test
     void 영역별_이수_현황을_조회한다() throws Exception {
+        Long memberId = 1L;
+        authenticate(memberId);
+
         List<CourseItem> 동국인성Items =
                 List.of(new CourseItem("불교와인간", 2, "SATISFIED", null), new CourseItem("자아와명상1", 2, "OPTIONAL", null));
         List<CourseItem> 자기계발Items = List.of(new CourseItem("진로탐색과비전", 1, "OPTIONAL", null));
@@ -109,10 +133,10 @@ class GraduationReportControllerTest extends RestDocsSupport {
         AreaDetailResponse response =
                 new AreaDetailResponse(areaSections, List.of("EAS2 이전에 EAS1을 선이수해야 합니다."), new CreditStatus(17, 17, 0));
 
-        given(graduationReportService.getAreaDetail(1L, CourseType.COMMON_GENERAL))
+        given(graduationReportService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
                 .willReturn(response);
 
-        mockMvc.perform(get("/api/reports/{reportId}", 1L).param("courseType", "COMMON_GENERAL"))
+        mockMvc.perform(get("/api/reports").param("courseType", "COMMON_GENERAL"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andDo(document(
@@ -152,10 +176,13 @@ class GraduationReportControllerTest extends RestDocsSupport {
 
     @Test
     void 영역별_이수_현황_조회_시_성적표_없으면_404를_반환한다() throws Exception {
-        given(graduationReportService.getAreaDetail(999L, CourseType.COMMON_GENERAL))
+        Long memberId = 999L;
+        authenticate(memberId);
+
+        given(graduationReportService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
                 .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
-        mockMvc.perform(get("/api/reports/{reportId}", 999L).param("courseType", "COMMON_GENERAL"))
+        mockMvc.perform(get("/api/reports").param("courseType", "COMMON_GENERAL"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("GRADUATION404_1"));

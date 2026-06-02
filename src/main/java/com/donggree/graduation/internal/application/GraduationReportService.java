@@ -52,9 +52,9 @@ public class GraduationReportService {
                 evaluators.stream().collect(Collectors.toMap(RuleEvaluator::supportedTypeName, Function.identity()));
     }
 
-    public GraduationReportResponse getReport(Long reportId) {
+    public GraduationReportResponse getReport(Long memberId) {
         TranscriptView transcript = transcriptLookupService
-                .findById(reportId)
+                .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
         RequirementSetView requirementSet = curriculumLookupService
@@ -229,9 +229,9 @@ public class GraduationReportService {
                 courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
     }
 
-    public AreaDetailResponse getAreaDetail(Long reportId, CourseType courseType) {
+    public AreaDetailResponse getAreaDetail(Long memberId, CourseType courseType) {
         TranscriptView transcript = transcriptLookupService
-                .findById(reportId)
+                .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
         RequirementSetView requirementSet = curriculumLookupService
                 .findActiveRequirementSet(transcript.departmentId(), transcript.admissionYear())

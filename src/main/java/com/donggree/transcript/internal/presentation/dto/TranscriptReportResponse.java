@@ -10,7 +10,6 @@ import java.util.List;
 public record TranscriptReportResponse(Meta meta, List<SemesterCourses> courses) {
 
     public record Meta(
-            Long reportId,
             int admissionYear,
             String department,
             String subMajor1,

@@ -25,6 +25,11 @@ public class TranscriptLookupServiceImpl implements TranscriptLookupService {
         return transcriptRepository.findWithCourseRecordsById(transcriptId).map(this::toView);
     }
 
+    @Override
+    public Optional<TranscriptView> findByMemberId(Long memberId) {
+        return transcriptRepository.findWithCourseRecordsByMemberId(memberId).map(this::toView);
+    }
+
     private TranscriptView toView(Transcript t) {
         List<CourseRecordView> records =
                 t.getCourseRecords().stream().map(this::toCourseRecordView).toList();
