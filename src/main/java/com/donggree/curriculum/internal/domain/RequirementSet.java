@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +24,12 @@ import lombok.NoArgsConstructor;
  * GraduationRule을 하위 엔티티로 소유하며, 반드시 이 엔티티를 통해 규칙을 추가한다.
  */
 @Entity
-@Table(name = "requirement_set")
+@Table(
+        name = "requirement_set",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_requirement_set_dept_year_version",
+                        columnNames = {"department_id", "year_start", "year_end", "version"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RequirementSet extends BaseEntity {
@@ -57,7 +63,11 @@ public class RequirementSet extends BaseEntity {
     @JoinTable(
             name = "requirement_set_rule",
             joinColumns = @JoinColumn(name = "requirement_set_id"),
-            inverseJoinColumns = @JoinColumn(name = "graduation_rule_id"))
+            inverseJoinColumns = @JoinColumn(name = "graduation_rule_id"),
+            uniqueConstraints =
+                    @UniqueConstraint(
+                            name = "uk_requirement_set_rule",
+                            columnNames = {"requirement_set_id", "graduation_rule_id"}))
     private List<GraduationRule> rules = new ArrayList<>();
 
     private RequirementSet(

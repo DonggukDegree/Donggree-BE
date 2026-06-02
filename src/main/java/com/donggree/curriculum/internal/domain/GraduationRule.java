@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +19,12 @@ import org.hibernate.type.SqlTypes;
  * ruleConfig에 JSON 형태의 규칙 설정을 저장하며, graduation 모듈에서 파싱하여 사용한다.
  */
 @Entity
-@Table(name = "graduation_rule")
+@Table(
+        name = "graduation_rule",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_graduation_rule_type_name",
+                        columnNames = {"rule_type_id", "rule_name"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GraduationRule {

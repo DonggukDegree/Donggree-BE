@@ -40,5 +40,12 @@ out/
 .claude/
 CLAUDE.md
 
+### macOS ###
+.DS_Store
+**/.DS_Store
+
+### JNI 임시 파일 ###
+*.dylib
+
 ### 테스트 PDF (개인정보 포함) ###
 src/test/resources/pdf/

@@ -49,6 +49,7 @@ public class TranscriptLookupServiceImpl implements TranscriptLookupService {
                 cr.getSemester(),
                 cr.getCourseCode(),
                 cr.getCourseTypeName(),
+                cr.getAreaName(),
                 cr.getCourseName(),
                 cr.getCredits(),
                 passed,
