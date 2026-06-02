@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,12 @@ import lombok.NoArgsConstructor;
  * classification이 없는 과목은 PDF의 course_type_name으로 courseType을 추론한다.
  */
 @Entity
-@Table(name = "course_classification")
+@Table(
+        name = "course_classification",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_course_classification_code_years",
+                        columnNames = {"course_code", "student_year_start", "student_year_end"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CourseClassification {
