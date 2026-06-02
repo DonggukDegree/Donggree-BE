@@ -29,7 +29,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
         // 카카오 응답에서 oauthId, email만 추출
-        String oauthId = String.valueOf(oAuth2User.getAttribute("id"));
+        // getAttribute는 제네릭(<A> A) 메서드라 String.valueOf에 바로 넘기면
+        // 오버로드 추론이 char[]로 빠져 ClassCastException이 난다. Object로 먼저 받는다.
+        Object id = oAuth2User.getAttribute("id");
+        String oauthId = String.valueOf(id);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> kakaoAccount = oAuth2User.getAttribute("kakao_account");
