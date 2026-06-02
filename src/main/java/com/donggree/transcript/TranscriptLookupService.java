@@ -10,4 +10,7 @@ public interface TranscriptLookupService {
 
     /** transcriptId로 수강 이력을 포함한 성적표를 조회한다. 삭제된 성적표는 반환하지 않는다. */
     Optional<TranscriptView> findById(Long transcriptId);
+
+    /** memberId로 수강 이력을 포함한 성적표를 조회한다. 삭제된 성적표는 반환하지 않는다. */
+    Optional<TranscriptView> findByMemberId(Long memberId);
 }

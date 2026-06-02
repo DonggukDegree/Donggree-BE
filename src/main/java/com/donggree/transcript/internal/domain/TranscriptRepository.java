@@ -11,4 +11,7 @@ public interface TranscriptRepository extends JpaRepository<Transcript, Long> {
 
     @Query("SELECT t FROM Transcript t LEFT JOIN FETCH t.courseRecords WHERE t.id = :id")
     Optional<Transcript> findWithCourseRecordsById(@Param("id") Long id);
+
+    @Query("SELECT t FROM Transcript t LEFT JOIN FETCH t.courseRecords WHERE t.memberId = :memberId")
+    Optional<Transcript> findWithCourseRecordsByMemberId(@Param("memberId") Long memberId);
 }
