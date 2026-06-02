@@ -198,7 +198,6 @@ public class TranscriptService {
                 .toList();
 
         RawMeta meta = new RawMeta(
-                transcript.getId(),
                 transcript.getAdmissionYear(),
                 transcript.getDepartmentId(),
                 transcript.getSubMajor1Id(),

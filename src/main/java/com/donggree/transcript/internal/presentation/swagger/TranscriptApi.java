@@ -3,7 +3,6 @@ package com.donggree.transcript.internal.presentation.swagger;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
-import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,7 +39,7 @@ public interface TranscriptApi {
                 responseCode = "400",
                 description = "유효하지 않은 PDF 파일 또는 파싱 실패")
     })
-    ApiResponse<TranscriptCreateResponse> createTranscript(@Parameter(hidden = true) Long memberId, MultipartFile file);
+    ApiResponse<Void> createTranscript(@Parameter(hidden = true) Long memberId, MultipartFile file);
 
     @Operation(
             summary = "사용자 학업 정보 조회",
