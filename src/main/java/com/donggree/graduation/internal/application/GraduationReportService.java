@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -467,13 +468,19 @@ public class GraduationReportService {
     private AreaDetailResponse.CreditStatus buildTypeCredits(
             CourseType courseType, List<GraduationRuleView> areaRules, EvaluationContext context) {
         int earned = context.getTotalPassedCreditsByType(courseType);
-        // areaNames가 null인 MIN_AREA_CREDITS = courseType 전체 최소학점 규칙
-        int target = areaRules.stream()
+        List<GraduationRuleView> minAreaRules = areaRules.stream()
                 .filter(r -> "MIN_AREA_CREDITS".equals(r.typeName()))
+                .toList();
+        // areaNames=null 규칙이 있으면 그 값 사용, 없으면 모든 MIN_AREA_CREDITS 합산
+        OptionalInt wholeType = minAreaRules.stream()
                 .filter(r -> parseStringList(r.ruleConfig(), "areaNames").isEmpty())
                 .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
-                .max()
-                .orElse(0);
+                .max();
+        int target = wholeType.isPresent()
+                ? wholeType.getAsInt()
+                : minAreaRules.stream()
+                        .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+                        .sum();
         return new AreaDetailResponse.CreditStatus(earned, target, Math.max(0, target - earned));
     }
 
