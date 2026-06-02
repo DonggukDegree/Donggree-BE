@@ -28,12 +28,21 @@ public class RequiredCourseEvaluator implements RuleEvaluator {
         Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
         String englishLevel = context.getTranscript().englishLevel();
 
-        if (config.exemptEnglishLevels() != null && config.exemptEnglishLevels().contains(englishLevel)) {
-            return new RuleResult(rule.ruleName(), true);
-        }
-        if (config.requiredEnglishLevels() != null
-                && !config.requiredEnglishLevels().contains(englishLevel)) {
-            return new RuleResult(rule.ruleName(), true);
+        if (englishLevel != null) {
+            if (config.exemptEnglishLevels() != null
+                    && config.exemptEnglishLevels().contains(englishLevel)) {
+                return new RuleResult(rule.ruleName(), true);
+            }
+            if (config.requiredEnglishLevels() != null
+                    && !config.requiredEnglishLevels().contains(englishLevel)) {
+                return new RuleResult(rule.ruleName(), true);
+            }
+        } else {
+            // englishLevel이 null이면 레벨 지정 규칙(requiredEnglishLevels)은 자동 충족으로 처리
+            if (config.requiredEnglishLevels() != null
+                    && !config.requiredEnglishLevels().isEmpty()) {
+                return new RuleResult(rule.ruleName(), true);
+            }
         }
 
         boolean satisfied = context.hasPassedAnyCourseByCode(config.courseCodes());

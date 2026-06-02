@@ -301,9 +301,11 @@ public class GraduationReportService {
             if (!"REQUIRED_COURSE".equals(rule.typeName())) continue;
             // 해당 학생에게 적용되지 않는 규칙은 아이템에서 제외
             List<String> exemptLevels = parseStringList(rule.ruleConfig(), "exemptEnglishLevels");
-            if (!exemptLevels.isEmpty() && exemptLevels.contains(studentEnglishLevel)) continue;
+            if (!exemptLevels.isEmpty() && studentEnglishLevel != null && exemptLevels.contains(studentEnglishLevel))
+                continue;
             List<String> requiredLevels = parseStringList(rule.ruleConfig(), "requiredEnglishLevels");
-            if (!requiredLevels.isEmpty() && !requiredLevels.contains(studentEnglishLevel)) continue;
+            if (!requiredLevels.isEmpty()
+                    && (studentEnglishLevel == null || !requiredLevels.contains(studentEnglishLevel))) continue;
 
             List<String> codes = parseStringList(rule.ruleConfig(), "courseCodes");
             // course_classification에 있으면 areaName을 직접 사용
@@ -471,16 +473,32 @@ public class GraduationReportService {
         List<GraduationRuleView> minAreaRules = areaRules.stream()
                 .filter(r -> "MIN_AREA_CREDITS".equals(r.typeName()))
                 .toList();
+
+        record ParsedMinArea(boolean isWholeType, int minCredits) {}
+        // ruleConfig JSON을 규칙당 한 번만 파싱해 areaNames 유무와 minCredits를 추출한다.
+        List<ParsedMinArea> parsedList = minAreaRules.stream()
+                .map(r -> {
+                    try {
+                        JsonNode node = MAPPER.readTree(r.ruleConfig());
+                        JsonNode areaNames = node.path("areaNames");
+                        boolean isWhole = !areaNames.isArray() || areaNames.isEmpty();
+                        int credits = node.path("minCredits").asInt(0);
+                        return new ParsedMinArea(isWhole, credits);
+                    } catch (JsonProcessingException e) {
+                        return new ParsedMinArea(false, 0);
+                    }
+                })
+                .toList();
+
         // areaNames=null 규칙이 있으면 그 값 사용, 없으면 모든 MIN_AREA_CREDITS 합산
-        OptionalInt wholeType = minAreaRules.stream()
-                .filter(r -> parseStringList(r.ruleConfig(), "areaNames").isEmpty())
-                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+        OptionalInt wholeType = parsedList.stream()
+                .filter(ParsedMinArea::isWholeType)
+                .mapToInt(ParsedMinArea::minCredits)
                 .max();
         int target = wholeType.isPresent()
                 ? wholeType.getAsInt()
-                : minAreaRules.stream()
-                        .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
-                        .sum();
+                : parsedList.stream().mapToInt(ParsedMinArea::minCredits).sum();
+
         return new AreaDetailResponse.CreditStatus(earned, target, Math.max(0, target - earned));
     }
 
