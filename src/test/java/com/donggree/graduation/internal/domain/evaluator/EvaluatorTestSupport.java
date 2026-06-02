@@ -42,11 +42,11 @@ class EvaluatorTestSupport {
     }
 
     static CourseRecordView passed(String code, String name, int credits, String semester) {
-        return new CourseRecordView(semester, code, null, name, credits, true, false);
+        return new CourseRecordView(semester, code, null, null, name, credits, true, false);
     }
 
     static CourseRecordView failed(String code, String name, int credits, String semester) {
-        return new CourseRecordView(semester, code, null, name, credits, false, false);
+        return new CourseRecordView(semester, code, null, null, name, credits, false, false);
     }
 
     static EvaluationContext context(TranscriptView t, Map<String, CourseClassificationView> cls) {
