@@ -6,6 +6,7 @@ import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.LoginMemberId;
 import com.donggree.transcript.internal.application.CourseRecordCreateData;
+import com.donggree.transcript.internal.application.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.TranscriptParseResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
@@ -16,6 +17,7 @@ import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
+import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.CourseRecord;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.Meta;
@@ -85,7 +87,7 @@ public class TranscriptController implements TranscriptApi {
 
     @Override
     @PutMapping
-    public ApiResponse<Void> createTranscript(
+    public ApiResponse<TranscriptCreateResponse> createTranscript(
             @LoginMemberId Long memberId, @RequestParam(value = "file", required = false) MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new GeneralException(TranscriptErrorCode.PDF_FILE_REQUIRED);
@@ -137,8 +139,11 @@ public class TranscriptController implements TranscriptApi {
                             c.retake()))
                     .toList();
 
-            transcriptService.createTranscript(createData, courses, pdfStudentId, pdfName);
-            return ApiResponse.onSuccess(GeneralSuccessCode.CREATED);
+            TranscriptCreateResult result =
+                    transcriptService.createTranscript(createData, courses, pdfStudentId, pdfName);
+            return ApiResponse.onSuccess(
+                    GeneralSuccessCode.CREATED,
+                    new TranscriptCreateResponse(result.totalCredits(), result.recordedCredits(), result.creditGap()));
 
         } catch (IOException e) {
             throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);

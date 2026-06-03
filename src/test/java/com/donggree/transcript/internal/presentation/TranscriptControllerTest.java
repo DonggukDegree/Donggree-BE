@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.global.support.RestDocsSupport;
+import com.donggree.transcript.internal.application.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.TranscriptParseResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawCourseRecord;
@@ -179,7 +180,8 @@ class TranscriptControllerTest extends RestDocsSupport {
         given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
         given(transcriptService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(createData);
-        given(transcriptService.createTranscript(any(), any(), any(), any())).willReturn(1L);
+        given(transcriptService.createTranscript(any(), any(), any(), any()))
+                .willReturn(new TranscriptCreateResult(60, 54, 6));
 
         MockMultipartFile pdfFile =
                 new MockMultipartFile("file", "transcript.pdf", "application/pdf", "PDF content".getBytes());
@@ -187,6 +189,9 @@ class TranscriptControllerTest extends RestDocsSupport {
         mockMvc.perform(multipart(HttpMethod.PUT, "/api/users/me/reports").file(pdfFile))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.totalCredits").value(60))
+                .andExpect(jsonPath("$.result.recordedCredits").value(54))
+                .andExpect(jsonPath("$.result.creditGap").value(6))
                 .andDo(document(
                         "transcript-create",
                         requestParts(partWithName("file").description("성적표 PDF 파일 (nDRIMS '취득교과목 영역별 분류표')")),
@@ -194,7 +199,10 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result").description("응답 결과 (없음)"))));
+                                fieldWithPath("result.totalCredits").description("PDF에 기재된 총취득학점"),
+                                fieldWithPath("result.recordedCredits").description("등록된 수강 이력 학점의 합"),
+                                fieldWithPath("result.creditGap")
+                                        .description("총취득학점 - 과목 학점 합. 0이 아니면 불일치(양수: 이수 이력 추가 필요, 음수: 과목 합이 더 많음)"))));
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.donggree.transcript.internal.presentation.swagger;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
+import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,7 +21,9 @@ public interface TranscriptApi {
 
     @Operation(
             summary = "학업 리포트 생성",
-            description = "취득교과목 영역별 분류표 PDF를 업로드하여 성적표를 생성한다. " + "기존 성적표가 있으면 소프트 삭제 후 새로 생성한다.")
+            description = "취득교과목 영역별 분류표 PDF를 업로드하여 성적표를 생성한다. " + "기존 성적표가 있으면 소프트 삭제 후 새로 생성한다. "
+                    + "응답의 creditGap(총취득학점 - 파싱된 과목 학점 합)이 0이 아니면 PDF와 과목 이력이 불일치하므로 "
+                    + "프론트엔드는 사용자에게 수강 이력 추가를 안내할 수 있다.")
     @RequestBody(
             content =
                     @Content(
@@ -39,7 +42,7 @@ public interface TranscriptApi {
                 responseCode = "400",
                 description = "유효하지 않은 PDF 파일 또는 파싱 실패")
     })
-    ApiResponse<Void> createTranscript(@Parameter(hidden = true) Long memberId, MultipartFile file);
+    ApiResponse<TranscriptCreateResponse> createTranscript(@Parameter(hidden = true) Long memberId, MultipartFile file);
 
     @Operation(
             summary = "사용자 학업 정보 조회",
