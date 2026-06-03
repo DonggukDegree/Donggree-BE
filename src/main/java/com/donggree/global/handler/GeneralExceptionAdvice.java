@@ -8,8 +8,11 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestCookieException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -37,6 +40,21 @@ public class GeneralExceptionAdvice {
 
         // 에러 코드, 메시지와 함께 errors를 반환
         return ResponseEntity.status(code.getStatus()).body(errorResponse);
+    }
+
+    // 잘못된 요청 파라미터/쿠키로 인한 클라이언트 오류는 400으로 응답한다.
+    // - MethodArgumentTypeMismatchException: 쿼리 파라미터 타입 변환 실패 (예: courseType에 enum에 없는 값)
+    // - MissingServletRequestParameterException: 필수 쿼리 파라미터 누락
+    // - MissingRequestCookieException: 필수 쿠키 누락 (예: /auth/refresh 호출 시 refreshToken 쿠키 없음)
+    // 이전에는 이들이 미처리 예외로 빠져 500으로 응답되던 문제를 바로잡는다.
+    @ExceptionHandler({
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class,
+        MissingRequestCookieException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex) {
+        GeneralErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus()).body(ApiResponse.onFailure(code));
     }
 
     // 그 외의 정의되지 않은 모든 예외 처리 (스택 트레이스를 로그에 기록)
