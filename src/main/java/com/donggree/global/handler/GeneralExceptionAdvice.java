@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -42,18 +44,32 @@ public class GeneralExceptionAdvice {
         return ResponseEntity.status(code.getStatus()).body(errorResponse);
     }
 
-    // 잘못된 요청 파라미터/쿠키로 인한 클라이언트 오류는 400으로 응답한다.
+    // 잘못된 요청으로 인한 클라이언트 오류는 400으로 응답한다.
     // - MethodArgumentTypeMismatchException: 쿼리 파라미터 타입 변환 실패 (예: courseType에 enum에 없는 값)
     // - MissingServletRequestParameterException: 필수 쿼리 파라미터 누락
     // - MissingRequestCookieException: 필수 쿠키 누락 (예: /auth/refresh 호출 시 refreshToken 쿠키 없음)
+    // - HttpMessageNotReadableException: 요청 본문 누락 또는 JSON 형식 오류
     // 이전에는 이들이 미처리 예외로 빠져 500으로 응답되던 문제를 바로잡는다.
+    // 디버깅을 위해 사유는 warn 레벨로만 기록한다(스택 트레이스 미기록).
     @ExceptionHandler({
         MethodArgumentTypeMismatchException.class,
         MissingServletRequestParameterException.class,
-        MissingRequestCookieException.class
+        MissingRequestCookieException.class,
+        HttpMessageNotReadableException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex) {
+        log.warn("[BadRequest] {}", ex.getMessage());
+
         GeneralErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        return ResponseEntity.status(code.getStatus()).body(ApiResponse.onFailure(code));
+    }
+
+    // 지원하지 않는 HTTP 메서드로 요청한 경우 405로 응답한다. (이전에는 500으로 빠지던 문제 수정)
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        log.warn("[MethodNotAllowed] {}", ex.getMessage());
+
+        GeneralErrorCode code = GeneralErrorCode.METHOD_NOT_ALLOWED;
         return ResponseEntity.status(code.getStatus()).body(ApiResponse.onFailure(code));
     }
 
