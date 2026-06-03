@@ -13,6 +13,6 @@ spring:
 app:
   jwt:
     secret: donggree-local-dev-jwt-secret-key-must-be-at-least-256-bits
-  frontend-redirect-url: http://localhost:5173/login/callback
+  frontend-redirect-url: ${FRONTEND_REDIRECT_URL:http://localhost:5173/auth/callback}
   cors:
     allowed-origins: http://localhost:5173

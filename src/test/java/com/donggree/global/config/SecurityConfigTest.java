@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -68,6 +69,11 @@ class SecurityConfigTest {
         @Bean
         AuthenticationSuccessHandler oAuthSuccessHandler() {
             return (request, response, authentication) -> {};
+        }
+
+        @Bean
+        AuthenticationFailureHandler oAuthFailureHandler() {
+            return (request, response, exception) -> {};
         }
 
         @RestController

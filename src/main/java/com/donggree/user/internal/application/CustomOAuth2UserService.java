@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
         // 카카오 응답에서 oauthId, email만 추출
-        String oauthId = String.valueOf(oAuth2User.getAttribute("id"));
+        // getAttribute는 제네릭(<A> A) 메서드라 String.valueOf에 바로 넘기면
+        // 오버로드 추론이 char[]로 빠져 ClassCastException이 난다. Object로 먼저 받는다.
+        Object id = oAuth2User.getAttribute("id");
+        if (id == null) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("missing_user_id"), "카카오 사용자 ID가 없습니다.");
+        }
+        String oauthId = String.valueOf(id);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> kakaoAccount = oAuth2User.getAttribute("kakao_account");
