@@ -100,10 +100,10 @@ public class TranscriptService {
      *
      * @param createData    메타 정보 및 resolve된 학과 ID
      * @param courses       resolve된 과목 ID와 영역 ID를 포함한 수강 이력 목록
-     * @return 생성된 Transcript의 ID
+     * @return 총취득학점과 수강 이력 학점 합, 그 차이를 담은 등록 결과
      */
     @Transactional
-    public Long createTranscript(
+    public TranscriptCreateResult createTranscript(
             TranscriptCreateData createData,
             List<CourseRecordCreateData> courses,
             String pdfStudentId,
@@ -127,9 +127,9 @@ public class TranscriptService {
                     course.retake());
         }
 
-        Long savedId = transcriptRepository.save(transcript).getId();
+        Transcript saved = transcriptRepository.save(transcript);
         memberIdentityService.verifyIdentityIfMatch(createData.memberId(), pdfStudentId, pdfName);
-        return savedId;
+        return new TranscriptCreateResult(saved.getTotalCredits(), saved.recordedCredits(), saved.creditGap());
     }
 
     /**
