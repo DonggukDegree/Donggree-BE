@@ -184,6 +184,23 @@ public class Transcript extends BaseEntity {
     }
 
     /**
+     * 보유한 수강 이력(CourseRecord)들의 학점 합을 반환한다.
+     */
+    public int recordedCredits() {
+        return courseRecords.stream().mapToInt(CourseRecord::getCredits).sum();
+    }
+
+    /**
+     * 총취득학점과 수강 이력 학점 합의 차이를 반환한다.
+     * 양수면 PDF에 기재된 총취득학점보다 파싱된 과목 학점이 적어 이수 이력을 더 추가해야 함을,
+     * 음수면 재수강·P/F 등으로 과목 학점 합이 총취득학점보다 많음을 의미한다.
+     * 0이면 PDF 파싱 결과와 총취득학점이 정합함을 뜻한다.
+     */
+    public int creditGap() {
+        return totalCredits - recordedCredits();
+    }
+
+    /**
      * 소프트 삭제를 수행한다. 삭제 시각을 외부에서 주입받아 기록한다.
      * 이미 삭제된 상태이면 IllegalStateException을 던진다.
      */

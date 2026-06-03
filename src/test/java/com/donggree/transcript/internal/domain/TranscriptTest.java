@@ -182,6 +182,49 @@ class TranscriptTest {
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
+    // --- 학점 정합성 테스트 ---
+
+    @Test
+    void recordedCredits는_수강_이력_학점의_합을_반환한다() {
+        Transcript transcript = createTranscript();
+        transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-1", "공교", "자아", "ENG1001", "영어1", 2, Grade.B_ZERO, false);
+
+        assertThat(transcript.recordedCredits()).isEqualTo(5);
+    }
+
+    @Test
+    void 수강_이력이_없으면_recordedCredits는_0이다() {
+        Transcript transcript = createTranscript();
+
+        assertThat(transcript.recordedCredits()).isEqualTo(0);
+    }
+
+    @Test
+    void creditGap은_총취득학점에서_수강_이력_학점_합을_뺀_값이다() {
+        Transcript transcript = createFullTranscript(); // totalCredits = 80
+        transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-1", "공교", "자아", "ENG1001", "영어1", 2, Grade.B_ZERO, false);
+
+        assertThat(transcript.creditGap()).isEqualTo(75);
+    }
+
+    @Test
+    void 과목_학점_합이_총취득학점보다_많으면_creditGap은_음수다() {
+        Transcript transcript = createTranscript(); // totalCredits = 0
+        transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);
+
+        assertThat(transcript.creditGap()).isEqualTo(-3);
+    }
+
+    @Test
+    void 과목_학점_합과_총취득학점이_같으면_creditGap은_0이다() {
+        Transcript transcript = createTranscript(); // totalCredits = 0
+        transcript.addCourseRecord("2023-1", "전공", null, "GEN0000", "영점학점과목", 0, Grade.P, false);
+
+        assertThat(transcript.creditGap()).isEqualTo(0);
+    }
+
     // --- 소프트 삭제 테스트 ---
 
     @Test
