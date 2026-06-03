@@ -1,6 +1,7 @@
 package com.donggree.global.config;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CurriculumLookupService;
@@ -107,7 +108,10 @@ class SecurityConfigTest {
     }
 
     @Test
-    void 인증되지_않은_요청은_401을_반환한다() throws Exception {
-        mockMvc.perform(get("/api/protected")).andExpect(status().isUnauthorized());
+    void 인증되지_않은_요청은_401을_ApiResponse_봉투로_반환한다() throws Exception {
+        mockMvc.perform(get("/api/protected"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("AUTH401_1"));
     }
 }
