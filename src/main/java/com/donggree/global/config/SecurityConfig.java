@@ -1,8 +1,13 @@
 package com.donggree.global.config;
 
+import com.donggree.global.apiPayload.ApiResponse;
+import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.auth.JwtAuthFilter;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +25,7 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.NullSecurityContextRepository;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -55,6 +61,7 @@ public class SecurityConfig {
             OAuth2UserService<OAuth2UserRequest, OAuth2User> oAuth2UserService,
             AuthenticationSuccessHandler oAuthSuccessHandler,
             AuthenticationFailureHandler oAuthFailureHandler,
+            ObjectMapper objectMapper,
             Environment env)
             throws Exception {
         JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtTokenProvider);
@@ -73,10 +80,12 @@ public class SecurityConfig {
                     }
                     auth.anyRequest().authenticated();
                 })
+                // 인증/인가 실패도 일반 API와 동일한 ApiResponse 봉투(JSON)로 응답한다.
+                // (이전에는 sendError로 Spring 기본 에러 JSON이 나가 프론트가 code로 분기할 수 없었다.)
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) ->
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                                writeErrorResponse(response, GeneralErrorCode.UNAUTHORIZED, objectMapper))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                response.sendError(HttpServletResponse.SC_FORBIDDEN)))
+                                writeErrorResponse(response, GeneralErrorCode.FORBIDDEN, objectMapper)))
                 .oauth2Login(oauth -> oauth.redirectionEndpoint(endpoint -> endpoint.baseUri("/oauth/callback/*"))
                         .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
                         .successHandler(oAuthSuccessHandler)
@@ -84,6 +93,18 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * 인증/인가 실패 시 ApiResponse 봉투를 JSON으로 직접 응답에 기록한다.
+     * 일반 API의 GeneralExceptionAdvice 응답과 동일한 형식을 유지하기 위함이다.
+     */
+    private void writeErrorResponse(HttpServletResponse response, GeneralErrorCode code, ObjectMapper objectMapper)
+            throws IOException {
+        response.setStatus(code.getStatus().value());
+        response.setContentType(MimeTypeUtils.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        objectMapper.writeValue(response.getWriter(), ApiResponse.onFailure(code));
     }
 
     private CorsConfigurationSource corsConfigurationSource() {
