@@ -129,7 +129,11 @@ public class TranscriptService {
 
         Transcript saved = transcriptRepository.save(transcript);
         memberIdentityService.verifyIdentityIfMatch(createData.memberId(), pdfStudentId, pdfName);
-        return new TranscriptCreateResult(saved.getTotalCredits(), saved.recordedCredits(), saved.creditGap());
+
+        // recordedCredits()와 creditGap()을 따로 호출하면 학점 합산 스트림이 중복 수행되므로 한 번만 계산해 재사용한다.
+        int recordedCredits = saved.recordedCredits();
+        return new TranscriptCreateResult(
+                saved.getTotalCredits(), recordedCredits, saved.getTotalCredits() - recordedCredits);
     }
 
     /**
