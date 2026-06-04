@@ -283,4 +283,21 @@ class TranscriptControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("VALID400_1"));
     }
+
+    @Test
+    void 학점_필드가_누락되면_400을_반환한다() throws Exception {
+        Long memberId = 1L;
+        authenticate(memberId);
+
+        // credits 필드를 아예 누락한 요청 (Integer + @NotNull로 0 기본값 통과를 방지)
+        CourseRecordAddRequest request = new CourseRecordAddRequest(
+                List.of(new CourseItem("2024-1", "전공", "전공필수", "CSE2101", "자료구조", null, "B+", false)));
+
+        mockMvc.perform(patch("/api/users/me/reports")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("VALID400_1"));
+    }
 }
