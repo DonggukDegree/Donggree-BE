@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CurriculumLookupService;
+import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.transcript.internal.application.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.TranscriptParseResult;
@@ -56,6 +57,12 @@ class TranscriptControllerTest extends RestDocsSupport {
     @Override
     protected Object initController() {
         return new TranscriptController(transcriptService, curriculumLookupService, memberIdentityService);
+    }
+
+    // 검증 실패(VALID400_1) 등 예외 응답 봉투를 확인하기 위해 전역 예외 핸들러를 등록한다.
+    @Override
+    protected Object[] controllerAdvices() {
+        return new Object[] {new GeneralExceptionAdvice()};
     }
 
     @AfterEach
@@ -242,5 +249,38 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.addedIds")
                                         .type(JsonFieldType.ARRAY)
                                         .description("새로 추가된 수강 이력 ID 목록"))));
+    }
+
+    @Test
+    void 학점이_0인_수강_이력도_추가할_수_있다() throws Exception {
+        Long memberId = 1L;
+        authenticate(memberId);
+
+        CourseRecordAddRequest request = new CourseRecordAddRequest(
+                List.of(new CourseItem("2024-1", "전공", null, "GEN0000", "영점학점과목", 0, "P", false)));
+
+        given(transcriptService.addCourseRecords(any(), any())).willReturn(List.of(10L));
+
+        mockMvc.perform(patch("/api/users/me/reports")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true));
+    }
+
+    @Test
+    void 학점이_음수이면_400을_반환한다() throws Exception {
+        Long memberId = 1L;
+        authenticate(memberId);
+
+        CourseRecordAddRequest request = new CourseRecordAddRequest(
+                List.of(new CourseItem("2024-1", "전공", "전공필수", "CSE2101", "자료구조", -1, "B+", false)));
+
+        mockMvc.perform(patch("/api/users/me/reports")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("VALID400_1"));
     }
 }
