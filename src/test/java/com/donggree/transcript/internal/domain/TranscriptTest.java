@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class TranscriptTest {
@@ -225,6 +226,86 @@ class TranscriptTest {
         assertThat(transcript.creditGap()).isEqualTo(0);
     }
 
+    // --- 수강 이력 전체 치환 및 재계산 테스트 ---
+
+    @Test
+    void replaceCourseRecords는_기존_이력을_전송된_목록으로_통째_치환한다() {
+        Transcript transcript = createTranscript();
+        transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "기존과목", 3, Grade.C_ZERO, false);
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", "전공필수", "CSE2101", "자료구조", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "전공", "전공필수", "CSE2102", "알고리즘", 3, Grade.B_PLUS, false)));
+
+        assertThat(transcript.getCourseRecords()).hasSize(2);
+        assertThat(transcript.getCourseRecords())
+                .extracting(CourseRecord::getCourseName)
+                .containsExactly("자료구조", "알고리즘");
+    }
+
+    @Test
+    void replaceCourseRecords_후_totalCredits는_모든_학점의_합으로_재계산된다() {
+        Transcript transcript = createFullTranscript(); // 초기 totalCredits = 80
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", null, "CSE2101", "자료구조", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "전공", null, "CSE2102", "알고리즘", 2, Grade.B_PLUS, false)));
+
+        assertThat(transcript.getTotalCredits()).isEqualTo(5);
+    }
+
+    @Test
+    void replaceCourseRecords_후_gpa는_등급평점_가중평균으로_재계산된다() {
+        // 3학점 A+(4.5) 3과목 + 3학점 B+(3.5) 2과목 = 15학점, (4.5*9 + 3.5*6)/15 = 61.5/15 = 4.10
+        Transcript transcript = createTranscript();
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", null, "CSE1", "과목1", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "전공", null, "CSE2", "과목2", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "전공", null, "CSE3", "과목3", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-2", "전공", null, "CSE4", "과목4", 3, Grade.B_PLUS, false),
+                new CourseRecordData("2024-2", "전공", null, "CSE5", "과목5", 3, Grade.B_PLUS, false)));
+
+        assertThat(transcript.getTotalCredits()).isEqualTo(15);
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("4.10"));
+    }
+
+    @Test
+    void replaceCourseRecords_후_PorNP는_학점에_포함되지만_평점은_0으로_계산된다() {
+        // 2학점 A0(4.0) + 2학점 P(0.0) = 4학점, (4.0*2 + 0*2)/4 = 8/4 = 2.00
+        Transcript transcript = createTranscript();
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", null, "CSE1", "성적과목", 2, Grade.A_ZERO, false),
+                new CourseRecordData("2024-1", "일교", null, "GEN1", "패스과목", 2, Grade.P, false)));
+
+        assertThat(transcript.getTotalCredits()).isEqualTo(4);
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("2.00"));
+    }
+
+    @Test
+    void replaceCourseRecords에_빈_목록을_주면_학점과_평점이_0이_된다() {
+        Transcript transcript = createFullTranscript();
+
+        transcript.replaceCourseRecords(List.of());
+
+        assertThat(transcript.getCourseRecords()).isEmpty();
+        assertThat(transcript.getTotalCredits()).isEqualTo(0);
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("0.00"));
+    }
+
+    @Test
+    void replaceCourseRecords_후_gpa는_소수_셋째자리에서_반올림된다() {
+        // 3학점 A+(4.5) + 1학점 B0(3.0) = 4학점, (4.5*3 + 3.0*1)/4 = 16.5/4 = 4.125 → 4.13
+        Transcript transcript = createTranscript();
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", null, "CSE1", "과목1", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "전공", null, "CSE2", "과목2", 1, Grade.B_ZERO, false)));
+
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("4.13"));
+    }
+
     // --- 소프트 삭제 테스트 ---
 
     @Test
@@ -313,6 +394,17 @@ class TranscriptTest {
         assertThat(Grade.D_ZERO.getValue()).isEqualTo("D0");
         assertThat(Grade.F.getValue()).isEqualTo("F");
         assertThat(Grade.P.getValue()).isEqualTo("P");
+    }
+
+    @Test
+    void Grade_enum의_gradePoint가_올바르게_매핑된다() {
+        assertThat(Grade.A_PLUS.getGradePoint()).isEqualByComparingTo(new BigDecimal("4.5"));
+        assertThat(Grade.A_ZERO.getGradePoint()).isEqualByComparingTo(new BigDecimal("4.0"));
+        assertThat(Grade.B_PLUS.getGradePoint()).isEqualByComparingTo(new BigDecimal("3.5"));
+        assertThat(Grade.D_ZERO.getGradePoint()).isEqualByComparingTo(new BigDecimal("1.0"));
+        assertThat(Grade.F.getGradePoint()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(Grade.P.getGradePoint()).isEqualByComparingTo(new BigDecimal("0.0"));
+        assertThat(Grade.NP.getGradePoint()).isEqualByComparingTo(new BigDecimal("0.0"));
     }
 
     @Test

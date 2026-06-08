@@ -12,6 +12,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -174,6 +175,47 @@ public class Transcript extends BaseEntity {
         courseRecords.add(record);
         record.assignTranscript(this);
         return record;
+    }
+
+    /**
+     * 보유한 수강 이력을 전송된 목록으로 통째 치환한다.
+     * 기존 이력은 모두 제거(orphanRemoval로 삭제)되고 전달된 목록만 남으므로,
+     * 사용자가 수정·삭제·추가를 한 번에 반영할 수 있다.
+     * 치환 후 학점 수와 평점 평균을 재계산하여 메타 값을 갱신한다.
+     */
+    public void replaceCourseRecords(List<CourseRecordData> newRecords) {
+        courseRecords.clear();
+        for (CourseRecordData data : newRecords) {
+            addCourseRecord(
+                    data.semester(),
+                    data.courseTypeName(),
+                    data.areaName(),
+                    data.courseCode(),
+                    data.courseName(),
+                    data.credits(),
+                    data.grade(),
+                    data.retake());
+        }
+        recalculateCreditsAndGpa();
+    }
+
+    /**
+     * 보유한 수강 이력을 기준으로 총취득학점과 평점 평균(GPA)을 다시 계산해 갱신한다.
+     * - totalCredits: 모든 수강 이력 학점의 단순 합 (P·NP 포함).
+     * - gpa: Σ(등급 평점 × 과목 학점) ÷ 전체 학점 수. 소수 셋째 자리에서 반올림하여 소수 둘째 자리까지.
+     *   P·NP는 평점 0이지만 학점 수(분모)에는 포함된다. 전체 학점이 0이면 GPA는 0.00이다.
+     */
+    private void recalculateCreditsAndGpa() {
+        int total = courseRecords.stream().mapToInt(CourseRecord::getCredits).sum();
+        this.totalCredits = total;
+        if (total == 0) {
+            this.gpa = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            return;
+        }
+        BigDecimal weightedSum = courseRecords.stream()
+                .map(r -> r.getGrade().getGradePoint().multiply(BigDecimal.valueOf(r.getCredits())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        this.gpa = weightedSum.divide(BigDecimal.valueOf(total), 2, RoundingMode.HALF_UP);
     }
 
     /**
