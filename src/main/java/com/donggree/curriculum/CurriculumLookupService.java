@@ -16,6 +16,9 @@ public interface CurriculumLookupService {
     /** ID 목록으로 Department 이름을 일괄 조회한다. 결과는 id → 학과명 맵으로 반환한다. */
     Map<Long, String> findDepartmentNamesByIds(List<Long> departmentIds);
 
+    /** Department ID로 소속 단과대학명을 조회한다. 등록되지 않은 학과면 빈 Optional 반환. */
+    Optional<String> findCollegeNameByDepartmentId(Long departmentId);
+
     /**
      * 학과와 입학년도에 적용되는 활성 졸업 요건 세트를 조회한다.
      * yearStart ≤ admissionYear ≤ yearEnd 조건을 만족하는 활성 세트를 반환한다.

@@ -11,12 +11,13 @@ import com.donggree.transcript.internal.application.TranscriptParseResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
 import com.donggree.transcript.internal.application.TranscriptService;
+import com.donggree.transcript.internal.application.TranscriptUpdateResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.Grade;
-import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
-import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.CourseRecord;
@@ -65,9 +66,13 @@ public class TranscriptController implements TranscriptApi {
                 .toList();
 
         Map<Long, String> deptNameMap = curriculumLookupService.findDepartmentNamesByIds(deptIds);
+        String collegeName = curriculumLookupService
+                .findCollegeNameByDepartmentId(raw.meta().departmentId())
+                .orElse(null);
 
         Meta meta = new Meta(
                 raw.meta().admissionYear(),
+                collegeName,
                 deptName(deptNameMap, raw.meta().departmentId()),
                 deptName(deptNameMap, raw.meta().subMajor1Id()),
                 deptName(deptNameMap, raw.meta().subMajor2Id()),
@@ -76,7 +81,9 @@ public class TranscriptController implements TranscriptApi {
                 raw.meta().academicStatus(),
                 raw.meta().totalCredits(),
                 raw.meta().gpa(),
-                raw.meta().completedSemesters());
+                raw.meta().completedSemesters(),
+                raw.meta().createdAt(),
+                raw.meta().updatedAt());
 
         List<SemesterCourses> courses = raw.semesterGroups().stream()
                 .map(g -> new SemesterCourses(g.semester(), toCourseRecords(g)))
@@ -152,8 +159,8 @@ public class TranscriptController implements TranscriptApi {
 
     @Override
     @PatchMapping
-    public ApiResponse<CourseRecordAddResponse> addCourseRecords(
-            @LoginMemberId Long memberId, @Valid @RequestBody CourseRecordAddRequest request) {
+    public ApiResponse<CourseRecordUpdateResponse> updateCourseRecords(
+            @LoginMemberId Long memberId, @Valid @RequestBody CourseRecordUpdateRequest request) {
         List<CourseRecordCreateData> courses = request.courses().stream()
                 .map(item -> {
                     try {
@@ -172,8 +179,15 @@ public class TranscriptController implements TranscriptApi {
                 })
                 .toList();
 
-        List<Long> addedIds = transcriptService.addCourseRecords(memberId, courses);
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, new CourseRecordAddResponse(addedIds));
+        TranscriptUpdateResult result = transcriptService.replaceCourseRecords(memberId, courses);
+
+        List<SemesterCourses> updatedCourses = result.semesterGroups().stream()
+                .map(g -> new SemesterCourses(g.semester(), toCourseRecords(g)))
+                .toList();
+
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK,
+                new CourseRecordUpdateResponse(result.totalCredits(), result.gpa(), updatedCourses));
     }
 
     private Long resolveDepartmentId(String departmentName) {

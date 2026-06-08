@@ -56,7 +56,7 @@ operation::user-delete[]
 
 ==== 성적표 조회
 
-로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. 수강 이력은 학기 오름차순으로 그룹핑하여 반환한다.
+로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. 메타에는 단과대학명·학과·총취득학점·평점 평균·성적표 생성/수정 시각이 포함되며, 수강 이력은 학기 오름차순으로 그룹핑하여 반환한다.
 
 operation::transcript-get-report[]
 
@@ -66,11 +66,11 @@ operation::transcript-get-report[]
 
 operation::transcript-create[]
 
-==== 수강 이력 추가
+==== 수강 이력 수정
 
-기존 성적표에 수강 이력을 수동으로 추가한다. 여러 개를 한 번에 추가할 수 있다. 성적표가 없으면 404를 반환한다.
+변경 후의 전체 수강 이력 목록을 받아 기존 이력을 통째 치환한다(수정·삭제·추가). 치환 후 총취득학점과 평점 평균(GPA)을 재계산하여 전체 수강 이력과 함께 반환한다. 메타 정보는 수정할 수 없다. 성적표가 없으면 404를 반환한다.
 
-operation::transcript-add-course-records[]
+operation::transcript-update-course-records[]
 
 === 학업 리포트
 

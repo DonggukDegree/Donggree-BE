@@ -53,6 +53,14 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     }
 
     @Override
+    public Optional<String> findCollegeNameByDepartmentId(Long departmentId) {
+        if (departmentId == null) {
+            return Optional.empty();
+        }
+        return departmentRepository.findById(departmentId).map(Department::getCollegeName);
+    }
+
+    @Override
     public Optional<RequirementSetView> findActiveRequirementSet(Long departmentId, int admissionYear) {
         return requirementSetRepository.findByDepartmentIdAndActiveTrue(departmentId).stream()
                 .filter(rs -> rs.appliesTo(admissionYear))
