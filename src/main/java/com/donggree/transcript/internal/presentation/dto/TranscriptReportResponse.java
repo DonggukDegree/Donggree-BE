@@ -1,6 +1,7 @@
 package com.donggree.transcript.internal.presentation.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -11,6 +12,7 @@ public record TranscriptReportResponse(Meta meta, List<SemesterCourses> courses)
 
     public record Meta(
             int admissionYear,
+            String collegeName,
             String department,
             String subMajor1,
             String subMajor2,
@@ -19,7 +21,9 @@ public record TranscriptReportResponse(Meta meta, List<SemesterCourses> courses)
             String academicStatus,
             int totalCredits,
             BigDecimal gpa,
-            int completedSemesters) {}
+            int completedSemesters,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {}
 
     public record SemesterCourses(String semester, List<CourseRecord> records) {}
 

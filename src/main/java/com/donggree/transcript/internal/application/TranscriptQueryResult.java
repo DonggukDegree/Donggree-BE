@@ -1,12 +1,14 @@
 package com.donggree.transcript.internal.application;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * 학업 정보 조회 서비스 계층 반환 객체.
  * course_name, credits, area_name은 course_record에 반정규화되어 있으므로
  * 컨트롤러에서 별도 curriculum 조회 없이 바로 응답 DTO로 변환 가능하다.
+ * 단과대학명(collegeName)은 departmentId로 curriculum 모듈을 조회해 컨트롤러에서 채운다.
  */
 public record TranscriptQueryResult(RawMeta meta, List<RawSemesterGroup> semesterGroups) {
 
@@ -20,7 +22,9 @@ public record TranscriptQueryResult(RawMeta meta, List<RawSemesterGroup> semeste
             String academicStatus,
             int totalCredits,
             BigDecimal gpa,
-            int completedSemesters) {}
+            int completedSemesters,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {}
 
     public record RawSemesterGroup(String semester, List<RawCourseRecord> records) {}
 

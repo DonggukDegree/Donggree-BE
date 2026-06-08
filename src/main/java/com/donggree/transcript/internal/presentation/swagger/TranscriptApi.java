@@ -1,8 +1,8 @@
 package com.donggree.transcript.internal.presentation.swagger;
 
 import com.donggree.global.apiPayload.ApiResponse;
-import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
-import com.donggree.transcript.internal.presentation.dto.CourseRecordAddResponse;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +46,9 @@ public interface TranscriptApi {
 
     @Operation(
             summary = "사용자 학업 정보 조회",
-            description = "로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. " + "수강 이력은 학기 오름차순으로 그룹핑하여 반환한다.")
+            description = "로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. "
+                    + "메타에는 단과대학명·학과·총취득학점·평점 평균·성적표 생성/수정 시각이 포함된다. "
+                    + "수강 이력은 학기 오름차순으로 그룹핑하여 반환한다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "성적표 없음")
@@ -55,14 +57,17 @@ public interface TranscriptApi {
 
     @Operation(
             summary = "사용자 학업 정보 수정",
-            description = "PDF 파싱 결과에 없는 수강 이력을 수동으로 추가한다. " + "여러 개를 한 번에 추가할 수 있다. 성적표가 없으면 404를 반환한다.")
+            description = "변경 후의 전체 수강 이력 목록을 받아 기존 이력을 통째 치환한다. "
+                    + "목록에 없는 기존 이력은 삭제, 새 항목은 추가되어 수정·삭제·추가를 한 번에 반영한다. "
+                    + "치환 후 총취득학점과 평점 평균(GPA)을 재계산하여 전체 수강 이력과 함께 반환한다. "
+                    + "메타 정보는 수정할 수 없다. 성적표가 없으면 404를 반환한다.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수강 이력 추가 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수강 이력 수정 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "400",
                 description = "유효하지 않은 이수구분 또는 성적 값"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "성적표 없음")
     })
-    ApiResponse<CourseRecordAddResponse> addCourseRecords(
-            @Parameter(hidden = true) Long memberId, CourseRecordAddRequest request);
+    ApiResponse<CourseRecordUpdateResponse> updateCourseRecords(
+            @Parameter(hidden = true) Long memberId, CourseRecordUpdateRequest request);
 }

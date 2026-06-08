@@ -7,6 +7,7 @@ import com.donggree.transcript.internal.application.TranscriptQueryResult.RawMet
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.domain.CourseRecord;
+import com.donggree.transcript.internal.domain.CourseRecordData;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.Transcript;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
@@ -19,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,34 +137,37 @@ public class TranscriptService {
     }
 
     /**
-     * 기존 성적표에 수강 이력을 수동으로 추가한다.
-     * 성적표가 없으면 예외를 던진다.
+     * 기존 성적표의 수강 이력을 전송된 목록으로 통째 치환한다.
+     * 기존 이력 중 목록에 없는 것은 삭제되고, 새 항목은 추가되므로 수정·삭제·추가를 한 번에 반영한다.
+     * 치환 후 총취득학점과 평점 평균(GPA)을 재계산한다. 성적표가 없으면 예외를 던진다.
      *
      * @param memberId 로그인한 회원 ID
-     * @param courses  추가할 수강 이력 목록
-     * @return 새로 생성된 CourseRecord ID 목록
+     * @param courses  변경 후의 전체 수강 이력 목록
+     * @return 재계산된 총취득학점·GPA와 학기 오름차순으로 그룹핑한 전체 수강 이력
      */
     @Transactional
-    public List<Long> addCourseRecords(Long memberId, List<CourseRecordCreateData> courses) {
+    public TranscriptUpdateResult replaceCourseRecords(Long memberId, List<CourseRecordCreateData> courses) {
         Transcript transcript = transcriptRepository
                 .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.TRANSCRIPT_NOT_FOUND));
 
-        List<CourseRecord> added = new ArrayList<>();
-        for (CourseRecordCreateData course : courses) {
-            added.add(transcript.addCourseRecord(
-                    course.semester(),
-                    course.courseTypeName(),
-                    course.areaName(),
-                    course.courseCode(),
-                    course.courseName(),
-                    course.credits(),
-                    course.grade(),
-                    course.retake()));
-        }
+        List<CourseRecordData> newRecords = courses.stream()
+                .map(c -> new CourseRecordData(
+                        c.semester(),
+                        c.courseTypeName(),
+                        c.areaName(),
+                        c.courseCode(),
+                        c.courseName(),
+                        c.credits(),
+                        c.grade(),
+                        c.retake()))
+                .toList();
 
+        transcript.replaceCourseRecords(newRecords);
         transcriptRepository.saveAndFlush(transcript);
-        return added.stream().map(CourseRecord::getId).toList();
+
+        return new TranscriptUpdateResult(
+                transcript.getTotalCredits(), transcript.getGpa(), groupBySemester(transcript));
     }
 
     /**
@@ -181,7 +184,31 @@ public class TranscriptService {
                 .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.TRANSCRIPT_NOT_FOUND));
 
-        List<RawSemesterGroup> semesterGroups = transcript.getCourseRecords().stream()
+        RawMeta meta = new RawMeta(
+                transcript.getAdmissionYear(),
+                transcript.getDepartmentId(),
+                transcript.getSubMajor1Id(),
+                transcript.getSubMajor2Id(),
+                transcript.getDualMajor1Id(),
+                transcript.getDualMajor2Id(),
+                transcript.getAcademicStatus(),
+                transcript.getTotalCredits(),
+                transcript.getGpa(),
+                transcript.getCompletedSemesters(),
+                transcript.getCreatedAt(),
+                transcript.getUpdatedAt());
+
+        return new TranscriptQueryResult(meta, groupBySemester(transcript));
+    }
+
+    // ====== 내부 헬퍼 ======
+
+    /**
+     * 수강 이력을 학기 오름차순으로 그룹핑하여 {@link RawSemesterGroup} 목록으로 변환한다.
+     * 조회와 치환 응답에서 동일한 변환을 공유한다.
+     */
+    private List<RawSemesterGroup> groupBySemester(Transcript transcript) {
+        return transcript.getCourseRecords().stream()
                 .sorted((a, b) -> a.getSemester().compareTo(b.getSemester()))
                 .collect(Collectors.groupingBy(CourseRecord::getSemester, LinkedHashMap::new, Collectors.toList()))
                 .entrySet()
@@ -200,23 +227,7 @@ public class TranscriptService {
                                         r.isRetake()))
                                 .toList()))
                 .toList();
-
-        RawMeta meta = new RawMeta(
-                transcript.getAdmissionYear(),
-                transcript.getDepartmentId(),
-                transcript.getSubMajor1Id(),
-                transcript.getSubMajor2Id(),
-                transcript.getDualMajor1Id(),
-                transcript.getDualMajor2Id(),
-                transcript.getAcademicStatus(),
-                transcript.getTotalCredits(),
-                transcript.getGpa(),
-                transcript.getCompletedSemesters());
-
-        return new TranscriptQueryResult(meta, semesterGroups);
     }
-
-    // ====== 내부 헬퍼 ======
 
     private String extractText(byte[] pdfBytes) {
         try {

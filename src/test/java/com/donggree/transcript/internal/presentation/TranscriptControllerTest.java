@@ -25,14 +25,16 @@ import com.donggree.transcript.internal.application.TranscriptQueryResult.RawCou
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawMeta;
 import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
 import com.donggree.transcript.internal.application.TranscriptService;
+import com.donggree.transcript.internal.application.TranscriptUpdateResult;
 import com.donggree.transcript.internal.domain.ParsedCourse;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
-import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest;
-import com.donggree.transcript.internal.presentation.dto.CourseRecordAddRequest.CourseItem;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
+import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest.CourseItem;
 import com.donggree.user.MemberIdentityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -80,17 +82,31 @@ class TranscriptControllerTest extends RestDocsSupport {
         Long memberId = 1L;
         authenticate(memberId);
 
-        RawMeta rawMeta = new RawMeta(2023, 10L, null, null, null, null, "재학", 60, new BigDecimal("3.50"), 4);
+        RawMeta rawMeta = new RawMeta(
+                2023,
+                10L,
+                null,
+                null,
+                null,
+                null,
+                "재학",
+                60,
+                new BigDecimal("3.50"),
+                4,
+                LocalDateTime.of(2024, 3, 1, 9, 0, 0),
+                LocalDateTime.of(2024, 6, 1, 9, 0, 0));
         RawCourseRecord rawRecord = new RawCourseRecord(1L, "CSE1101", "프로그래밍기초", 3, null, "전공", "A+", false);
         TranscriptQueryResult queryResult =
                 new TranscriptQueryResult(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
 
         given(transcriptService.getTranscriptRawReport(memberId)).willReturn(queryResult);
         given(curriculumLookupService.findDepartmentNamesByIds(List.of(10L))).willReturn(Map.of(10L, "컴퓨터·AI학부"));
+        given(curriculumLookupService.findCollegeNameByDepartmentId(10L)).willReturn(Optional.of("정보통신공학대학"));
 
         mockMvc.perform(get("/api/users/me/reports"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.meta.collegeName").value("정보통신공학대학"))
                 .andDo(document(
                         "transcript-get-report",
                         responseFields(
@@ -98,6 +114,10 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
                                 fieldWithPath("result.meta.admissionYear").description("입학 연도"),
+                                fieldWithPath("result.meta.collegeName")
+                                        .type(JsonFieldType.STRING)
+                                        .optional()
+                                        .description("소속 단과대학명 (학과 미등록 시 null)"),
                                 fieldWithPath("result.meta.department").description("전공 학과명"),
                                 fieldWithPath("result.meta.subMajor1")
                                         .type(JsonFieldType.NULL)
@@ -119,6 +139,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.meta.totalCredits").description("총 취득 학점"),
                                 fieldWithPath("result.meta.gpa").description("평점 평균"),
                                 fieldWithPath("result.meta.completedSemesters").description("이수 학기 수"),
+                                fieldWithPath("result.meta.createdAt").description("성적표 최초 생성 시각"),
+                                fieldWithPath("result.meta.updatedAt").description("성적표 최종 수정 시각"),
                                 fieldWithPath("result.courses[].semester").description("학기 (예: 2023-1, 2023-여름)"),
                                 fieldWithPath("result.courses[].records[].id").description("수강 이력 ID"),
                                 fieldWithPath("result.courses[].records[].courseCode")
@@ -213,25 +235,37 @@ class TranscriptControllerTest extends RestDocsSupport {
     }
 
     @Test
-    void 수강_이력을_수동으로_추가한다() throws Exception {
+    void 수강_이력_전체를_수정하고_재계산된_학점과_평점을_반환한다() throws Exception {
         Long memberId = 1L;
         authenticate(memberId);
 
-        CourseRecordAddRequest request = new CourseRecordAddRequest(
-                List.of(new CourseItem("2024-1", "전공", "전공필수", "CSE2101", "자료구조", 3, "B+", false)));
+        // 3학점 A+ 3과목 + 3학점 B+ 2과목 = 총 15학점, GPA 4.10 (재계산 결과를 서비스가 반환한다고 가정)
+        CourseRecordUpdateRequest request = new CourseRecordUpdateRequest(List.of(
+                new CourseItem("2024-1", "전공", "전공필수", "CSE2101", "자료구조", 3, "A+", false),
+                new CourseItem("2024-1", "전공", "전공필수", "CSE2102", "알고리즘", 3, "B+", false)));
 
-        given(transcriptService.addCourseRecords(any(), any())).willReturn(List.of(10L));
+        TranscriptUpdateResult result = new TranscriptUpdateResult(
+                15,
+                new BigDecimal("4.10"),
+                List.of(new RawSemesterGroup(
+                        "2024-1",
+                        List.of(
+                                new RawCourseRecord(10L, "CSE2101", "자료구조", 3, "전공필수", "전공", "A+", false),
+                                new RawCourseRecord(11L, "CSE2102", "알고리즘", 3, "전공필수", "전공", "B+", false)))));
+        given(transcriptService.replaceCourseRecords(any(), any())).willReturn(result);
 
         mockMvc.perform(patch("/api/users/me/reports")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
-                .andExpect(jsonPath("$.result.addedIds[0]").value(10))
+                .andExpect(jsonPath("$.result.totalCredits").value(15))
+                .andExpect(jsonPath("$.result.gpa").value(4.10))
+                .andExpect(jsonPath("$.result.courses[0].records[0].id").value(10))
                 .andDo(document(
-                        "transcript-add-course-records",
+                        "transcript-update-course-records",
                         requestFields(
-                                fieldWithPath("courses").description("추가할 수강 이력 목록"),
+                                fieldWithPath("courses").description("변경 후의 전체 수강 이력 목록 (이 목록으로 기존 이력을 통째 치환)"),
                                 fieldWithPath("courses[].semester").description("학기 (예: 2024-1, 2024-여름)"),
                                 fieldWithPath("courses[].courseType")
                                         .description("이수 구분 — PDF 원시 문자열 그대로 입력 (예: 전공, 공교, 일교, 학기)"),
@@ -246,20 +280,42 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result.addedIds")
-                                        .type(JsonFieldType.ARRAY)
-                                        .description("새로 추가된 수강 이력 ID 목록"))));
+                                fieldWithPath("result.totalCredits").description("재계산된 총취득학점 (모든 수강 이력 학점의 합)"),
+                                fieldWithPath("result.gpa")
+                                        .description("재계산된 평점 평균 (Σ(등급 평점 × 학점) ÷ 전체 학점, P·NP는 평점 0이나 학점에 포함)"),
+                                fieldWithPath("result.courses[].semester").description("학기 (학기 오름차순 그룹)"),
+                                fieldWithPath("result.courses[].records[].id").description("수강 이력 ID (치환 후 새로 부여됨)"),
+                                fieldWithPath("result.courses[].records[].courseCode")
+                                        .description("과목 코드"),
+                                fieldWithPath("result.courses[].records[].courseName")
+                                        .description("과목명"),
+                                fieldWithPath("result.courses[].records[].credits")
+                                        .description("학점"),
+                                fieldWithPath("result.courses[].records[].courseType")
+                                        .description("이수 구분 — PDF 원시 문자열"),
+                                fieldWithPath("result.courses[].records[].areaName")
+                                        .optional()
+                                        .description("이수 영역명 (없으면 null)"),
+                                fieldWithPath("result.courses[].records[].grade")
+                                        .description("성적 (A+, A0, B+, B0, C+, C0, D+, D0, F, P, NP)"),
+                                fieldWithPath("result.courses[].records[].retake")
+                                        .description("재수강 여부"))));
     }
 
     @Test
-    void 학점이_0인_수강_이력도_추가할_수_있다() throws Exception {
+    void 학점이_0인_수강_이력도_수정에_포함할_수_있다() throws Exception {
         Long memberId = 1L;
         authenticate(memberId);
 
-        CourseRecordAddRequest request = new CourseRecordAddRequest(
+        CourseRecordUpdateRequest request = new CourseRecordUpdateRequest(
                 List.of(new CourseItem("2024-1", "전공", null, "GEN0000", "영점학점과목", 0, "P", false)));
 
-        given(transcriptService.addCourseRecords(any(), any())).willReturn(List.of(10L));
+        TranscriptUpdateResult result = new TranscriptUpdateResult(
+                0,
+                new BigDecimal("0.00"),
+                List.of(new RawSemesterGroup(
+                        "2024-1", List.of(new RawCourseRecord(10L, "GEN0000", "영점학점과목", 0, null, "전공", "P", false)))));
+        given(transcriptService.replaceCourseRecords(any(), any())).willReturn(result);
 
         mockMvc.perform(patch("/api/users/me/reports")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -273,7 +329,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         Long memberId = 1L;
         authenticate(memberId);
 
-        CourseRecordAddRequest request = new CourseRecordAddRequest(
+        CourseRecordUpdateRequest request = new CourseRecordUpdateRequest(
                 List.of(new CourseItem("2024-1", "전공", "전공필수", "CSE2101", "자료구조", -1, "B+", false)));
 
         mockMvc.perform(patch("/api/users/me/reports")
@@ -290,7 +346,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         authenticate(memberId);
 
         // credits 필드를 아예 누락한 요청 (Integer + @NotNull로 0 기본값 통과를 방지)
-        CourseRecordAddRequest request = new CourseRecordAddRequest(
+        CourseRecordUpdateRequest request = new CourseRecordUpdateRequest(
                 List.of(new CourseItem("2024-1", "전공", "전공필수", "CSE2101", "자료구조", null, "B+", false)));
 
         mockMvc.perform(patch("/api/users/me/reports")
