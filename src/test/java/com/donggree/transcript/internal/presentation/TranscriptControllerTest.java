@@ -280,9 +280,9 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result.totalCredits").description("재계산된 총취득학점 (모든 수강 이력 학점의 합)"),
+                                fieldWithPath("result.totalCredits").description("재계산된 총취득학점 (F·NP 제외, 이수 성공 학점의 합)"),
                                 fieldWithPath("result.gpa")
-                                        .description("재계산된 평점 평균 (Σ(등급 평점 × 학점) ÷ 전체 학점, P·NP는 평점 0이나 학점에 포함)"),
+                                        .description("재계산된 평점 평균 (Σ(등급 평점 × 학점) ÷ 평점 계산용 학점. P·NP는 계산 제외, F는 분모 포함)"),
                                 fieldWithPath("result.courses[].semester").description("학기 (학기 오름차순 그룹)"),
                                 fieldWithPath("result.courses[].records[].id").description("수강 이력 ID (치환 후 새로 부여됨)"),
                                 fieldWithPath("result.courses[].records[].courseCode")

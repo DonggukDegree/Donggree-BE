@@ -244,7 +244,7 @@ class TranscriptTest {
     }
 
     @Test
-    void replaceCourseRecords_후_totalCredits는_모든_학점의_합으로_재계산된다() {
+    void replaceCourseRecords_후_totalCredits는_이수_성공_학점의_합으로_재계산된다() {
         Transcript transcript = createFullTranscript(); // 초기 totalCredits = 80
 
         transcript.replaceCourseRecords(List.of(
@@ -252,6 +252,19 @@ class TranscriptTest {
                 new CourseRecordData("2024-1", "전공", null, "CSE2102", "알고리즘", 2, Grade.B_PLUS, false)));
 
         assertThat(transcript.getTotalCredits()).isEqualTo(5);
+    }
+
+    @Test
+    void replaceCourseRecords_후_F와_NP_학점은_취득학점에서_제외된다() {
+        // 3학점 A+(이수) + 3학점 F(실패) + 3학점 NP(실패) → 취득학점은 A+의 3학점만
+        Transcript transcript = createTranscript();
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", null, "CSE1", "이수과목", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "전공", null, "CSE2", "F과목", 3, Grade.F, false),
+                new CourseRecordData("2024-1", "일교", null, "GEN1", "NP과목", 3, Grade.NP, false)));
+
+        assertThat(transcript.getTotalCredits()).isEqualTo(3);
     }
 
     @Test
@@ -271,8 +284,8 @@ class TranscriptTest {
     }
 
     @Test
-    void replaceCourseRecords_후_PorNP는_학점에_포함되지만_평점은_0으로_계산된다() {
-        // 2학점 A0(4.0) + 2학점 P(0.0) = 4학점, (4.0*2 + 0*2)/4 = 8/4 = 2.00
+    void replaceCourseRecords_후_P는_취득학점에_포함되지만_GPA_계산에서는_제외된다() {
+        // 2학점 A0(4.0, 이수) + 2학점 P(Pass) → 취득학점 4, GPA는 P를 분모·분자에서 제외해 A0만으로 (4.0*2)/2 = 4.00
         Transcript transcript = createTranscript();
 
         transcript.replaceCourseRecords(List.of(
@@ -280,7 +293,46 @@ class TranscriptTest {
                 new CourseRecordData("2024-1", "일교", null, "GEN1", "패스과목", 2, Grade.P, false)));
 
         assertThat(transcript.getTotalCredits()).isEqualTo(4);
-        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("2.00"));
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("4.00"));
+    }
+
+    @Test
+    void replaceCourseRecords_후_F는_GPA_분모에_포함되어_평점을_끌어내린다() {
+        // 3학점 A+(4.5) + 3학점 F(0.0) → 취득학점은 3(F 제외), GPA는 F를 분모에 포함해 (4.5*3 + 0*3)/6 = 13.5/6 = 2.25
+        Transcript transcript = createTranscript();
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", null, "CSE1", "이수과목", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "전공", null, "CSE2", "F과목", 3, Grade.F, false)));
+
+        assertThat(transcript.getTotalCredits()).isEqualTo(3);
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("2.25"));
+    }
+
+    @Test
+    void replaceCourseRecords_후_NP는_취득학점과_GPA에서_모두_제외된다() {
+        // 3학점 A+(4.5) + 3학점 NP → 취득학점 3, GPA는 NP를 분모·분자에서 제외해 (4.5*3)/3 = 4.50
+        Transcript transcript = createTranscript();
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "전공", null, "CSE1", "이수과목", 3, Grade.A_PLUS, false),
+                new CourseRecordData("2024-1", "일교", null, "GEN1", "NP과목", 3, Grade.NP, false)));
+
+        assertThat(transcript.getTotalCredits()).isEqualTo(3);
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("4.50"));
+    }
+
+    @Test
+    void replaceCourseRecords_후_평점_계산용_학점이_0이면_GPA는_0이_된다() {
+        // P·NP만 있으면 GPA 분모가 0 → GPA 0.00 (취득학점은 P 학점 포함)
+        Transcript transcript = createTranscript();
+
+        transcript.replaceCourseRecords(List.of(
+                new CourseRecordData("2024-1", "일교", null, "GEN1", "패스과목", 2, Grade.P, false),
+                new CourseRecordData("2024-1", "일교", null, "GEN2", "NP과목", 2, Grade.NP, false)));
+
+        assertThat(transcript.getTotalCredits()).isEqualTo(2);
+        assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("0.00"));
     }
 
     @Test

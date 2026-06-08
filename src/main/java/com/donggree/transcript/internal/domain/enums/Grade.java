@@ -12,7 +12,7 @@ import java.util.stream.Stream;
  *
  * gradePoint는 평점 평균(GPA) 계산에 사용하는 등급별 평점이다.
  * A+ 4.5부터 0.5씩 차감하여 D0 1.0까지, F·P·NP는 0.0이다.
- * (P·NP는 평점은 0이지만 학점 수에는 포함된다 — GPA 계산 규칙 참고)
+ * (학사 규칙상 P·NP는 GPA 계산에서 제외되고, F는 GPA 분모에 포함된다 — Transcript의 평점 계산 규칙 참고)
  */
 public enum Grade {
     A_PLUS("A+", "4.5"),

@@ -201,21 +201,37 @@ public class Transcript extends BaseEntity {
 
     /**
      * 보유한 수강 이력을 기준으로 총취득학점과 평점 평균(GPA)을 다시 계산해 갱신한다.
-     * - totalCredits: 모든 수강 이력 학점의 단순 합 (P·NP 포함).
-     * - gpa: Σ(등급 평점 × 과목 학점) ÷ 전체 학점 수. 소수 셋째 자리에서 반올림하여 소수 둘째 자리까지.
-     *   P·NP는 평점 0이지만 학점 수(분모)에는 포함된다. 전체 학점이 0이면 GPA는 0.00이다.
+     * 대학 학사 규칙에 따라 취득학점과 평점 계산용 학점(GPA 분모)을 분리한다.
+     * - totalCredits: 이수에 성공한 학점의 합. 이수 실패인 F·NP 과목 학점은 제외한다.
+     * - gpa: Σ(등급 평점 × 과목 학점) ÷ 평점 계산용 학점. 소수 셋째 자리에서 반올림하여 소수 둘째 자리까지.
+     *   Pass/Fail 과목인 P·NP는 평점 계산(분모·분자)에서 완전히 제외한다.
+     *   F는 취득학점에는 포함되지 않지만 평점 분모에는 포함되어 평점을 끌어내린다(평점 0).
+     *   평점 계산용 학점이 0이면 GPA는 0.00이다.
      */
     private void recalculateCreditsAndGpa() {
-        int total = courseRecords.stream().mapToInt(CourseRecord::getCredits).sum();
-        this.totalCredits = total;
-        if (total == 0) {
+        // 취득학점: F·NP(이수 실패)를 제외한 학점의 합
+        this.totalCredits = courseRecords.stream()
+                .filter(r -> r.getGrade() != Grade.F && r.getGrade() != Grade.NP)
+                .mapToInt(CourseRecord::getCredits)
+                .sum();
+
+        // 평점 계산용 학점(GPA 분모): P·NP를 제외한 학점의 합 (F는 포함)
+        int gpaDenominator = courseRecords.stream()
+                .filter(r -> r.getGrade() != Grade.P && r.getGrade() != Grade.NP)
+                .mapToInt(CourseRecord::getCredits)
+                .sum();
+
+        if (gpaDenominator == 0) {
             this.gpa = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
             return;
         }
+
         BigDecimal weightedSum = courseRecords.stream()
+                .filter(r -> r.getGrade() != Grade.P && r.getGrade() != Grade.NP)
                 .map(r -> r.getGrade().getGradePoint().multiply(BigDecimal.valueOf(r.getCredits())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        this.gpa = weightedSum.divide(BigDecimal.valueOf(total), 2, RoundingMode.HALF_UP);
+
+        this.gpa = weightedSum.divide(BigDecimal.valueOf(gpaDenominator), 2, RoundingMode.HALF_UP);
     }
 
     /**
