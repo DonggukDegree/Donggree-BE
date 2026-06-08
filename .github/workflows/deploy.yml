@@ -12,17 +12,17 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-dongree-backend
+  group: deploy-donggree-backend
   cancel-in-progress: false
 
 jobs:
   deploy:
-    runs-on: [self-hosted, homeserver, dongree-home]
+    runs-on: [self-hosted, homeserver, donggree-home]
     timeout-minutes: 30
 
     env:
-      REPO_DIR: /Users/parkparkjihyeon/homeserver/services/dongree/repo
-      SERVICE_DIR: /Users/parkparkjihyeon/homeserver/services/dongree
+      REPO_DIR: /Users/parkparkjihyeon/homeserver/services/donggree/repo
+      SERVICE_DIR: /Users/parkparkjihyeon/homeserver/services/donggree
 
     steps:
       - name: Sync repo on host
@@ -45,7 +45,7 @@ jobs:
         run: |
           for i in 1 2 3 4 5; do
             if docker exec caddy wget -q -O- \
-                --header "Host: dongree.jihyeon.site" \
+                --header "Host: donggree.site" \
                 http://localhost/actuator/health > /dev/null 2>&1; then
               echo "Backend OK"
               exit 0
