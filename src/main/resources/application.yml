@@ -1,13 +1,4 @@
-# 리버스 프록시(nginx/로드밸런서)가 TLS를 종료하고 내부로는 http로 전달하므로,
-# X-Forwarded-Proto 등 포워딩 헤더를 신뢰해 원래 scheme(https)을 복원한다.
-# 이게 없으면 OAuth redirect-uri의 {baseUrl}이 http로 생성돼 카카오 등록 URI(https)와 불일치한다.
-server:
-  forward-headers-strategy: framework
-
 spring:
-  profiles:
-    active: local
-
   jpa:
     open-in-view: false
     hibernate:
