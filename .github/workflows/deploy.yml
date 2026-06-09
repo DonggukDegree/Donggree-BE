@@ -1,0 +1,57 @@
+name: Deploy to homeserver
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "src/**"
+      - "build.gradle"
+      - "settings.gradle"
+      - "Dockerfile"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-donggree-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, homeserver, donggree-home]
+    timeout-minutes: 30
+
+    env:
+      REPO_DIR: /Users/parkparkjihyeon/homeserver/services/donggree/repo
+      SERVICE_DIR: /Users/parkparkjihyeon/homeserver/services/donggree
+
+    steps:
+      - name: Sync repo on host
+        run: |
+          cd "$REPO_DIR"
+          git fetch --all --prune
+          git reset --hard origin/dev
+
+      - name: Build Spring Boot image
+        run: |
+          cd "$SERVICE_DIR"
+          docker compose build
+
+      - name: Restart backend
+        run: |
+          cd "$SERVICE_DIR"
+          docker compose up -d
+
+      - name: Smoke test (actuator/health via Caddy)
+        run: |
+          for i in 1 2 3 4 5; do
+            if docker exec caddy wget -q -O- \
+                --header "Host: donggree.site" \
+                http://localhost/actuator/health > /dev/null 2>&1; then
+              echo "Backend OK"
+              exit 0
+            fi
+            echo "Retry $i..."
+            sleep 10
+          done
+          echo "Backend healthcheck failed"
+          exit 1
