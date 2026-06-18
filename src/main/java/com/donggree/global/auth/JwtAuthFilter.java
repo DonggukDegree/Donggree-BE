@@ -35,15 +35,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            Long memberId = jwtTokenProvider.extractMemberId(token);
-            String role = jwtTokenProvider.extractRole(token);
+        // 토큰을 한 번만 파싱(서명 검증 포함)하여 memberId와 role을 함께 얻는다.
+        jwtTokenProvider.parseAccessToken(token).ifPresent(claims -> {
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(memberId, null, toAuthorities(role));
+                    new UsernamePasswordAuthenticationToken(claims.memberId(), null, toAuthorities(claims.role()));
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(authentication);
             SecurityContextHolder.setContext(context);
-        }
+        });
 
         filterChain.doFilter(request, response);
     }
