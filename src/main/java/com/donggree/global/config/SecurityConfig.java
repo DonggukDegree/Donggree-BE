@@ -14,6 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -38,6 +41,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${app.cors.allowed-origins}")
@@ -78,6 +82,9 @@ public class SecurityConfig {
                     if (isLocal) {
                         auth.requestMatchers("/auth/test-login").permitAll();
                     }
+                    // 관리자 영역은 경로 단위로 1차 방어한다. (SUPER_ADMIN 전용 엔드포인트는 컨트롤러의 @PreAuthorize로 2차 방어)
+                    // RoleHierarchy에 의해 SUPER_ADMIN은 ADMIN 권한을 포함한다.
+                    auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
                     auth.anyRequest().authenticated();
                 })
                 // 인증/인가 실패도 일반 API와 동일한 ApiResponse 봉투(JSON)로 응답한다.
@@ -93,6 +100,21 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * 역할 계층을 정의한다. 상위 역할은 하위 역할의 권한을 모두 포함한다.
+     * SUPER_ADMIN > ADMIN > STUDENT.
+     * 이 빈은 메서드 시큐리티(@PreAuthorize)와 HTTP 경로 인가 모두에 자동 적용된다.
+     */
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role("SUPER_ADMIN")
+                .implies("ADMIN")
+                .role("ADMIN")
+                .implies("STUDENT")
+                .build();
     }
 
     /**
