@@ -6,8 +6,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -32,16 +35,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            Long memberId = jwtTokenProvider.extractMemberId(token);
+        // 토큰을 한 번만 파싱(서명 검증 포함)하여 memberId와 role을 함께 얻는다.
+        jwtTokenProvider.parseAccessToken(token).ifPresent(claims -> {
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList());
+                    new UsernamePasswordAuthenticationToken(claims.memberId(), null, toAuthorities(claims.role()));
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(authentication);
             SecurityContextHolder.setContext(context);
-        }
+        });
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * role 클레임을 Spring Security 권한으로 변환한다.
+     * {@code hasRole("ADMIN")}이 {@code ROLE_ADMIN} 권한을 요구하므로 ROLE_ 접두사를 붙인다.
+     * role이 없는 토큰(구버전 등)이면 권한 없는 빈 목록을 반환한다.
+     */
+    private List<GrantedAuthority> toAuthorities(String role) {
+        if (role == null || role.isBlank()) {
+            return Collections.emptyList();
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
     private String resolveToken(HttpServletRequest request) {

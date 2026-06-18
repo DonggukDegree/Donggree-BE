@@ -35,6 +35,9 @@ class SecurityConfigTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
     @MockitoBean
     private AuthService authService;
 
@@ -94,7 +97,21 @@ class SecurityConfigTest {
             String protectedEndpoint() {
                 return "protected";
             }
+
+            @GetMapping("/api/admin/ping")
+            String adminPing() {
+                return "admin";
+            }
         }
+    }
+
+    private String bearer(String role) {
+        return "Bearer " + jwtTokenProvider.generateAccessToken(1L, role);
+    }
+
+    // role 클레임이 없는 토큰(구버전 액세스 토큰)을 모사한다. 리프레시 토큰은 memberId만 담고 role이 없다.
+    private String bearerWithoutRole() {
+        return "Bearer " + jwtTokenProvider.generateRefreshToken(1L);
     }
 
     @Test
@@ -113,5 +130,40 @@ class SecurityConfigTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("AUTH401_1"));
+    }
+
+    @Test
+    void 관리자_경로는_인증_없이_접근하면_401을_반환한다() throws Exception {
+        mockMvc.perform(get("/api/admin/ping")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 관리자_경로는_STUDENT_권한이면_403을_반환한다() throws Exception {
+        mockMvc.perform(get("/api/admin/ping").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 관리자_경로는_ADMIN_권한이면_접근할_수_있다() throws Exception {
+        mockMvc.perform(get("/api/admin/ping").header("Authorization", bearer("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void 관리자_경로는_SUPER_ADMIN_권한이면_역할_계층에_의해_접근할_수_있다() throws Exception {
+        mockMvc.perform(get("/api/admin/ping").header("Authorization", bearer("SUPER_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void role이_없는_토큰도_일반_보호_엔드포인트는_접근할_수_있다() throws Exception {
+        mockMvc.perform(get("/api/protected").header("Authorization", bearerWithoutRole()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void role이_없는_토큰은_관리자_경로에_접근할_수_없다() throws Exception {
+        mockMvc.perform(get("/api/admin/ping").header("Authorization", bearerWithoutRole()))
+                .andExpect(status().isForbidden());
     }
 }
