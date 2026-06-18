@@ -109,6 +109,11 @@ class SecurityConfigTest {
         return "Bearer " + jwtTokenProvider.generateAccessToken(1L, role);
     }
 
+    // role 클레임이 없는 토큰(구버전 액세스 토큰)을 모사한다. 리프레시 토큰은 memberId만 담고 role이 없다.
+    private String bearerWithoutRole() {
+        return "Bearer " + jwtTokenProvider.generateRefreshToken(1L);
+    }
+
     @Test
     void auth_refresh는_인증_없이_접근할_수_있다() throws Exception {
         mockMvc.perform(get("/auth/refresh")).andExpect(status().isOk());
@@ -148,5 +153,17 @@ class SecurityConfigTest {
     void 관리자_경로는_SUPER_ADMIN_권한이면_역할_계층에_의해_접근할_수_있다() throws Exception {
         mockMvc.perform(get("/api/admin/ping").header("Authorization", bearer("SUPER_ADMIN")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void role이_없는_토큰도_일반_보호_엔드포인트는_접근할_수_있다() throws Exception {
+        mockMvc.perform(get("/api/protected").header("Authorization", bearerWithoutRole()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void role이_없는_토큰은_관리자_경로에_접근할_수_없다() throws Exception {
+        mockMvc.perform(get("/api/admin/ping").header("Authorization", bearerWithoutRole()))
+                .andExpect(status().isForbidden());
     }
 }
