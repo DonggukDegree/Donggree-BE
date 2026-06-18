@@ -40,7 +40,8 @@ public class TestAuthController {
                 })
                 .orElseGet(() -> memberRepository.save(Member.registerKakaoMember(oauthId, targetEmail)));
 
-        String token = jwtTokenProvider.generateAccessToken(member.getId());
+        String token = jwtTokenProvider.generateAccessToken(
+                member.getId(), member.getRole().name());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, new TestLoginResponse(member.getId(), token));
     }
 

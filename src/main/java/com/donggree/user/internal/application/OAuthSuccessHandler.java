@@ -40,7 +40,8 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
         Member member = oAuthMember.getMember();
         Long memberId = member.getId();
 
-        String accessToken = jwtTokenProvider.generateAccessToken(memberId);
+        String accessToken =
+                jwtTokenProvider.generateAccessToken(memberId, member.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(memberId);
 
         // 리프레시 토큰을 DB에 저장 (서버 측 세션 관리)

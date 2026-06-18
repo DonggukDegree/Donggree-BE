@@ -26,10 +26,21 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 액세스 토큰 생성. 클레임에 memberId를 포함한다.
+     * 액세스 토큰 생성. 클레임에 memberId와 권한(role)을 포함한다.
+     * role은 인가 판정에 사용되며, {@code "ROLE_" + role} 형태의 권한으로 매핑된다.
+     * 모듈 격리를 위해 user 모듈의 Role enum이 아닌 문자열로 전달받는다.
      */
-    public String generateAccessToken(Long memberId) {
-        return generateToken(memberId, accessExpiration);
+    public String generateAccessToken(Long memberId, String role) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + accessExpiration);
+
+        return Jwts.builder()
+                .claim("memberId", memberId)
+                .claim("role", role)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(key)
+                .compact();
     }
 
     /**
@@ -52,6 +63,15 @@ public class JwtTokenProvider {
     public Long extractMemberId(String token) {
         Claims claims = parseToken(token);
         return claims.get("memberId", Long.class);
+    }
+
+    /**
+     * 토큰에서 권한(role) 클레임을 추출한다.
+     * role 클레임이 없는 토큰(구버전 등)이면 null을 반환한다.
+     */
+    public String extractRole(String token) {
+        Claims claims = parseToken(token);
+        return claims.get("role", String.class);
     }
 
     /**

@@ -43,7 +43,8 @@ public class AuthService {
             throw new GeneralException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        return jwtTokenProvider.generateAccessToken(memberId);
+        // 리프레시 시 DB의 현재 role을 다시 읽어 발급한다. 권한 변경이 다음 토큰 갱신에 반영된다.
+        return jwtTokenProvider.generateAccessToken(memberId, member.getRole().name());
     }
 
     /**
