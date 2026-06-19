@@ -3,6 +3,7 @@ package com.donggree.curriculum.internal.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class RequirementSetTest {
@@ -22,22 +23,22 @@ class RequirementSetTest {
 
     @Test
     void departmentId가_null이면_예외가_발생한다() {
-        assertThatThrownBy(() -> RequirementSet.create(null, 2023, 2025, 1, null, null))
+        assertThatThrownBy(() -> RequirementSet.create(null, 2023, 2025, 1, null, null, true))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void yearStart가_yearEnd보다_크면_예외가_발생한다() {
-        assertThatThrownBy(() -> RequirementSet.create(1L, 2025, 2023, 1, null, null))
+        assertThatThrownBy(() -> RequirementSet.create(1L, 2025, 2023, 1, null, null, true))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void version이_0_이하이면_예외가_발생한다() {
-        assertThatThrownBy(() -> RequirementSet.create(1L, 2023, 2025, 0, null, null))
+        assertThatThrownBy(() -> RequirementSet.create(1L, 2023, 2025, 0, null, null, true))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        assertThatThrownBy(() -> RequirementSet.create(1L, 2023, 2025, -1, null, null))
+        assertThatThrownBy(() -> RequirementSet.create(1L, 2023, 2025, -1, null, null, true))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -86,7 +87,7 @@ class RequirementSetTest {
     @Test
     void 동일한_규칙을_여러_요건세트에_연결할_수_있다() {
         RequirementSet setA = createRequirementSet();
-        RequirementSet setB = RequirementSet.create(2L, 2023, 2025, 1, null, null);
+        RequirementSet setB = RequirementSet.create(2L, 2023, 2025, 1, null, null, true);
         GraduationRule sharedRule = GraduationRule.create(1L, "총 학점", "{\"minCredits\": 130}", null);
 
         setA.addRule(sharedRule);
@@ -123,7 +124,54 @@ class RequirementSetTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    // --- update / replaceRules 테스트 ---
+
+    @Test
+    void 수정_시_식별정보를_포함한_모든_스칼라가_교체된다() {
+        RequirementSet set = createRequirementSet();
+
+        set.update(2L, 2024, 2026, 2, "수정된 설명", "https://img/sheet.png", false);
+
+        assertThat(set.getDepartmentId()).isEqualTo(2L);
+        assertThat(set.getYearStart()).isEqualTo(2024);
+        assertThat(set.getYearEnd()).isEqualTo(2026);
+        assertThat(set.getVersion()).isEqualTo(2);
+        assertThat(set.getDescription()).isEqualTo("수정된 설명");
+        assertThat(set.getSheetImageUrl()).isEqualTo("https://img/sheet.png");
+        assertThat(set.isActive()).isFalse();
+    }
+
+    @Test
+    void 수정_시에도_불변식이_검증된다() {
+        RequirementSet set = createRequirementSet();
+
+        assertThatThrownBy(() -> set.update(1L, 2026, 2024, 1, null, null, true))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void 규칙_목록을_통째로_교체한다() {
+        RequirementSet set = createRequirementSet();
+        set.addRule(GraduationRule.create(1L, "옛 규칙", "{}", null));
+
+        GraduationRule a = GraduationRule.create(2L, "새 규칙 A", "{}", null);
+        GraduationRule b = GraduationRule.create(3L, "새 규칙 B", "{}", null);
+        set.replaceRules(List.of(a, b));
+
+        assertThat(set.getRules()).containsExactly(a, b);
+    }
+
+    @Test
+    void 빈_목록으로_교체하면_모든_규칙이_해제된다() {
+        RequirementSet set = createRequirementSet();
+        set.addRule(GraduationRule.create(1L, "규칙", "{}", null));
+
+        set.replaceRules(List.of());
+
+        assertThat(set.getRules()).isEmpty();
+    }
+
     private RequirementSet createRequirementSet() {
-        return RequirementSet.create(1L, 2023, 2025, 1, "컴퓨터·AI학부 23~25학번 졸업 요건", null);
+        return RequirementSet.create(1L, 2023, 2025, 1, "컴퓨터·AI학부 23~25학번 졸업 요건", null, true);
     }
 }

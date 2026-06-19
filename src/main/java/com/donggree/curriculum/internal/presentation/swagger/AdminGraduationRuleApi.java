@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 
-@Tag(name = "Admin · 졸업 규칙", description = "관리자의 졸업 규칙·규칙 종류 관리")
+@Tag(name = "Admin-GraduationRule", description = "관리자의 졸업 규칙·규칙 종류 관리")
 public interface AdminGraduationRuleApi {
 
     @Operation(summary = "규칙 종류 조회", description = "규칙 종류(rule_type) 전체를 조회한다. 졸업 규칙 필터의 선택지로 사용된다. 읽기 전용.")

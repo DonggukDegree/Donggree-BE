@@ -90,6 +90,30 @@ operation::admin-graduation-rule-search[]
 
 operation::admin-graduation-rule-upsert[]
 
+==== 졸업 요건 세트 목록 조회
+
+졸업 요건 세트를 동적 필터로 조회한다(요약, 연결 규칙 미포함). departmentId는 해당 학과만, year는 단일 연도로 적용범위(start≤year≤end)에 포함되는 세트만. 미지정=전체. 연결 규칙 ID는 단건 상세 조회에서 제공한다.
+
+operation::admin-requirement-set-list[]
+
+==== 졸업 요건 세트 단건 조회
+
+세트 1건과 연결된 졸업 규칙 ID 목록을 조회한다.
+
+operation::admin-requirement-set-detail[]
+
+==== 졸업 요건 세트 생성
+
+새 졸업 요건 세트를 만들고 선택한 졸업 규칙들을 연결한다. 생성된 ID를 반환한다.
+
+operation::admin-requirement-set-create[]
+
+==== 졸업 요건 세트 수정
+
+세트의 모든 정보(학과·적용년도·버전·설명·이미지·활성)와 연결 규칙을 전체 교체(PUT)한다.
+
+operation::admin-requirement-set-update[]
+
 === 학업 정보
 
 ==== 성적표 조회
