@@ -71,7 +71,56 @@ public class RequirementSet extends BaseEntity {
     private List<GraduationRule> rules = new ArrayList<>();
 
     private RequirementSet(
-            Long departmentId, int yearStart, int yearEnd, int version, String description, String sheetImageUrl) {
+            Long departmentId,
+            int yearStart,
+            int yearEnd,
+            int version,
+            String description,
+            String sheetImageUrl,
+            boolean active) {
+        assignValidated(departmentId, yearStart, yearEnd, version, description, sheetImageUrl, active);
+    }
+
+    public static RequirementSet create(
+            Long departmentId,
+            int yearStart,
+            int yearEnd,
+            int version,
+            String description,
+            String sheetImageUrl,
+            boolean active) {
+        return new RequirementSet(departmentId, yearStart, yearEnd, version, description, sheetImageUrl, active);
+    }
+
+    /**
+     * 요건 세트의 스칼라 정보를 전체 교체한다(PUT). 생성과 동일한 불변식을 재검증한다.
+     * 적용년도·학과·버전 등 식별 정보까지 수정할 수 있다. 연결 규칙은 {@link #replaceRules(List)}로 별도 교체한다.
+     */
+    public void update(
+            Long departmentId,
+            int yearStart,
+            int yearEnd,
+            int version,
+            String description,
+            String sheetImageUrl,
+            boolean active) {
+        assignValidated(departmentId, yearStart, yearEnd, version, description, sheetImageUrl, active);
+    }
+
+    /** 연결된 졸업 규칙 목록을 통째로 교체한다. 규칙 선택/해제(체크 토글)를 반영하는 데 사용한다. */
+    public void replaceRules(List<GraduationRule> newRules) {
+        this.rules.clear();
+        this.rules.addAll(newRules);
+    }
+
+    private void assignValidated(
+            Long departmentId,
+            int yearStart,
+            int yearEnd,
+            int version,
+            String description,
+            String sheetImageUrl,
+            boolean active) {
         if (departmentId == null) {
             throw new IllegalArgumentException("departmentId must not be null");
         }
@@ -87,12 +136,7 @@ public class RequirementSet extends BaseEntity {
         this.version = version;
         this.description = description;
         this.sheetImageUrl = sheetImageUrl;
-        this.active = true;
-    }
-
-    public static RequirementSet create(
-            Long departmentId, int yearStart, int yearEnd, int version, String description, String sheetImageUrl) {
-        return new RequirementSet(departmentId, yearStart, yearEnd, version, description, sheetImageUrl);
+        this.active = active;
     }
 
     /**
