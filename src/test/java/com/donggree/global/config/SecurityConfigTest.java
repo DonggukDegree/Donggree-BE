@@ -56,6 +56,10 @@ class SecurityConfigTest {
     @MockitoBean
     private com.donggree.graduation.internal.application.GraduationReportService graduationReportService;
 
+    @MockitoBean
+    private com.donggree.curriculum.internal.application.CourseClassificationAdminService
+            courseClassificationAdminService;
+
     @TestConfiguration
     static class TestConfig {
 

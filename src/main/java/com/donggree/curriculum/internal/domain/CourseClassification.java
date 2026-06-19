@@ -37,6 +37,9 @@ public class CourseClassification {
     @Column(name = "course_code", nullable = false, length = 20)
     private String courseCode;
 
+    @Column(name = "tag", length = 100)
+    private String tag;
+
     @Column(name = "student_year_start", nullable = false)
     private int studentYearStart;
 
@@ -63,7 +66,51 @@ public class CourseClassification {
             CourseType courseType,
             Long areaTypeId,
             String subCategory,
-            String subjectDomain) {
+            String subjectDomain,
+            String tag) {
+        assignValidated(
+                courseCode, studentYearStart, studentYearEnd, courseType, areaTypeId, subCategory, subjectDomain, tag);
+    }
+
+    public static CourseClassification create(
+            String courseCode,
+            int studentYearStart,
+            int studentYearEnd,
+            CourseType courseType,
+            Long areaTypeId,
+            String subCategory,
+            String subjectDomain,
+            String tag) {
+        return new CourseClassification(
+                courseCode, studentYearStart, studentYearEnd, courseType, areaTypeId, subCategory, subjectDomain, tag);
+    }
+
+    /**
+     * 분류 정보를 전체 교체한다(PUT). 생성과 동일한 불변식을 재검증한다.
+     * tag는 표시용 자유 텍스트로 검증하지 않고 그대로 보관한다.
+     */
+    public void update(
+            String courseCode,
+            int studentYearStart,
+            int studentYearEnd,
+            CourseType courseType,
+            Long areaTypeId,
+            String subCategory,
+            String subjectDomain,
+            String tag) {
+        assignValidated(
+                courseCode, studentYearStart, studentYearEnd, courseType, areaTypeId, subCategory, subjectDomain, tag);
+    }
+
+    private void assignValidated(
+            String courseCode,
+            int studentYearStart,
+            int studentYearEnd,
+            CourseType courseType,
+            Long areaTypeId,
+            String subCategory,
+            String subjectDomain,
+            String tag) {
         if (courseCode == null || courseCode.isBlank()) {
             throw new IllegalArgumentException("courseCode must not be null or blank");
         }
@@ -83,17 +130,6 @@ public class CourseClassification {
         this.areaTypeId = areaTypeId;
         this.subCategory = subCategory;
         this.subjectDomain = subjectDomain;
-    }
-
-    public static CourseClassification create(
-            String courseCode,
-            int studentYearStart,
-            int studentYearEnd,
-            CourseType courseType,
-            Long areaTypeId,
-            String subCategory,
-            String subjectDomain) {
-        return new CourseClassification(
-                courseCode, studentYearStart, studentYearEnd, courseType, areaTypeId, subCategory, subjectDomain);
+        this.tag = tag;
     }
 }
