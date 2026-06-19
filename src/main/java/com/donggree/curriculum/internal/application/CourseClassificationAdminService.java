@@ -57,6 +57,7 @@ public class CourseClassificationAdminService {
     @Transactional
     public List<Long> upsert(List<CourseClassificationUpsertCommand> items) {
         validateNoDuplicateKeysInBatch(items);
+        validateAreaTypesExist(items);
 
         List<Long> ids = new ArrayList<>();
         for (CourseClassificationUpsertCommand item : items) {
@@ -66,7 +67,6 @@ public class CourseClassificationAdminService {
     }
 
     private Long create(CourseClassificationCommand command) {
-        validateAreaType(command.areaTypeId());
         courseClassificationRepository
                 .findByCourseCodeAndStudentYearStartAndStudentYearEnd(
                         command.courseCode(), command.studentYearStart(), command.studentYearEnd())
@@ -91,7 +91,6 @@ public class CourseClassificationAdminService {
                 .findById(id)
                 .orElseThrow(() -> new GeneralException(CurriculumErrorCode.COURSE_CLASSIFICATION_NOT_FOUND));
 
-        validateAreaType(command.areaTypeId());
         courseClassificationRepository
                 .findByCourseCodeAndStudentYearStartAndStudentYearEnd(
                         command.courseCode(), command.studentYearStart(), command.studentYearEnd())
@@ -132,8 +131,17 @@ public class CourseClassificationAdminService {
                 .toList();
     }
 
-    private void validateAreaType(Long areaTypeId) {
-        if (areaTypeId != null && !areaTypeRepository.existsById(areaTypeId)) {
+    /** 배치에 등장하는 모든 areaTypeId(중복·null 제외)가 실제로 존재하는지 한 번의 조회로 검증한다. */
+    private void validateAreaTypesExist(List<CourseClassificationUpsertCommand> items) {
+        Set<Long> areaTypeIds = items.stream()
+                .map(item -> item.data().areaTypeId())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (areaTypeIds.isEmpty()) {
+            return;
+        }
+        int foundCount = areaTypeRepository.findAllById(areaTypeIds).size();
+        if (foundCount != areaTypeIds.size()) {
             throw new GeneralException(CurriculumErrorCode.AREA_TYPE_NOT_FOUND);
         }
     }

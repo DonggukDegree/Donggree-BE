@@ -17,6 +17,7 @@ import com.donggree.curriculum.internal.domain.CourseClassificationRepository;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -78,7 +79,7 @@ class CourseClassificationAdminServiceTest {
     void 배치_업서트_시_id가_null이면_등록하고_생성된_ID를_반환한다() {
         CourseClassificationCommand data =
                 new CourseClassificationCommand("CS001", "자료구조", 2023, 2025, CourseType.FIRST_MAJOR, 10L, null, null);
-        given(areaTypeRepository.existsById(10L)).willReturn(true);
+        given(areaTypeRepository.findAllById(Set.of(10L))).willReturn(List.of(areaType(10L, "전공기초")));
         given(courseClassificationRepository.findByCourseCodeAndStudentYearStartAndStudentYearEnd("CS001", 2023, 2025))
                 .willReturn(Optional.empty());
         given(courseClassificationRepository.save(any())).willAnswer(invocation -> {
@@ -96,7 +97,7 @@ class CourseClassificationAdminServiceTest {
     void 배치_업서트_시_id가_있으면_수정하고_도메인이_전체_교체된다() {
         CourseClassification existing = classification(1L, "CS001", 10L, "옛이름");
         given(courseClassificationRepository.findById(1L)).willReturn(Optional.of(existing));
-        given(areaTypeRepository.existsById(20L)).willReturn(true);
+        given(areaTypeRepository.findAllById(Set.of(20L))).willReturn(List.of(areaType(20L, "기본소양")));
         given(courseClassificationRepository.findByCourseCodeAndStudentYearStartAndStudentYearEnd("CS002", 2024, 2026))
                 .willReturn(Optional.empty());
 
@@ -128,7 +129,7 @@ class CourseClassificationAdminServiceTest {
     void 배치_업서트_등록_시_존재하지_않는_areaTypeId면_예외를_던진다() {
         CourseClassificationCommand data =
                 new CourseClassificationCommand("CS001", null, 2023, 2025, CourseType.FIRST_MAJOR, 999L, null, null);
-        given(areaTypeRepository.existsById(999L)).willReturn(false);
+        given(areaTypeRepository.findAllById(Set.of(999L))).willReturn(List.of());
 
         assertThatThrownBy(() -> service.upsert(List.of(upsertItem(null, data))))
                 .isInstanceOf(GeneralException.class)
