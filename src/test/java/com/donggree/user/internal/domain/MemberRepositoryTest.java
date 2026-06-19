@@ -3,14 +3,17 @@ package com.donggree.user.internal.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.global.config.JpaAuditingConfig;
+import com.donggree.global.config.QueryDslConfig;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
+// QueryDslConfig는 CourseClassificationRepository의 QueryDSL 커스텀 구현(JPAQueryFactory 의존)을
+// @DataJpaTest 컨텍스트에 제공하기 위해 import한다. (Spring Data가 전체 리포지토리를 초기화하므로 필요)
 @DataJpaTest
-@Import(JpaAuditingConfig.class)
+@Import({JpaAuditingConfig.class, QueryDslConfig.class})
 class MemberRepositoryTest {
 
     @Autowired
