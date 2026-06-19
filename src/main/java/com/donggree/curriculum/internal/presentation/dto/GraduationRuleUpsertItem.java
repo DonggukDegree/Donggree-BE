@@ -2,8 +2,10 @@ package com.donggree.curriculum.internal.presentation.dto;
 
 import com.donggree.curriculum.internal.application.dto.GraduationRuleCommand;
 import com.donggree.curriculum.internal.application.dto.GraduationRuleUpsertCommand;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,6 +25,13 @@ public record GraduationRuleUpsertItem(
         @NotNull(message = "rule_config는 필수입니다.") @Schema(example = "{\"min\":130}", description = "규칙 설정 JSON 객체")
                 JsonNode ruleConfig,
         @Size(max = 255, message = "설명은 255자 이하여야 합니다.") @Schema(example = "총학점 요건") String description) {
+
+    @JsonIgnore
+    @AssertTrue(message = "rule_config는 JSON 객체여야 합니다.")
+    @Schema(hidden = true)
+    public boolean isRuleConfigObject() {
+        return ruleConfig != null && ruleConfig.isObject();
+    }
 
     public GraduationRuleUpsertCommand toCommand() {
         return new GraduationRuleUpsertCommand(
