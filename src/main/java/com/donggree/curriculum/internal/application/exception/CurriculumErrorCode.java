@@ -16,6 +16,12 @@ public enum CurriculumErrorCode implements BaseErrorCode {
     AREA_TYPE_NOT_FOUND(HttpStatus.BAD_REQUEST, "CURRICULUM400_1", "존재하지 않는 이수 영역입니다."),
 
     DUPLICATE_COURSE_CLASSIFICATION(HttpStatus.CONFLICT, "CURRICULUM409_1", "동일한 과목코드와 적용 입학년도 범위의 분류가 이미 존재합니다."),
+
+    GRADUATION_RULE_NOT_FOUND(HttpStatus.NOT_FOUND, "CURRICULUM404_2", "존재하지 않는 졸업 규칙입니다."),
+
+    RULE_TYPE_NOT_FOUND(HttpStatus.BAD_REQUEST, "CURRICULUM400_2", "존재하지 않는 규칙 종류입니다."),
+
+    DUPLICATE_GRADUATION_RULE(HttpStatus.CONFLICT, "CURRICULUM409_2", "동일한 규칙 종류와 규칙 이름의 졸업 규칙이 이미 존재합니다."),
     ;
 
     private final HttpStatus status;
