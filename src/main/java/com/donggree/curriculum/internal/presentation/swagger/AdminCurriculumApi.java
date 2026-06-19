@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 
-@Tag(name = "Admin · 과목 분류", description = "관리자의 커리큘럼(과목 분류·이수 영역) 관리")
+@Tag(name = "Admin-Curriculum", description = "관리자의 커리큘럼(과목 분류·이수 영역) 관리")
 public interface AdminCurriculumApi {
 
     @Operation(
