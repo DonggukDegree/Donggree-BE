@@ -44,3 +44,9 @@ management:
   metrics:
     tags:
       application: donggree
+
+springdoc:
+  swagger-ui:
+    # 태그를 알파벳순 정렬해 동일 접두어("Admin · ")끼리 한곳에 모이게 한다. (기본은 스캔 순서라 흩어짐)
+    tags-sorter: alpha
+    operations-sorter: method

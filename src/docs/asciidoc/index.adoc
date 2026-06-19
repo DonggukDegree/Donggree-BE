@@ -72,6 +72,24 @@ operation::admin-course-classification-upsert[]
 
 operation::admin-area-type-list[]
 
+==== 규칙 종류 조회
+
+규칙 종류(rule_type) 전체를 조회한다. 졸업 규칙 필터의 선택지로 사용된다. 읽기 전용.
+
+operation::admin-rule-type-list[]
+
+==== 졸업 규칙 조회
+
+졸업 규칙을 동적 다중 필터로 조회한다. ruleTypeIds·courseTypes는 하나라도 일치(IN), 미지정=전체. courseType은 rule_type 소유 컬럼이며, 정렬은 course_type(NULLS LAST) 그다음 rule_type_id 순이다. 응답에 rule_type 정보와 ruleConfig(JSON 객체)가 포함된다.
+
+operation::admin-graduation-rule-search[]
+
+==== 졸업 규칙 배치 업서트
+
+등록·수정을 구분하지 않고 여러 졸업 규칙을 한 번에 변경한다. 각 항목의 id가 null이면 신규 등록, non-null이면 전체 교체(수정)다. 전체가 하나의 트랜잭션으로 처리되어 일부라도 실패하면 모두 롤백된다.
+
+operation::admin-graduation-rule-upsert[]
+
 === 학업 정보
 
 ==== 성적표 조회
