@@ -13,6 +13,7 @@ import com.donggree.curriculum.internal.domain.RequirementSetRepository;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -117,7 +118,8 @@ public class RequirementSetAdminService {
         if (graduationRuleIds == null || graduationRuleIds.isEmpty()) {
             return List.of();
         }
-        List<Long> distinctIds = graduationRuleIds.stream().distinct().toList();
+        List<Long> distinctIds =
+                graduationRuleIds.stream().filter(Objects::nonNull).distinct().toList();
         List<GraduationRule> found = graduationRuleRepository.findAllById(distinctIds);
         if (found.size() != distinctIds.size()) {
             throw new GeneralException(CurriculumErrorCode.GRADUATION_RULE_NOT_FOUND);
