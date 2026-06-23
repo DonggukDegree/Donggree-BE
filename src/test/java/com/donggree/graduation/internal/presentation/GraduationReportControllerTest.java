@@ -119,6 +119,27 @@ class GraduationReportControllerTest extends RestDocsSupport {
     }
 
     @Test
+    void 적용_가능한_졸업_요건이_없으면_404를_반환한다() throws Exception {
+        Long memberId = 1L;
+        authenticate(memberId);
+
+        given(graduationReportService.getReport(memberId))
+                .willThrow(new GeneralException(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
+
+        mockMvc.perform(get("/api/reports/summary"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("GRADUATION404_2"))
+                .andDo(document(
+                        "graduation-get-report-no-requirement-set",
+                        responseFields(
+                                fieldWithPath("isSuccess").description("요청 성공 여부 (false)"),
+                                fieldWithPath("code").description("응답 코드 (GRADUATION404_2)"),
+                                fieldWithPath("message").description("응답 메시지 (적용 가능한 졸업 요건을 찾을 수 없습니다.)"),
+                                fieldWithPath("result").type(JsonFieldType.NULL).description("실패 응답이므로 항상 null"))));
+    }
+
+    @Test
     void 영역별_이수_현황을_조회한다() throws Exception {
         Long memberId = 1L;
         authenticate(memberId);
