@@ -8,7 +8,10 @@ public interface RequirementSetRepository extends JpaRepository<RequirementSet, 
 
     List<RequirementSet> findByDepartmentIdAndActiveTrue(Long departmentId);
 
-    /** 학과 + 적용년도 범위 + 버전으로 조회한다. 등록/수정 시 unique 제약 충돌 사전 검증에 사용한다. */
-    Optional<RequirementSet> findByDepartmentIdAndYearStartAndYearEndAndVersion(
-            Long departmentId, int yearStart, int yearEnd, int version);
+    /**
+     * 같은 (학과, 적용년도 범위) lineage의 최신 버전 세트를 조회한다. 생성/수정 시 다음 버전 자동 채번에 사용한다.
+     * 없으면 첫 버전(1)을 부여한다.
+     */
+    Optional<RequirementSet> findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(
+            Long departmentId, int yearStart, int yearEnd);
 }

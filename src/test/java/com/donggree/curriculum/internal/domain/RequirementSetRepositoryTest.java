@@ -70,25 +70,40 @@ class RequirementSetRepositoryTest {
     }
 
     @Test
-    void 학과_연도_버전으로_단건_조회한다() {
-        ruleId("기타");
-        RequirementSet set = RequirementSet.create(5L, 2023, 2025, 2, null, null, true);
-        requirementSetRepository.save(set);
+    void 같은_학과_적용년도의_최신_버전을_조회한다() {
+        requirementSetRepository.save(RequirementSet.create(5L, 2023, 2025, 1, null, null, false));
+        requirementSetRepository.save(RequirementSet.create(5L, 2023, 2025, 2, null, null, false));
+        requirementSetRepository.save(RequirementSet.create(5L, 2026, 2027, 1, null, null, false));
 
-        var found = requirementSetRepository.findByDepartmentIdAndYearStartAndYearEndAndVersion(5L, 2023, 2025, 2);
+        var latest =
+                requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(5L, 2023, 2025);
+        assertThat(latest).isPresent();
+        assertThat(latest.get().getVersion()).isEqualTo(2);
 
-        assertThat(found).isPresent();
+        var none =
+                requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(5L, 2030, 2031);
+        assertThat(none).isEmpty();
     }
 
     @Test
-    void 학과와_단일연도로_동적_검색한다() {
+    void 학과의_활성_세트만_조회한다() {
+        requirementSetRepository.save(RequirementSet.create(9L, 2023, 2024, 1, null, null, true));
+        requirementSetRepository.save(RequirementSet.create(9L, 2025, 2026, 1, null, null, false));
+
+        assertThat(requirementSetRepository.findByDepartmentIdAndActiveTrue(9L)).hasSize(1);
+    }
+
+    @Test
+    void 학과묶음과_단일연도로_동적_검색한다() {
         requirementSetRepository.save(RequirementSet.create(1L, 2023, 2025, 1, null, null, true));
         requirementSetRepository.save(RequirementSet.create(1L, 2026, 2027, 1, null, null, true));
         requirementSetRepository.save(RequirementSet.create(2L, 2023, 2025, 1, null, null, true));
 
         // 학과1 + 2024 → 2023~2025만 포함(2026~2027 제외)
-        assertThat(requirementSetRepository.search(1L, 2024)).hasSize(1);
-        // 연도만 2024 → 학과1·학과2의 2023~2025 = 2건
+        assertThat(requirementSetRepository.search(List.of(1L), 2024)).hasSize(1);
+        // 학과1·학과2 묶음 + 2024 → 두 학과의 2023~2025 = 2건
+        assertThat(requirementSetRepository.search(List.of(1L, 2L), 2024)).hasSize(2);
+        // 연도만 2024(학과 필터 없음) → 학과1·학과2의 2023~2025 = 2건
         assertThat(requirementSetRepository.search(null, 2024)).hasSize(2);
         // 필터 없음 → 전체 3건
         assertThat(requirementSetRepository.search(null, null)).hasSize(3);

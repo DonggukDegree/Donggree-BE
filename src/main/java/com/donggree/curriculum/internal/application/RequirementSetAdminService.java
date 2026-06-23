@@ -3,7 +3,10 @@ package com.donggree.curriculum.internal.application;
 import com.donggree.curriculum.internal.application.dto.RequirementSetCommand;
 import com.donggree.curriculum.internal.application.dto.RequirementSetResponse;
 import com.donggree.curriculum.internal.application.dto.RequirementSetSummaryResponse;
+import com.donggree.curriculum.internal.application.dto.RequirementSetUpdateCommand;
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
+import com.donggree.curriculum.internal.domain.College;
+import com.donggree.curriculum.internal.domain.CollegeRepository;
 import com.donggree.curriculum.internal.domain.Department;
 import com.donggree.curriculum.internal.domain.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.GraduationRule;
@@ -30,18 +33,43 @@ public class RequirementSetAdminService {
     private final RequirementSetRepository requirementSetRepository;
     private final GraduationRuleRepository graduationRuleRepository;
     private final DepartmentRepository departmentRepository;
+    private final CollegeRepository collegeRepository;
 
     /**
      * 졸업 요건 세트 목록을 동적 필터로 조회한다(요약, 연결 규칙 미포함).
-     * departmentId·year가 null이면 해당 조건 무시. year는 단일 연도로 적용범위(start≤year≤end)에 포함되는 세트를 반환한다.
+     * departmentId(특정 학과)와 collegeId(단과대 소속 학과 전체)를 함께 걸 수 있고, year는 단일 연도로 적용범위(start≤year≤end)에 포함되는 세트를 반환한다.
+     * 모든 조건이 null이면 무시(미지정=전체).
      */
     @Transactional(readOnly = true)
-    public List<RequirementSetSummaryResponse> search(Long departmentId, Integer year) {
-        List<RequirementSet> sets = requirementSetRepository.search(departmentId, year);
+    public List<RequirementSetSummaryResponse> search(Long departmentId, Long collegeId, Integer year) {
+        List<Long> departmentIds = resolveDepartmentIds(departmentId, collegeId);
+        if (departmentIds != null && departmentIds.isEmpty()) {
+            return List.of(); // 학과/단과대 필터는 있으나 해당하는 학과가 없음 → 빈 결과
+        }
+        List<RequirementSet> sets = requirementSetRepository.search(departmentIds, year);
         Map<Long, String> departmentNames = loadDepartmentNames(sets);
         return sets.stream()
                 .map(set -> toSummary(set, departmentNames.get(set.getDepartmentId())))
                 .toList();
+    }
+
+    /**
+     * departmentId·collegeId 필터를 조회 대상 학과 ID 목록으로 해석한다.
+     * 둘 다 없으면 null(학과 필터 없음). 둘 다 있으면 교집합(단과대에 속한 그 학과)만, 단과대에 그 학과가 없으면 빈 목록.
+     */
+    private List<Long> resolveDepartmentIds(Long departmentId, Long collegeId) {
+        List<Long> collegeDepartmentIds = (collegeId == null)
+                ? null
+                : departmentRepository.findByCollegeId(collegeId).stream()
+                        .map(Department::getId)
+                        .toList();
+        if (departmentId == null) {
+            return collegeDepartmentIds;
+        }
+        if (collegeDepartmentIds == null) {
+            return List.of(departmentId);
+        }
+        return collegeDepartmentIds.contains(departmentId) ? List.of(departmentId) : List.of();
     }
 
     /** 졸업 요건 세트 단건을 조회한다. */
@@ -57,18 +85,23 @@ public class RequirementSetAdminService {
         return toResponse(set, departmentName);
     }
 
-    /** 새 졸업 요건 세트를 생성하고 선택한 졸업 규칙들을 연결한다. */
+    /**
+     * 새 졸업 요건 세트를 생성하고 선택한 졸업 규칙들을 연결한다.
+     * 버전은 (학과, 적용년도) lineage의 최신 버전+1로 자동 채번하며, 활성으로 등록할 경우 적용년도가 겹치는 기존 활성 세트가 없어야 한다.
+     */
     @Transactional
     public Long create(RequirementSetCommand command) {
-        validateDepartmentExists(command.departmentId());
-        validateNotDuplicate(command, null);
+        Long collegeId = resolveOrCreateCollege(command.collegeName());
+        Long departmentId = resolveOrCreateDepartment(command.departmentName(), collegeId);
+        validateActiveNotOverlapping(departmentId, command.yearStart(), command.yearEnd(), command.active(), null);
+        int version = nextVersion(departmentId, command.yearStart(), command.yearEnd());
         List<GraduationRule> rules = loadRules(command.graduationRuleIds());
 
         RequirementSet set = RequirementSet.create(
-                command.departmentId(),
+                departmentId,
                 command.yearStart(),
                 command.yearEnd(),
-                command.version(),
+                version,
                 command.description(),
                 command.sheetImageUrl(),
                 command.active());
@@ -76,42 +109,91 @@ public class RequirementSetAdminService {
         return requirementSetRepository.save(set).getId();
     }
 
-    /** 졸업 요건 세트의 정보를 전체 교체하고, 연결 규칙도 통째로 교체한다. */
+    /**
+     * 졸업 요건 세트의 정보를 전체 교체하고, 연결 규칙도 통째로 교체한다.
+     * 학과·단과대·버전은 생성 시 확정되어 수정 대상이 아니며 요청 자체에 포함되지 않는다. 적용년도가 바뀌면 버전을 새 lineage 기준으로 다시 부여하고, 그대로면 기존 버전을 유지한다.
+     * 활성으로 둘 경우 적용년도가 겹치는 다른 활성 세트(자신 제외)가 없어야 한다.
+     */
     @Transactional
-    public void update(Long id, RequirementSetCommand command) {
+    public void update(Long id, RequirementSetUpdateCommand command) {
         RequirementSet set = requirementSetRepository
                 .findById(id)
                 .orElseThrow(() -> new GeneralException(CurriculumErrorCode.REQUIREMENT_SET_NOT_FOUND));
 
-        validateDepartmentExists(command.departmentId());
-        validateNotDuplicate(command, id);
+        Long departmentId = set.getDepartmentId();
+        validateActiveNotOverlapping(departmentId, command.yearStart(), command.yearEnd(), command.active(), id);
+        int version = resolveUpdatedVersion(set, command.yearStart(), command.yearEnd());
         List<GraduationRule> rules = loadRules(command.graduationRuleIds());
 
         set.update(
-                command.departmentId(),
+                departmentId,
                 command.yearStart(),
                 command.yearEnd(),
-                command.version(),
+                version,
                 command.description(),
                 command.sheetImageUrl(),
                 command.active());
         set.replaceRules(rules);
     }
 
-    private void validateDepartmentExists(Long departmentId) {
-        if (!departmentRepository.existsById(departmentId)) {
-            throw new GeneralException(CurriculumErrorCode.DEPARTMENT_NOT_FOUND);
+    /** (학과, 적용년도) lineage의 다음 버전을 반환한다. 기존 세트가 없으면 첫 버전 1. */
+    private int nextVersion(Long departmentId, int yearStart, int yearEnd) {
+        return requirementSetRepository
+                .findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(departmentId, yearStart, yearEnd)
+                .map(latest -> latest.getVersion() + 1)
+                .orElse(1);
+    }
+
+    /** 수정 시 적용년도가 그대로면 기존 버전을 유지하고, 바뀌면 옮겨갈 lineage의 다음 버전을 부여한다. */
+    private int resolveUpdatedVersion(RequirementSet set, int yearStart, int yearEnd) {
+        if (set.getYearStart() == yearStart && set.getYearEnd() == yearEnd) {
+            return set.getVersion();
+        }
+        return nextVersion(set.getDepartmentId(), yearStart, yearEnd);
+    }
+
+    /**
+     * 활성으로 저장하려는 경우, 같은 학과의 다른 활성 세트(자신 제외)와 적용년도 범위가 겹치면 예외를 던진다.
+     * 비활성 저장은 검증하지 않는다(비활성 세트는 적용년도가 겹쳐도 공존 가능). selfId가 null이면 생성, non-null이면 수정.
+     */
+    private void validateActiveNotOverlapping(
+            Long departmentId, int yearStart, int yearEnd, boolean active, Long selfId) {
+        if (!active) {
+            return;
+        }
+        boolean overlaps = requirementSetRepository.findByDepartmentIdAndActiveTrue(departmentId).stream()
+                .filter(other -> !other.getId().equals(selfId))
+                .anyMatch(other -> other.getYearStart() <= yearEnd && yearStart <= other.getYearEnd());
+        if (overlaps) {
+            throw new GeneralException(CurriculumErrorCode.ACTIVE_REQUIREMENT_SET_OVERLAP);
         }
     }
 
-    private void validateNotDuplicate(RequirementSetCommand command, Long selfId) {
-        requirementSetRepository
-                .findByDepartmentIdAndYearStartAndYearEndAndVersion(
-                        command.departmentId(), command.yearStart(), command.yearEnd(), command.version())
-                .filter(other -> !other.getId().equals(selfId))
-                .ifPresent(other -> {
-                    throw new GeneralException(CurriculumErrorCode.DUPLICATE_REQUIREMENT_SET);
-                });
+    /**
+     * 입력받은 단과대명으로 기존 단과대를 찾으면 재사용하고, 없으면 새로 등록한다(find-or-create). 단과대명은 유일 키다.
+     */
+    private Long resolveOrCreateCollege(String collegeName) {
+        return collegeRepository
+                .findByCollegeName(collegeName)
+                .map(College::getId)
+                .orElseGet(() ->
+                        collegeRepository.save(College.create(collegeName)).getId());
+    }
+
+    /**
+     * 입력받은 학과명으로 기존 학과를 찾으면 소속 단과대를 최신값으로 맞춰 재사용하고, 없으면 새 학과를 등록한다(find-or-create).
+     * 학과명은 유일 키이므로 학과명 기준으로 식별한다.
+     */
+    private Long resolveOrCreateDepartment(String departmentName, Long collegeId) {
+        return departmentRepository
+                .findByDepartmentName(departmentName)
+                .map(existing -> {
+                    existing.updateCollegeId(collegeId);
+                    return existing.getId();
+                })
+                .orElseGet(() -> departmentRepository
+                        .save(Department.create(collegeId, departmentName))
+                        .getId());
     }
 
     private List<GraduationRule> loadRules(List<Long> graduationRuleIds) {
