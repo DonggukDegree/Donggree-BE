@@ -6,6 +6,8 @@ import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.curriculum.internal.domain.AreaType;
 import com.donggree.curriculum.internal.domain.AreaTypeRepository;
+import com.donggree.curriculum.internal.domain.College;
+import com.donggree.curriculum.internal.domain.CollegeRepository;
 import com.donggree.curriculum.internal.domain.CourseClassification;
 import com.donggree.curriculum.internal.domain.CourseClassificationRepository;
 import com.donggree.curriculum.internal.domain.Department;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CurriculumLookupServiceImpl implements CurriculumLookupService {
 
     private final DepartmentRepository departmentRepository;
+    private final CollegeRepository collegeRepository;
     private final RequirementSetRepository requirementSetRepository;
     private final RuleTypeRepository ruleTypeRepository;
     private final CourseClassificationRepository courseClassificationRepository;
@@ -57,7 +60,11 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
         if (departmentId == null) {
             return Optional.empty();
         }
-        return departmentRepository.findById(departmentId).map(Department::getCollegeName);
+        return departmentRepository
+                .findById(departmentId)
+                .map(Department::getCollegeId)
+                .flatMap(collegeRepository::findById)
+                .map(College::getCollegeName);
     }
 
     @Override

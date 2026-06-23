@@ -18,6 +18,7 @@ import com.donggree.curriculum.internal.application.dto.RequirementSetCommand;
 import com.donggree.curriculum.internal.application.dto.RequirementSetResponse;
 import com.donggree.curriculum.internal.application.dto.RequirementSetSummaryResponse;
 import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
+import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -48,17 +49,19 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
 
     @Test
     void 졸업_요건_세트_목록을_조회한다() throws Exception {
-        given(service.search(10L, 2024)).willReturn(List.of(summarySample()));
+        given(service.search(10L, 2L, 2024)).willReturn(List.of(summarySample()));
 
         mockMvc.perform(get("/api/admin/requirement-sets")
                         .param("departmentId", "10")
+                        .param("collegeId", "2")
                         .param("year", "2024"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result[0].departmentName").value("컴퓨터·AI학부"))
                 .andDo(document(
                         "admin-requirement-set-list",
                         queryParameters(
-                                parameterWithName("departmentId").optional().description("학과 ID 필터(미지정=전체)"),
+                                parameterWithName("departmentId").optional().description("학과 ID 필터(드롭다운 선택, 미지정=전체)"),
+                                parameterWithName("collegeId").optional().description("단과대 ID 필터(드롭다운 선택, 미지정=전체)"),
                                 parameterWithName("year").optional().description("적용 연도 필터(단일, start≤year≤end)")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
@@ -110,7 +113,7 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
     @Test
     void 졸업_요건_세트를_생성한다() throws Exception {
         RequirementSetRequest request = new RequirementSetRequest(
-                10L, 2023, 2025, 1, "23~25학번 졸업 요건", "https://img/sheet.png", true, List.of(1L, 2L));
+                "첨단융합대학", "컴퓨터·AI학부", 2023, 2025, "23~25학번 졸업 요건", "https://img/sheet.png", true, List.of(1L, 2L));
         given(service.create(any(RequirementSetCommand.class))).willReturn(100L);
 
         mockMvc.perform(RestDocumentationRequestBuilders.post("/api/admin/requirement-sets")
@@ -121,10 +124,10 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                 .andDo(document(
                         "admin-requirement-set-create",
                         requestFields(
-                                fieldWithPath("departmentId").description("학과 ID"),
+                                fieldWithPath("collegeName").description("단과대명(있으면 재사용, 없으면 학과 신규 등록)"),
+                                fieldWithPath("departmentName").description("학과명(있으면 재사용, 없으면 학과 신규 등록)"),
                                 fieldWithPath("yearStart").description("적용 시작년도"),
                                 fieldWithPath("yearEnd").description("적용 종료년도"),
-                                fieldWithPath("version").optional().description("버전 (미지정 시 1)"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),
@@ -138,8 +141,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
 
     @Test
     void 졸업_요건_세트를_수정한다() throws Exception {
-        RequirementSetRequest request =
-                new RequirementSetRequest(10L, 2023, 2026, 2, "수정된 설명", null, false, List.of(1L, 3L));
+        RequirementSetUpdateRequest request =
+                new RequirementSetUpdateRequest(2023, 2026, "수정된 설명", null, false, List.of(1L, 3L));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/admin/requirement-sets/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -150,10 +153,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                         "admin-requirement-set-update",
                         pathParameters(parameterWithName("id").description("세트 ID")),
                         requestFields(
-                                fieldWithPath("departmentId").description("학과 ID"),
                                 fieldWithPath("yearStart").description("적용 시작년도"),
                                 fieldWithPath("yearEnd").description("적용 종료년도"),
-                                fieldWithPath("version").optional().description("버전 (미지정 시 1)"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),

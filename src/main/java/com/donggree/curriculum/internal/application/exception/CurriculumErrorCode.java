@@ -27,7 +27,10 @@ public enum CurriculumErrorCode implements BaseErrorCode {
 
     DEPARTMENT_NOT_FOUND(HttpStatus.BAD_REQUEST, "CURRICULUM400_3", "존재하지 않는 학과입니다."),
 
-    DUPLICATE_REQUIREMENT_SET(HttpStatus.CONFLICT, "CURRICULUM409_3", "동일한 학과·적용년도·버전의 졸업 요건 세트가 이미 존재합니다."),
+    ACTIVE_REQUIREMENT_SET_OVERLAP(
+            HttpStatus.CONFLICT, "CURRICULUM409_3", "같은 학과에 적용년도가 겹치는 다른 활성 졸업 요건 세트가 이미 존재합니다. 기존 세트를 먼저 비활성화하세요."),
+
+    DEPARTMENT_COLLEGE_MISMATCH(HttpStatus.CONFLICT, "CURRICULUM409_4", "이미 다른 단과대에 속한 학과입니다. 학과의 소속 단과대는 변경할 수 없습니다."),
     ;
 
     private final HttpStatus status;

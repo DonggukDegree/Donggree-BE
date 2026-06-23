@@ -4,6 +4,7 @@ import com.donggree.curriculum.internal.application.RequirementSetAdminService;
 import com.donggree.curriculum.internal.application.dto.RequirementSetResponse;
 import com.donggree.curriculum.internal.application.dto.RequirementSetSummaryResponse;
 import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
+import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
 import com.donggree.curriculum.internal.presentation.swagger.AdminRequirementSetApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
@@ -35,8 +36,11 @@ public class AdminRequirementSetController implements AdminRequirementSetApi {
     @Override
     @GetMapping
     public ApiResponse<List<RequirementSetSummaryResponse>> getRequirementSets(
-            @RequestParam(required = false) Long departmentId, @RequestParam(required = false) Integer year) {
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, requirementSetAdminService.search(departmentId, year));
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) Long collegeId,
+            @RequestParam(required = false) Integer year) {
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK, requirementSetAdminService.search(departmentId, collegeId, year));
     }
 
     @Override
@@ -55,7 +59,7 @@ public class AdminRequirementSetController implements AdminRequirementSetApi {
     @Override
     @PutMapping("/{id}")
     public ApiResponse<Void> updateRequirementSet(
-            @PathVariable Long id, @Valid @RequestBody RequirementSetRequest request) {
+            @PathVariable Long id, @Valid @RequestBody RequirementSetUpdateRequest request) {
         requirementSetAdminService.update(id, request.toCommand());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }

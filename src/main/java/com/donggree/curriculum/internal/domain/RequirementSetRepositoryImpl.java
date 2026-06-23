@@ -15,17 +15,17 @@ public class RequirementSetRepositoryImpl implements RequirementSetRepositoryCus
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<RequirementSet> search(Long departmentId, Integer year) {
+    public List<RequirementSet> search(List<Long> departmentIds, Integer year) {
         QRequirementSet rs = QRequirementSet.requirementSet;
         return queryFactory
                 .selectFrom(rs)
-                .where(departmentEq(rs, departmentId), yearWithin(rs, year))
+                .where(departmentIn(rs, departmentIds), yearWithin(rs, year))
                 .orderBy(rs.departmentId.asc(), rs.yearStart.asc(), rs.version.asc())
                 .fetch();
     }
 
-    private BooleanExpression departmentEq(QRequirementSet rs, Long departmentId) {
-        return departmentId == null ? null : rs.departmentId.eq(departmentId);
+    private BooleanExpression departmentIn(QRequirementSet rs, List<Long> departmentIds) {
+        return (departmentIds == null || departmentIds.isEmpty()) ? null : rs.departmentId.in(departmentIds);
     }
 
     private BooleanExpression yearWithin(QRequirementSet rs, Integer year) {
