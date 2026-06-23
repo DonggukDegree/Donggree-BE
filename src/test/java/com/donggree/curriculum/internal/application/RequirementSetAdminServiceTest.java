@@ -77,7 +77,6 @@ class RequirementSetAdminServiceTest {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
         given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
-        given(requirementSetRepository.findByDepartmentIdAndActiveTrue(1L)).willReturn(List.of());
         // 같은 학과·적용년도 lineage에 version 2가 이미 있으면 다음은 3
         given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(1L, 2023, 2025))
                 .willReturn(Optional.of(set(50L, 2023, 2025, 2, false)));
@@ -110,7 +109,6 @@ class RequirementSetAdminServiceTest {
             ReflectionTestUtils.setField(saved, "id", 5L);
             return saved;
         });
-        given(requirementSetRepository.findByDepartmentIdAndActiveTrue(5L)).willReturn(List.of());
         given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(5L, 2023, 2025))
                 .willReturn(Optional.empty());
         given(requirementSetRepository.save(any())).willAnswer(invocation -> {
@@ -134,9 +132,12 @@ class RequirementSetAdminServiceTest {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
         given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
-        // 기존 활성 세트 2024~2026 이 신규 2023~2025 와 겹침
-        given(requirementSetRepository.findByDepartmentIdAndActiveTrue(1L))
-                .willReturn(List.of(set(9L, 2024, 2026, 1, true)));
+        // 기존 활성 세트가 신규 2023~2025 와 겹침 (DB exists가 true 반환)
+        given(
+                        requirementSetRepository
+                                .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
+                                        1L, 2025, 2023))
+                .willReturn(true);
 
         assertThatThrownBy(() -> service.create(command(true, List.of())))
                 .isInstanceOf(GeneralException.class)
@@ -160,8 +161,10 @@ class RequirementSetAdminServiceTest {
         Long id = service.create(command(false, List.of()));
 
         assertThat(id).isEqualTo(100L);
-        // 비활성은 겹침 검증을 하지 않으므로 활성 목록 조회를 하지 않는다
-        Mockito.verify(requirementSetRepository, Mockito.never()).findByDepartmentIdAndActiveTrue(any());
+        // 비활성은 겹침 검증을 하지 않으므로 활성 겹침 exists 쿼리를 호출하지 않는다
+        Mockito.verify(requirementSetRepository, Mockito.never())
+                .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
+                        any(), Mockito.anyInt(), Mockito.anyInt());
     }
 
     @Test
@@ -169,7 +172,6 @@ class RequirementSetAdminServiceTest {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
         given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
-        given(requirementSetRepository.findByDepartmentIdAndActiveTrue(1L)).willReturn(List.of());
         given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(1L, 2023, 2025))
                 .willReturn(Optional.empty());
         given(graduationRuleRepository.findAllById(List.of(10L, 999L))).willReturn(List.of(rule(10L)));
@@ -178,6 +180,19 @@ class RequirementSetAdminServiceTest {
                 .isInstanceOf(GeneralException.class)
                 .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                         .isEqualTo(CurriculumErrorCode.GRADUATION_RULE_NOT_FOUND));
+    }
+
+    @Test
+    void 생성_시_기존_학과가_다른_단과대_소속이면_예외를_던진다() {
+        // 입력 단과대는 id 2 "공과대학", 기존 학과는 단과대 id 1 소속 → 불일치
+        given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(2L, "첨단융합대학")));
+        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
+                .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
+
+        assertThatThrownBy(() -> service.create(command(true, List.of())))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(CurriculumErrorCode.DEPARTMENT_COLLEGE_MISMATCH));
     }
 
     @Test
@@ -215,7 +230,7 @@ class RequirementSetAdminServiceTest {
     void 수정_시_적용년도가_그대로면_기존_버전을_유지한다() {
         RequirementSet existing = set(1L, 2023, 2025, 3, true);
         given(requirementSetRepository.findById(1L)).willReturn(Optional.of(existing));
-        given(requirementSetRepository.findByDepartmentIdAndActiveTrue(1L)).willReturn(List.of(existing));
+        // 자기 자신만 활성으로 겹치므로(IdNot 제외) exists는 false → 통과
         given(graduationRuleRepository.findAllById(List.of(10L))).willReturn(List.of(rule(10L)));
 
         service.update(1L, updateCommand(2023, 2025, true, List.of(10L)));
@@ -228,8 +243,12 @@ class RequirementSetAdminServiceTest {
     void 활성으로_수정_시_적용년도가_겹치는_다른_활성_세트가_있으면_예외를_던진다() {
         RequirementSet existing = set(1L, 2023, 2025, 1, false);
         given(requirementSetRepository.findById(1L)).willReturn(Optional.of(existing));
-        given(requirementSetRepository.findByDepartmentIdAndActiveTrue(1L))
-                .willReturn(List.of(set(9L, 2024, 2026, 1, true)));
+        // 자신을 제외한 다른 활성 세트가 적용년도와 겹침 (DB exists가 true 반환)
+        given(
+                        requirementSetRepository
+                                .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqualAndIdNot(
+                                        1L, 2025, 2023, 1L))
+                .willReturn(true);
 
         assertThatThrownBy(() -> service.update(1L, updateCommand(2023, 2025, true, List.of())))
                 .isInstanceOf(GeneralException.class)

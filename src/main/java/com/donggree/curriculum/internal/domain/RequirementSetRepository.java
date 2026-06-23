@@ -14,4 +14,15 @@ public interface RequirementSetRepository extends JpaRepository<RequirementSet, 
      */
     Optional<RequirementSet> findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(
             Long departmentId, int yearStart, int yearEnd);
+
+    /**
+     * 같은 학과에 적용년도 범위가 겹치는 활성 세트가 있는지 DB에서 직접 판별한다(생성 검증용).
+     * 범위 겹침 조건(yearStart ≤ 신규 yearEnd AND yearEnd ≥ 신규 yearStart)을 파생 쿼리로 표현했다.
+     */
+    boolean existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
+            Long departmentId, int yearEnd, int yearStart);
+
+    /** 위와 동일하되 자기 자신(id)은 제외한다(수정 검증용). */
+    boolean existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqualAndIdNot(
+            Long departmentId, int yearEnd, int yearStart, Long id);
 }

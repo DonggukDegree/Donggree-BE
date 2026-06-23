@@ -161,9 +161,14 @@ public class RequirementSetAdminService {
         if (!active) {
             return;
         }
-        boolean overlaps = requirementSetRepository.findByDepartmentIdAndActiveTrue(departmentId).stream()
-                .filter(other -> !other.getId().equals(selfId))
-                .anyMatch(other -> other.getYearStart() <= yearEnd && yearStart <= other.getYearEnd());
+        // 메모리 로드 없이 DB exists로 겹침 판별. 파생 쿼리 인자 순서는 (departmentId, yearEnd, yearStart).
+        boolean overlaps = (selfId == null)
+                ? requirementSetRepository
+                        .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
+                                departmentId, yearEnd, yearStart)
+                : requirementSetRepository
+                        .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqualAndIdNot(
+                                departmentId, yearEnd, yearStart, selfId);
         if (overlaps) {
             throw new GeneralException(CurriculumErrorCode.ACTIVE_REQUIREMENT_SET_OVERLAP);
         }
@@ -171,28 +176,32 @@ public class RequirementSetAdminService {
 
     /**
      * 입력받은 단과대명으로 기존 단과대를 찾으면 재사용하고, 없으면 새로 등록한다(find-or-create). 단과대명은 유일 키다.
+     * 앞뒤 공백으로 인한 중복 생성을 막기 위해 trim한 값으로 조회·저장한다.
      */
     private Long resolveOrCreateCollege(String collegeName) {
-        return collegeRepository
-                .findByCollegeName(collegeName)
-                .map(College::getId)
-                .orElseGet(() ->
-                        collegeRepository.save(College.create(collegeName)).getId());
+        String name = collegeName.trim();
+        return collegeRepository.findByCollegeName(name).map(College::getId).orElseGet(() -> collegeRepository
+                .save(College.create(name))
+                .getId());
     }
 
     /**
-     * 입력받은 학과명으로 기존 학과를 찾으면 소속 단과대를 최신값으로 맞춰 재사용하고, 없으면 새 학과를 등록한다(find-or-create).
-     * 학과명은 유일 키이므로 학과명 기준으로 식별한다.
+     * 입력받은 학과명으로 기존 학과를 찾으면 재사용하고, 없으면 새 학과를 등록한다(find-or-create). 학과명은 유일 키다.
+     * 기존 학과가 입력 단과대와 다른 단과대 소속이면 정합성 보호를 위해 예외를 던진다(소속 단과대는 임의 변경하지 않는다).
+     * 앞뒤 공백으로 인한 중복 생성을 막기 위해 trim한 값으로 조회·저장한다.
      */
     private Long resolveOrCreateDepartment(String departmentName, Long collegeId) {
+        String name = departmentName.trim();
         return departmentRepository
-                .findByDepartmentName(departmentName)
+                .findByDepartmentName(name)
                 .map(existing -> {
-                    existing.updateCollegeId(collegeId);
+                    if (!existing.getCollegeId().equals(collegeId)) {
+                        throw new GeneralException(CurriculumErrorCode.DEPARTMENT_COLLEGE_MISMATCH);
+                    }
                     return existing.getId();
                 })
                 .orElseGet(() -> departmentRepository
-                        .save(Department.create(collegeId, departmentName))
+                        .save(Department.create(collegeId, name))
                         .getId());
     }
 
