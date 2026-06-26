@@ -1,0 +1,69 @@
+package com.donggree.global.auth;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * JWT 액세스 토큰을 검증하고 SecurityContext에 인증 객체를 설정하는 필터.
+ * Authorization 헤더에서 Bearer 토큰을 추출하여 검증한 뒤,
+ * 유효하면 memberId를 principal로 하는 Authentication을 생성한다.
+ * DB 조회 없이 토큰 클레임만으로 인증을 완료한다.
+ *
+ * <p>Spring 빈이 아닌 일반 객체로 생성하여 CGLIB 프록시 충돌(GenericFilterBean.init final 메서드)을 방지한다.
+ * SecurityConfig에서 직접 인스턴스를 생성하여 SecurityFilterChain에 등록한다.</p>
+ */
+@RequiredArgsConstructor
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String token = resolveToken(request);
+
+        // 토큰을 한 번만 파싱(서명 검증 포함)하여 memberId와 role을 함께 얻는다.
+        jwtTokenProvider.parseAccessToken(token).ifPresent(claims -> {
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(claims.memberId(), null, toAuthorities(claims.role()));
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(authentication);
+            SecurityContextHolder.setContext(context);
+        });
+
+        filterChain.doFilter(request, response);
+    }
+
+    /**
+     * role 클레임을 Spring Security 권한으로 변환한다.
+     * {@code hasRole("ADMIN")}이 {@code ROLE_ADMIN} 권한을 요구하므로 ROLE_ 접두사를 붙인다.
+     * role이 없는 토큰(구버전 등)이면 권한 없는 빈 목록을 반환한다.
+     */
+    private List<GrantedAuthority> toAuthorities(String role) {
+        if (role == null || role.isBlank()) {
+            return Collections.emptyList();
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        String bearer = request.getHeader("Authorization");
+        if (bearer != null && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+        return null;
+    }
+}
