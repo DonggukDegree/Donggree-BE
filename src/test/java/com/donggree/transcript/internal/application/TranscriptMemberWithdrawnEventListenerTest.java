@@ -1,7 +1,8 @@
 package com.donggree.transcript.internal.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.donggree.transcript.internal.domain.Transcript;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
@@ -25,23 +26,24 @@ class TranscriptMemberWithdrawnEventListenerTest {
     private TranscriptRepository transcriptRepository;
 
     @Test
-    void 회원_탈퇴_이벤트를_수신하면_해당_회원의_성적표를_소프트_삭제한다() {
+    void 회원_탈퇴_이벤트를_수신하면_해당_회원의_성적표를_물리_삭제한다() {
         Long memberId = 1L;
         Transcript transcript = createTranscript(memberId);
         given(transcriptRepository.findByMemberId(memberId)).willReturn(Optional.of(transcript));
 
         listener.on(new MemberWithdrawnEvent(memberId));
 
-        assertThat(transcript.isDeleted()).isTrue();
+        verify(transcriptRepository).delete(transcript);
     }
 
     @Test
-    void 탈퇴_회원의_성적표가_없으면_아무_동작도_하지_않는다() {
+    void 탈퇴_회원의_성적표가_없으면_삭제하지_않는다() {
         Long memberId = 999L;
         given(transcriptRepository.findByMemberId(memberId)).willReturn(Optional.empty());
 
         listener.on(new MemberWithdrawnEvent(memberId));
-        // 예외 없이 정상 종료되면 통과 (조회 결과가 없으면 삭제 시도하지 않음)
+
+        verify(transcriptRepository, never()).delete(org.mockito.ArgumentMatchers.any());
     }
 
     private Transcript createTranscript(Long memberId) {
