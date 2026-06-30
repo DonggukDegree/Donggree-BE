@@ -22,13 +22,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -91,12 +89,14 @@ public class GraduationReportService {
         return new EvaluationContext(transcript, classificationByCourseCode);
     }
 
-    private static CourseClassificationView inferClassification(String courseTypeName) {
+    // course_classification 미등록 과목의 courseType/areaName을 PDF 이수구분으로 추론한다.
+    // 테스트에서 직접 검증하기 위해 package-private으로 노출한다.
+    static CourseClassificationView inferClassification(String courseTypeName) {
         if (courseTypeName == null) return new CourseClassificationView(null, null, null, null);
         return switch (courseTypeName) {
             case "공교" -> new CourseClassificationView(CourseType.COMMON_GENERAL, null, null, null);
             case "학기" -> new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, null, null, null);
-            case "전공" -> new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null);
+            case "전공", "전필" -> new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null);
             case "일교" -> new CourseClassificationView(CourseType.LIBERAL_ARTS, "일반교양", null, null);
             case "자선" -> new CourseClassificationView(CourseType.LIBERAL_ARTS, "자유선택", null, null);
             default -> new CourseClassificationView(null, null, null, null);
@@ -258,8 +258,16 @@ public class GraduationReportService {
                     if (cls != null) allCls.put(cr.courseCode(), cls);
                 });
 
+        // 필수 규칙은 다른 이수구분에 속하더라도 학수번호만 이수하면 충족이다.
+        // 전체 규칙 중 학생에게 적용되는 REQUIRED_COURSE 코드 패턴을 모아, 학생 PDF 분류 탭에서
+        // 해당 과목을 충족(SATISFIED)으로 표시하기 위한 기준으로 사용한다.
+        List<String> globalRequiredCodes = applicableRequiredRules(allRules, transcript.englishLevel()).stream()
+                .flatMap(r -> parseStringList(r.ruleConfig(), "courseCodes").stream())
+                .distinct()
+                .toList();
+
         List<AreaDetailResponse.AreaSection> areaDetails =
-                buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls);
+                buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls, globalRequiredCodes);
 
         List<String> unsatisfiedReasons = areaRules.stream()
                 .filter(r -> {
@@ -284,29 +292,45 @@ public class GraduationReportService {
         return codes;
     }
 
+    /**
+     * 주어진 규칙 중 해당 학생에게 실제로 적용되는 REQUIRED_COURSE 규칙만 추린다.
+     * 영어 레벨 면제(exemptEnglishLevels)·적용 대상(requiredEnglishLevels) 규칙을 반영한다.
+     */
+    private List<GraduationRuleView> applicableRequiredRules(
+            List<GraduationRuleView> rules, String studentEnglishLevel) {
+        List<GraduationRuleView> result = new ArrayList<>();
+        for (GraduationRuleView rule : rules) {
+            if (!"REQUIRED_COURSE".equals(rule.typeName())) continue;
+            List<String> exemptLevels = parseStringList(rule.ruleConfig(), "exemptEnglishLevels");
+            if (!exemptLevels.isEmpty() && studentEnglishLevel != null && exemptLevels.contains(studentEnglishLevel)) {
+                continue;
+            }
+            List<String> requiredLevels = parseStringList(rule.ruleConfig(), "requiredEnglishLevels");
+            if (!requiredLevels.isEmpty()
+                    && (studentEnglishLevel == null || !requiredLevels.contains(studentEnglishLevel))) {
+                continue;
+            }
+            result.add(rule);
+        }
+        return result;
+    }
+
     private List<AreaDetailResponse.AreaSection> buildAreaSections(
             CourseType courseType,
             List<GraduationRuleView> areaRules,
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
-            Map<String, CourseClassificationView> allCls) {
+            Map<String, CourseClassificationView> allCls,
+            List<String> globalRequiredCodes) {
 
         String fallbackArea = courseTypeKoreanName(courseType);
         List<CourseRecordView> allPassed = context.getPassedCoursesByType(courseType);
+        String studentEnglishLevel = context.getTranscript().englishLevel();
 
+        // 이 이수구분에 속한 필수 규칙 — 미충족 시 규칙명·0학점 placeholder로 노출하기 위해 사용한다.
         record RequiredRule(GraduationRuleView rule, List<String> codes, String areaName) {}
         List<RequiredRule> requiredRules = new ArrayList<>();
-        String studentEnglishLevel = context.getTranscript().englishLevel();
-        for (GraduationRuleView rule : areaRules) {
-            if (!"REQUIRED_COURSE".equals(rule.typeName())) continue;
-            // 해당 학생에게 적용되지 않는 규칙은 아이템에서 제외
-            List<String> exemptLevels = parseStringList(rule.ruleConfig(), "exemptEnglishLevels");
-            if (!exemptLevels.isEmpty() && studentEnglishLevel != null && exemptLevels.contains(studentEnglishLevel))
-                continue;
-            List<String> requiredLevels = parseStringList(rule.ruleConfig(), "requiredEnglishLevels");
-            if (!requiredLevels.isEmpty()
-                    && (studentEnglishLevel == null || !requiredLevels.contains(studentEnglishLevel))) continue;
-
+        for (GraduationRuleView rule : applicableRequiredRules(areaRules, studentEnglishLevel)) {
             List<String> codes = parseStringList(rule.ruleConfig(), "courseCodes");
             // course_classification에 있으면 areaName을 직접 사용
             String ruleArea = codes.stream()
@@ -326,9 +350,6 @@ public class GraduationReportService {
             }
             requiredRules.add(new RequiredRule(rule, codes, ruleArea));
         }
-
-        Set<String> allRequiredCodes =
-                requiredRules.stream().flatMap(r -> r.codes().stream()).collect(Collectors.toCollection(HashSet::new));
 
         // areaNames가 단일 영역인 MIN_AREA_CREDITS rule → 해당 영역의 targetCredits
         Map<String, Integer> targetCreditsByArea = new HashMap<>();
@@ -351,8 +372,9 @@ public class GraduationReportService {
             }
             coursesByArea.computeIfAbsent(area, k -> new ArrayList<>()).add(cr);
         }
-        // 미이수 필수과목 영역도 섹션에 포함
+        // 미충족 필수과목 영역도 섹션에 포함 (충족된 필수는 학생이 실제 이수한 영역에 자연히 표시됨)
         for (RequiredRule rr : requiredRules) {
+            if (isRuleSatisfied(rr.rule(), resultByRuleId)) continue;
             String area = rr.areaName() != null ? rr.areaName() : fallbackArea;
             coursesByArea.computeIfAbsent(area, k -> new ArrayList<>());
         }
@@ -363,30 +385,16 @@ public class GraduationReportService {
             List<CourseRecordView> areaCourses = entry.getValue();
             List<AreaDetailResponse.CourseItem> items = new ArrayList<>();
 
-            // 필수과목 아이템 (REQUIRED_COURSE rules)
-            for (RequiredRule rr : requiredRules) {
-                String ruleArea = rr.areaName() != null ? rr.areaName() : fallbackArea;
-                if (!areaName.equals(ruleArea)) continue;
-
-                CourseRecordView taken = allPassed.stream()
-                        .filter(cr -> cr.courseCode() != null && rr.codes().contains(cr.courseCode()))
-                        .findFirst()
-                        .orElse(null);
-
-                RuleResult ruleResult = resultByRuleId.get(rr.rule().id());
-                String status = (ruleResult != null && ruleResult.satisfied()) ? "SATISFIED" : "UNSATISFIED";
-                String title = taken != null
-                        ? taken.courseName()
-                        : extractCourseTitle(rr.rule().ruleName());
-                int credit = taken != null ? taken.credits() : 0;
-                items.add(new AreaDetailResponse.CourseItem(title, credit, status, null));
-            }
-
-            // 선택 이수 아이템 — subCategory(실험, 개론 등)가 있으면 alias로 그룹핑, 없으면 개별 항목
+            // 이수 과목 분류 — 필수 학수번호를 충족시킨 과목은 학생 수강 내역대로 SATISFIED로 표시한다.
+            // subCategory(실험, 개론 등)가 있으면 alias로 그룹핑, 없으면 개별 항목.
+            List<CourseRecordView> requiredFulfilled = new ArrayList<>();
             LinkedHashMap<String, List<CourseRecordView>> bySubCategory = new LinkedHashMap<>();
             List<CourseRecordView> individualOptional = new ArrayList<>();
             for (CourseRecordView cr : areaCourses) {
-                if (cr.courseCode() != null && allRequiredCodes.contains(cr.courseCode())) continue;
+                if (context.codeMatchesAny(cr.courseCode(), globalRequiredCodes)) {
+                    requiredFulfilled.add(cr);
+                    continue;
+                }
                 CourseClassificationView cls = cr.courseCode() != null ? allCls.get(cr.courseCode()) : null;
                 String subCat = cls != null ? cls.subCategory() : null;
                 if (subCat != null) {
@@ -396,6 +404,19 @@ public class GraduationReportService {
                 } else {
                     individualOptional.add(cr);
                 }
+            }
+
+            // 충족된 필수 과목 (학생이 실제 이수한 과목명·학점)
+            for (CourseRecordView cr : requiredFulfilled) {
+                items.add(new AreaDetailResponse.CourseItem(cr.courseName(), cr.credits(), "SATISFIED", null));
+            }
+            // 미충족 필수 과목 placeholder (규칙명·0학점) — 규칙이 속한 이수구분 탭에만 노출
+            for (RequiredRule rr : requiredRules) {
+                if (isRuleSatisfied(rr.rule(), resultByRuleId)) continue;
+                String ruleArea = rr.areaName() != null ? rr.areaName() : fallbackArea;
+                if (!areaName.equals(ruleArea)) continue;
+                items.add(new AreaDetailResponse.CourseItem(
+                        extractCourseTitle(rr.rule().ruleName()), 0, "UNSATISFIED", null));
             }
             for (Map.Entry<String, List<CourseRecordView>> subEntry : bySubCategory.entrySet()) {
                 String subCat = subEntry.getKey();
@@ -417,10 +438,7 @@ public class GraduationReportService {
 
             boolean areaSatisfied = requiredRules.stream()
                     .filter(rr -> areaName.equals(rr.areaName() != null ? rr.areaName() : fallbackArea))
-                    .allMatch(rr -> {
-                        RuleResult result = resultByRuleId.get(rr.rule().id());
-                        return result != null && result.satisfied();
-                    });
+                    .allMatch(rr -> isRuleSatisfied(rr.rule(), resultByRuleId));
             if (targetCredits > 0) {
                 areaSatisfied = areaSatisfied && earnedCredits >= targetCredits;
             }
@@ -430,6 +448,11 @@ public class GraduationReportService {
         }
 
         return sections;
+    }
+
+    private static boolean isRuleSatisfied(GraduationRuleView rule, Map<Long, RuleResult> resultByRuleId) {
+        RuleResult result = resultByRuleId.get(rule.id());
+        return result != null && result.satisfied();
     }
 
     private static String extractCourseTitle(String ruleName) {
@@ -503,6 +526,7 @@ public class GraduationReportService {
     }
 
     private List<String> parseStringList(String json, String field) {
+        if (json == null) return List.of();
         try {
             JsonNode node = MAPPER.readTree(json);
             JsonNode arr = node.path(field);
@@ -516,6 +540,7 @@ public class GraduationReportService {
     }
 
     private int parseIntField(String ruleConfig, String fieldName, int defaultValue) {
+        if (ruleConfig == null) return defaultValue;
         try {
             JsonNode node = MAPPER.readTree(ruleConfig);
             JsonNode field = node.path(fieldName);
