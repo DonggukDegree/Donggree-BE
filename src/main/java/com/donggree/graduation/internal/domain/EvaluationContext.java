@@ -80,6 +80,15 @@ public class EvaluationContext {
     }
 
     /**
+     * 주어진 학수번호가 코드 패턴 목록 중 하나와 매칭되는지 확인한다.
+     * 충족 판정({@link #hasPassedAnyCourseByCode})과 동일한 prefix 매칭 규칙을 사용하므로,
+     * 리포트에서 "필수 규칙을 충족시키는 과목"을 일관되게 식별할 수 있다.
+     */
+    public boolean codeMatchesAny(String courseCode, List<String> patterns) {
+        return courseCode != null && patterns != null && matchesAny(courseCode, patterns);
+    }
+
+    /**
      * 주어진 코드 패턴 목록 중 가장 이른 이수 학기를 반환한다.
      * 선이수체계 판정 시 이수 순서 비교에 사용한다. prefix 패턴 지원.
      */
