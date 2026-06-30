@@ -263,6 +263,7 @@ public class GraduationReportService {
         // 해당 과목을 충족(SATISFIED)으로 표시하기 위한 기준으로 사용한다.
         List<String> globalRequiredCodes = applicableRequiredRules(allRules, transcript.englishLevel()).stream()
                 .flatMap(r -> parseStringList(r.ruleConfig(), "courseCodes").stream())
+                .distinct()
                 .toList();
 
         List<AreaDetailResponse.AreaSection> areaDetails =
@@ -525,6 +526,7 @@ public class GraduationReportService {
     }
 
     private List<String> parseStringList(String json, String field) {
+        if (json == null) return List.of();
         try {
             JsonNode node = MAPPER.readTree(json);
             JsonNode arr = node.path(field);
@@ -538,6 +540,7 @@ public class GraduationReportService {
     }
 
     private int parseIntField(String ruleConfig, String fieldName, int defaultValue) {
+        if (ruleConfig == null) return defaultValue;
         try {
             JsonNode node = MAPPER.readTree(ruleConfig);
             JsonNode field = node.path(fieldName);

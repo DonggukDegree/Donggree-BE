@@ -85,7 +85,7 @@ public class EvaluationContext {
      * 리포트에서 "필수 규칙을 충족시키는 과목"을 일관되게 식별할 수 있다.
      */
     public boolean codeMatchesAny(String courseCode, List<String> patterns) {
-        return courseCode != null && matchesAny(courseCode, patterns);
+        return courseCode != null && patterns != null && matchesAny(courseCode, patterns);
     }
 
     /**

@@ -35,4 +35,9 @@ class EvaluationContextTest {
     void codeMatchesAny_학수번호가_null이면_false() {
         assertThat(context.codeMatchesAny(null, List.of("CSE3001"))).isFalse();
     }
+
+    @Test
+    void codeMatchesAny_패턴이_null이면_false() {
+        assertThat(context.codeMatchesAny("CSE3001", null)).isFalse();
+    }
 }
