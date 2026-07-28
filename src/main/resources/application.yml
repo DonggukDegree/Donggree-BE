@@ -44,6 +44,20 @@ management:
   metrics:
     tags:
       application: donggree
+    distribution:
+      # HTTP 요청 처리시간을 히스토그램(버킷)으로 노출한다.
+      # 이게 있어야 Prometheus 의 histogram_quantile() 로 p95/p99 를 계산할 수 있고,
+      # 여러 인스턴스에 걸쳐 합산 가능한 정확한 백분위가 나온다.
+      percentiles-histogram:
+        http.server.requests: true
+      # 자주 보는 지연 구간에 버킷을 촘촘히 배치해 백분위 정확도를 높인다.
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 300ms, 500ms, 1s, 2s
+      # 버킷 개수 폭증을 막기 위해 관측 범위를 제한한다.
+      minimum-expected-value:
+        http.server.requests: 10ms
+      maximum-expected-value:
+        http.server.requests: 5s
 
 springdoc:
   swagger-ui:
