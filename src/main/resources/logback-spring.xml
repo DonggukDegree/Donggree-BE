@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  로그 출력 포맷을 프로파일별로 나눈다.
+  - 로컬/개발/테스트(!prod) : 사람이 읽기 좋은 컬러 콘솔 (시간·레벨·로거·메시지)
+  - 운영(prod)             : JSON 구조화 로그 → Loki 에서 필드 파싱·조회, Grafana 에서 펼쳐 보기
+  (defaults.xml 을 include 해야 %clr 컬러·%wEx 예외 변환자가 등록된다.)
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!--
+      읽기 좋은 콘솔 패턴.
+        HH:mm:ss.SSS   시:분:초 (날짜 생략 — 로컬 개발엔 불필요)
+        %-5p           레벨 5칸 정렬 (INFO/WARN/ERROR 세로줄 맞춤)
+        logger{35}     로거 이름 35칸으로 축약 — 청록색
+        %m / %wEx      메시지 / 정돈된 예외 스택
+    -->
+    <property name="CONSOLE_PATTERN"
+              value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p) %clr(%-35.35logger{34}){cyan} %clr(:){faint} %m%n%wEx"/>
+
+    <springProfile name="!prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <timeZone>Asia/Seoul</timeZone>
+                <!-- 모든 로그에 서비스 이름을 심어 Loki 에서 서비스 단위로 필터한다. -->
+                <customFields>{"service_name":"donggree-backend"}</customFields>
+                <!-- 숫자 레벨값 등 불필요한 필드는 빼서 JSON 을 간결하게 유지한다. -->
+                <fieldNames>
+                    <levelValue>[ignore]</levelValue>
+                </fieldNames>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+        </root>
+    </springProfile>
+
+    <!-- 프레임워크 잡음을 줄여 앱 로그가 잘 보이게 한다 (필요 시 조정). -->
+    <logger name="org.apache.pdfbox" level="WARN"/>
+    <logger name="org.hibernate.orm.deprecation" level="ERROR"/>
+</configuration>
