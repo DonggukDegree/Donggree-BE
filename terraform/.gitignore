@@ -1,0 +1,18 @@
+# Terraform 로컬 상태/캐시 (커밋 금지 — 민감정보 포함 가능)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# 실제 변수값(내 IP·키) — 예시만 커밋
+*.tfvars
+!*.tfvars.example
+
+# 오버라이드
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# lock 파일(.terraform.lock.hcl)은 커밋한다 → 여기서 무시하지 않음
