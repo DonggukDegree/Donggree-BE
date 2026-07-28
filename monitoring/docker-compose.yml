@@ -1,0 +1,122 @@
+# 동그리 모니터링 스택 (메트릭 중심 lean 구성).
+#
+# 구성 요소
+#   - prometheus        : 메트릭 수집·저장
+#   - loki + alloy      : 컨테이너 로그 수집·저장
+#   - node-exporter     : 호스트(서버) CPU/메모리/디스크
+#   - cadvisor          : 컨테이너별 CPU/메모리 (백엔드 vs DB 분리)
+#   - postgres-exporter : DB 커넥션·트랜잭션·버퍼 캐시 히트율·쿼리 시간
+#   - grafana           : 대시보드 (사람이 보는 창구)
+#
+# 실행:  docker compose up -d   (또는 루트 올인원 compose 에 include)
+# 접속:  http://localhost:3001
+#
+# 이미지 버전은 전부 고정(pin). 환경마다 바뀌는 값은 .env 와 prometheus 타겟뿐.
+name: donggree-monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: donggree-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    ports:
+      - "9090:9090"   # 로컬 편의(타겟 확인). 운영에선 제거
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [monitoring]
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: donggree-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"   # 로컬 편의. 운영에선 제거
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    networks: [monitoring]
+
+  alloy:
+    image: grafana/alloy:v1.5.1
+    container_name: donggree-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+    networks: [monitoring]
+
+  # 호스트(서버) 하드웨어 지표. ⚠️ macOS 에선 도커 VM 기준(맥 자체 X). Linux(AWS)에서 정확.
+  # Linux 서버에서 실제 호스트 지표를 원하면:
+  #   command: ['--path.rootfs=/host'] / pid: host / volumes: ['/:/host:ro,rslave']
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: donggree-node-exporter
+    restart: unless-stopped
+    networks: [monitoring]
+
+  # 컨테이너별 CPU/메모리 (백엔드 vs DB 를 분리해서 보기 위함).
+  # ⚠️ macOS Docker Desktop 에선 일부 지표만 나옴. Linux(AWS)에서 정확.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: donggree-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks: [monitoring]
+
+  # PostgreSQL 지표(커넥션·tx·버퍼 캐시 히트율·쿼리 시간). db 서비스(루트 compose)에 접속.
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: donggree-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-root}:${POSTGRES_PASSWORD:-1234}@db:5432/${POSTGRES_DB:-donggree}?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/pgexporter/queries.yaml
+    volumes:
+      - ./postgres-exporter/queries.yaml:/etc/pgexporter/queries.yaml:ro
+    networks: [monitoring]
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: donggree-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus, loki]
+    networks: [monitoring]
+
+volumes:
+  prometheus-data:
+  loki-data:
+  grafana-data:
+
+networks:
+  monitoring:
+    name: donggree-monitoring
