@@ -211,6 +211,36 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true, "prettifyLogMessage": true, "dedupStrategy": "exact" },
       "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "expr": "{job=\"docker\", container=~\"donggree-backend|donggree-db\"}" } ]
+    },
+
+    { "type": "row", "id": 106, "title": "🐢 느린 쿼리 (튜닝)", "collapsed": false, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 65 } },
+    {
+      "id": 40, "type": "table", "title": "가장 느린 쿼리 Top 10 (평균 실행시간)",
+      "description": "pg_stat_statements 기반. 확장 활성화 필요. 확장 생성·queries.yaml 반영 후 postgres-exporter 재시작.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 66 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "평균(ms)" }, "properties": [ { "id": "unit", "value": "ms" }, { "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 200 } ] } } ] },
+          { "matcher": { "id": "byName", "options": "최대(ms)" }, "properties": [ { "id": "unit", "value": "ms" } ] },
+          { "matcher": { "id": "byName", "options": "쿼리" }, "properties": [ { "id": "custom.minWidth", "value": 500 } ] }
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm", "sortBy": [ { "displayName": "평균(ms)", "desc": true } ] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "pg_stat_statements_top_mean_ms", "format": "table", "instant": true },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "pg_stat_statements_top_calls", "format": "table", "instant": true },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "pg_stat_statements_top_max_ms", "format": "table", "instant": true }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": {
+          "excludeByName": { "Time": true, "__name__": true, "job": true, "instance": true, "queryid": true },
+          "indexByName": { "query": 0, "Value #A": 1, "Value #B": 2, "Value #C": 3 },
+          "renameByName": { "query": "쿼리", "Value #A": "평균(ms)", "Value #B": "호출수", "Value #C": "최대(ms)" }
+        } }
+      ]
     }
   ]
 }
