@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s          # 15초마다 수집
+  external_labels:
+    application: donggree
+
+scrape_configs:
+  # ── 동그리 백엔드 ──────────────────────────────────────────────
+  # 환경마다 바뀌는 유일한 줄: target.
+  #   - 올인원 스택(루트 docker-compose): backend:8080   ← 현재 기본값
+  #   - 모니터링만 + 호스트 bootRun      : host.docker.internal:8080 (아래 줄로 교체)
+  - job_name: 'donggree-backend'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['backend:8080']
+        labels:
+          instance: 'donggree-backend'
+
+  # ── 호스트 하드웨어 지표 (node-exporter) ──────────────────────
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # ── 컨테이너별 CPU/메모리 (cAdvisor) ──────────────────────────
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # ── PostgreSQL 지표 (postgres-exporter) ──────────────────────
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # ── Prometheus 자기 자신 (수집기 상태 확인용) ──────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

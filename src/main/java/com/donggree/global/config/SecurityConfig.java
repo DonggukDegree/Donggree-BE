@@ -55,7 +55,11 @@ public class SecurityConfig {
         "/swagger-resources/**",
         "/v3/api-docs/**",
         "/docs/**",
-        "/actuator/health"
+        "/actuator/health",
+        // Prometheus 가 메트릭을 수집(scrape)하는 엔드포인트. 인증 없이 접근 가능해야 한다.
+        // 운영에서는 리버스 프록시(Caddy)에서 외부의 /actuator/* 접근을 차단하고,
+        // 내부망의 Prometheus 컨테이너만 도달하도록 둔다. (또는 management.server.port 분리)
+        "/actuator/prometheus"
     };
 
     @Bean

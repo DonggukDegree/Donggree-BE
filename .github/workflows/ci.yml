@@ -33,6 +33,15 @@ jobs:
       - name: Build & Test
         run: ./gradlew build -x spotlessCheck
 
+      # 올인원 docker-compose(모니터링 include 병합 포함) 문법 검증.
+      # 구조만 확인하므로 시크릿은 더미 값으로 치환한다.
+      - name: Validate Docker Compose
+        env:
+          JWT_SECRET: dummy
+          KAKAO_REST_API_KEY: dummy
+          KAKAO_REST_API_SECRET: dummy
+        run: docker compose config -q
+
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v5
         if: always()

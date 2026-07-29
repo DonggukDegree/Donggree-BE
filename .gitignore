@@ -49,3 +49,7 @@ CLAUDE.md
 
 ### 테스트 PDF (개인정보 포함) ###
 src/test/resources/pdf/
+
+# DB 덤프 (커밋 금지)
+backup.sql
+*.dump
