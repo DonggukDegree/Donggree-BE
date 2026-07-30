@@ -47,10 +47,11 @@ public class AdminGraduationRuleController implements AdminGraduationRuleApi {
     @GetMapping("/graduation-rules")
     public ApiResponse<List<GraduationRuleResponse>> getGraduationRules(
             @RequestParam(required = false) List<Long> ruleTypeIds,
-            @RequestParam(required = false) List<CourseType> courseTypes) {
+            @RequestParam(required = false) List<CourseType> courseTypes,
+            @RequestParam(required = false) Long requirementSetId) {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.OK,
-                graduationRuleQueryService.search(ruleTypeIds, courseTypes).stream()
+                graduationRuleQueryService.search(ruleTypeIds, courseTypes, requirementSetId).stream()
                         .map(GraduationRuleResponse::from)
                         .toList());
     }

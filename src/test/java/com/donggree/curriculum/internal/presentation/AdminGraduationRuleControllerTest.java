@@ -63,7 +63,7 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
 
     @Test
     void 졸업_규칙을_다중_필터로_조회한다() throws Exception {
-        given(graduationRuleQueryService.search(List.of(10L), List.of(CourseType.FIRST_MAJOR)))
+        given(graduationRuleQueryService.search(List.of(10L), List.of(CourseType.FIRST_MAJOR), null))
                 .willReturn(List.of(new GraduationRuleProjection(
                         1L, 10L, "MIN_AREA_CREDITS", CourseType.FIRST_MAJOR, "전공 영역 최소학점", "{\"min\":30}", "전공 요건")));
 
@@ -77,7 +77,10 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
                         "admin-graduation-rule-search",
                         queryParameters(
                                 parameterWithName("ruleTypeIds").optional().description("규칙 종류 ID 필터(다중, 미지정=전체)"),
-                                parameterWithName("courseTypes").optional().description("이수구분 필터(다중, 미지정=전체)")),
+                                parameterWithName("courseTypes").optional().description("이수구분 필터(다중, 미지정=전체)"),
+                                parameterWithName("requirementSetId")
+                                        .optional()
+                                        .description("졸업 요건 세트 ID 필터(그 세트에 연결된 규칙만, 미지정=전체)")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),

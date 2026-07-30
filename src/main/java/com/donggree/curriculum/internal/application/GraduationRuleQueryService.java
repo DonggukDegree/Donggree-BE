@@ -32,10 +32,12 @@ public class GraduationRuleQueryService {
 
     /**
      * 동적 다중 필터로 졸업 규칙을 조회한다. rule_type을 조인해 typeName·courseType을 함께 담은 프로젝션으로
-     * 엔티티 로딩 없이 바로 조회한다. 각 필터 목록이 비어 있으면 전체를 반환한다.
+     * 엔티티 로딩 없이 바로 조회한다. 각 필터가 비어 있으면 해당 조건은 무시한다(미지정=전체).
+     * requirementSetId가 주어지면 그 졸업 요건 세트에 연결된 규칙만 조회한다.
      */
     @Transactional(readOnly = true)
-    public List<GraduationRuleProjection> search(List<Long> ruleTypeIds, List<CourseType> courseTypes) {
-        return graduationRuleRepository.search(ruleTypeIds, courseTypes);
+    public List<GraduationRuleProjection> search(
+            List<Long> ruleTypeIds, List<CourseType> courseTypes, Long requirementSetId) {
+        return graduationRuleRepository.search(ruleTypeIds, courseTypes, requirementSetId);
     }
 }
