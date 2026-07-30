@@ -7,10 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.global.auth.JwtProperties;
 import com.donggree.global.auth.JwtTokenProvider;
-import com.donggree.transcript.internal.application.TranscriptService;
+import com.donggree.transcript.internal.application.TranscriptCommandService;
+import com.donggree.transcript.internal.application.TranscriptQueryService;
 import com.donggree.user.MemberIdentityService;
 import com.donggree.user.internal.application.AuthService;
-import com.donggree.user.internal.application.UserService;
+import com.donggree.user.internal.application.UserCommandService;
+import com.donggree.user.internal.application.UserQueryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -42,10 +44,16 @@ class SecurityConfigTest {
     private AuthService authService;
 
     @MockitoBean
-    private UserService userService;
+    private UserQueryService userQueryService;
 
     @MockitoBean
-    private TranscriptService transcriptService;
+    private UserCommandService userCommandService;
+
+    @MockitoBean
+    private TranscriptQueryService transcriptQueryService;
+
+    @MockitoBean
+    private TranscriptCommandService transcriptCommandService;
 
     @MockitoBean
     private CurriculumLookupService curriculumLookupService;
@@ -54,20 +62,30 @@ class SecurityConfigTest {
     private MemberIdentityService memberIdentityService;
 
     @MockitoBean
-    private com.donggree.graduation.internal.application.GraduationReportService graduationReportService;
+    private com.donggree.graduation.internal.application.GraduationQueryService graduationQueryService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.CourseClassificationAdminService
-            courseClassificationAdminService;
+    private com.donggree.curriculum.internal.application.CourseClassificationQueryService
+            courseClassificationQueryService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.GraduationRuleAdminService graduationRuleAdminService;
+    private com.donggree.curriculum.internal.application.CourseClassificationCommandService
+            courseClassificationCommandService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.RequirementSetAdminService requirementSetAdminService;
+    private com.donggree.curriculum.internal.application.GraduationRuleQueryService graduationRuleQueryService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.DepartmentAdminService departmentAdminService;
+    private com.donggree.curriculum.internal.application.GraduationRuleCommandService graduationRuleCommandService;
+
+    @MockitoBean
+    private com.donggree.curriculum.internal.application.RequirementSetQueryService requirementSetQueryService;
+
+    @MockitoBean
+    private com.donggree.curriculum.internal.application.RequirementSetCommandService requirementSetCommandService;
+
+    @MockitoBean
+    private com.donggree.curriculum.internal.application.DepartmentQueryService departmentQueryService;
 
     @TestConfiguration
     static class TestConfig {

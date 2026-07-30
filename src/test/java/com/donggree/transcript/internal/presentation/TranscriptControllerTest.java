@@ -18,14 +18,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
-import com.donggree.transcript.internal.application.TranscriptCreateResult;
-import com.donggree.transcript.internal.application.TranscriptParseResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawCourseRecord;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawMeta;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
-import com.donggree.transcript.internal.application.TranscriptService;
-import com.donggree.transcript.internal.application.TranscriptUpdateResult;
+import com.donggree.transcript.internal.application.TranscriptCommandService;
+import com.donggree.transcript.internal.application.TranscriptQueryService;
+import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
+import com.donggree.transcript.internal.application.command.TranscriptParseResult;
+import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
+import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
+import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawCourseRecord;
+import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawMeta;
+import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
 import com.donggree.transcript.internal.domain.ParsedCourse;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
@@ -51,14 +52,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class TranscriptControllerTest extends RestDocsSupport {
 
-    private final TranscriptService transcriptService = Mockito.mock(TranscriptService.class);
+    private final TranscriptQueryService transcriptQueryService = Mockito.mock(TranscriptQueryService.class);
+    private final TranscriptCommandService transcriptCommandService = Mockito.mock(TranscriptCommandService.class);
     private final CurriculumLookupService curriculumLookupService = Mockito.mock(CurriculumLookupService.class);
     private final MemberIdentityService memberIdentityService = Mockito.mock(MemberIdentityService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new TranscriptController(transcriptService, curriculumLookupService, memberIdentityService);
+        return new TranscriptController(
+                transcriptQueryService, transcriptCommandService, curriculumLookupService, memberIdentityService);
     }
 
     // 검증 실패(VALID400_1) 등 예외 응답 봉투를 확인하기 위해 전역 예외 핸들러를 등록한다.
@@ -96,10 +99,10 @@ class TranscriptControllerTest extends RestDocsSupport {
                 LocalDateTime.of(2024, 3, 1, 9, 0, 0),
                 LocalDateTime.of(2024, 6, 1, 9, 0, 0));
         RawCourseRecord rawRecord = new RawCourseRecord(1L, "CSE1101", "프로그래밍기초", 3, null, "전공", "A+", false);
-        TranscriptQueryResult queryResult =
-                new TranscriptQueryResult(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
+        TranscriptReportProjection queryResult =
+                new TranscriptReportProjection(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
 
-        given(transcriptService.getTranscriptRawReport(memberId)).willReturn(queryResult);
+        given(transcriptQueryService.getTranscriptRawReport(memberId)).willReturn(queryResult);
         given(curriculumLookupService.findDepartmentNamesByIds(List.of(10L))).willReturn(Map.of(10L, "컴퓨터·AI학부"));
         given(curriculumLookupService.findCollegeNameByDepartmentId(10L)).willReturn(Optional.of("정보통신공학대학"));
 
@@ -204,12 +207,12 @@ class TranscriptControllerTest extends RestDocsSupport {
                 null,
                 false);
 
-        given(transcriptService.parseTranscript(any(byte[].class))).willReturn(parseResult);
+        given(transcriptCommandService.parseTranscript(any(byte[].class))).willReturn(parseResult);
         given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
         given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
-        given(transcriptService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(transcriptCommandService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(createData);
-        given(transcriptService.createTranscript(any(), any(), any(), any()))
+        given(transcriptCommandService.createTranscript(any(), any(), any(), any()))
                 .willReturn(new TranscriptCreateResult(60, 54, 6));
 
         MockMultipartFile pdfFile =
@@ -252,7 +255,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                         List.of(
                                 new RawCourseRecord(10L, "CSE2101", "자료구조", 3, "전공필수", "전공", "A+", false),
                                 new RawCourseRecord(11L, "CSE2102", "알고리즘", 3, "전공필수", "전공", "B+", false)))));
-        given(transcriptService.replaceCourseRecords(any(), any())).willReturn(result);
+        given(transcriptCommandService.replaceCourseRecords(any(), any())).willReturn(result);
 
         mockMvc.perform(patch("/api/users/me/reports")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -315,7 +318,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                 new BigDecimal("0.00"),
                 List.of(new RawSemesterGroup(
                         "2024-1", List.of(new RawCourseRecord(10L, "GEN0000", "영점학점과목", 0, null, "전공", "P", false)))));
-        given(transcriptService.replaceCourseRecords(any(), any())).willReturn(result);
+        given(transcriptCommandService.replaceCourseRecords(any(), any())).willReturn(result);
 
         mockMvc.perform(patch("/api/users/me/reports")
                         .contentType(MediaType.APPLICATION_JSON)

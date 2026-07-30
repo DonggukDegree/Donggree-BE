@@ -1,9 +1,9 @@
 package com.donggree.curriculum.internal.presentation.swagger;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.dto.GraduationRuleResponse;
-import com.donggree.curriculum.internal.application.dto.RuleTypeResponse;
 import com.donggree.curriculum.internal.presentation.dto.GraduationRuleBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.GraduationRuleResponse;
+import com.donggree.curriculum.internal.presentation.dto.RuleTypeResponse;
 import com.donggree.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,12 +21,14 @@ public interface AdminGraduationRuleApi {
     @Operation(
             summary = "졸업 규칙 조회",
             description = "졸업 규칙을 동적 다중 필터로 조회한다. ruleTypeIds·courseTypes는 하나라도 일치(IN), 미지정=전체. "
+                    + "requirementSetId를 주면 해당 졸업 요건 세트에 연결된 규칙만 조회한다. "
                     + "courseType은 rule_type 소유 컬럼이며, 정렬은 course_type(NULLS LAST) 그다음 rule_type_id 순이다. "
                     + "응답에 rule_type 정보(typeName, courseType)와 ruleConfig(JSON 객체)가 포함된다.")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")})
     ApiResponse<List<GraduationRuleResponse>> getGraduationRules(
             @Parameter(description = "규칙 종류 ID 필터(다중)") List<Long> ruleTypeIds,
-            @Parameter(description = "이수구분 필터(다중)") List<CourseType> courseTypes);
+            @Parameter(description = "이수구분 필터(다중)") List<CourseType> courseTypes,
+            @Parameter(description = "졸업 요건 세트 ID 필터(그 세트에 연결된 규칙만)") Long requirementSetId);
 
     @Operation(
             summary = "졸업 규칙 배치 업서트",

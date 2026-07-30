@@ -1,7 +1,7 @@
 package com.donggree.curriculum.internal.presentation.swagger;
 
-import com.donggree.curriculum.internal.application.dto.CollegeResponse;
-import com.donggree.curriculum.internal.application.dto.DepartmentResponse;
+import com.donggree.curriculum.internal.presentation.dto.CollegeResponse;
+import com.donggree.curriculum.internal.presentation.dto.DepartmentResponse;
 import com.donggree.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

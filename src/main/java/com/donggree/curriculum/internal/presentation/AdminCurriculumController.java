@@ -1,10 +1,11 @@
 package com.donggree.curriculum.internal.presentation;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.CourseClassificationAdminService;
-import com.donggree.curriculum.internal.application.dto.AreaTypeResponse;
-import com.donggree.curriculum.internal.application.dto.CourseClassificationResponse;
+import com.donggree.curriculum.internal.application.CourseClassificationCommandService;
+import com.donggree.curriculum.internal.application.CourseClassificationQueryService;
+import com.donggree.curriculum.internal.presentation.dto.AreaTypeResponse;
 import com.donggree.curriculum.internal.presentation.dto.CourseClassificationBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.CourseClassificationResponse;
 import com.donggree.curriculum.internal.presentation.swagger.AdminCurriculumApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
@@ -29,7 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminCurriculumController implements AdminCurriculumApi {
 
-    private final CourseClassificationAdminService courseClassificationAdminService;
+    private final CourseClassificationQueryService courseClassificationQueryService;
+    private final CourseClassificationCommandService courseClassificationCommandService;
 
     @Override
     @GetMapping("/course-classifications")
@@ -38,20 +40,27 @@ public class AdminCurriculumController implements AdminCurriculumApi {
             @RequestParam(required = false) List<CourseType> courseTypes,
             @RequestParam(required = false) List<Integer> years) {
         return ApiResponse.onSuccess(
-                GeneralSuccessCode.OK, courseClassificationAdminService.search(areaTypeIds, courseTypes, years));
+                GeneralSuccessCode.OK,
+                courseClassificationQueryService.search(areaTypeIds, courseTypes, years).stream()
+                        .map(CourseClassificationResponse::from)
+                        .toList());
     }
 
     @Override
     @PutMapping("/course-classifications")
     public ApiResponse<List<Long>> upsertCourseClassifications(
             @Valid @RequestBody CourseClassificationBatchRequest request) {
-        List<Long> ids = courseClassificationAdminService.upsert(request.toCommands());
+        List<Long> ids = courseClassificationCommandService.upsert(request.toCommands());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, ids);
     }
 
     @Override
     @GetMapping("/area-types")
     public ApiResponse<List<AreaTypeResponse>> getAreaTypes() {
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, courseClassificationAdminService.getAreaTypes());
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK,
+                courseClassificationQueryService.getAreaTypes().stream()
+                        .map(AreaTypeResponse::from)
+                        .toList());
     }
 }

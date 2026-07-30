@@ -1,9 +1,10 @@
 package com.donggree.curriculum.internal.presentation;
 
-import com.donggree.curriculum.internal.application.RequirementSetAdminService;
-import com.donggree.curriculum.internal.application.dto.RequirementSetResponse;
-import com.donggree.curriculum.internal.application.dto.RequirementSetSummaryResponse;
+import com.donggree.curriculum.internal.application.RequirementSetCommandService;
+import com.donggree.curriculum.internal.application.RequirementSetQueryService;
 import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
+import com.donggree.curriculum.internal.presentation.dto.RequirementSetResponse;
+import com.donggree.curriculum.internal.presentation.dto.RequirementSetSummaryResponse;
 import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
 import com.donggree.curriculum.internal.presentation.swagger.AdminRequirementSetApi;
 import com.donggree.global.apiPayload.ApiResponse;
@@ -31,7 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminRequirementSetController implements AdminRequirementSetApi {
 
-    private final RequirementSetAdminService requirementSetAdminService;
+    private final RequirementSetQueryService requirementSetQueryService;
+    private final RequirementSetCommandService requirementSetCommandService;
 
     @Override
     @GetMapping
@@ -40,19 +42,23 @@ public class AdminRequirementSetController implements AdminRequirementSetApi {
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Integer year) {
         return ApiResponse.onSuccess(
-                GeneralSuccessCode.OK, requirementSetAdminService.search(departmentId, collegeId, year));
+                GeneralSuccessCode.OK,
+                requirementSetQueryService.search(departmentId, collegeId, year).stream()
+                        .map(RequirementSetSummaryResponse::from)
+                        .toList());
     }
 
     @Override
     @GetMapping("/{id}")
     public ApiResponse<RequirementSetResponse> getRequirementSet(@PathVariable Long id) {
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, requirementSetAdminService.get(id));
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK, RequirementSetResponse.from(requirementSetQueryService.get(id)));
     }
 
     @Override
     @PostMapping
     public ApiResponse<Long> createRequirementSet(@Valid @RequestBody RequirementSetRequest request) {
-        Long id = requirementSetAdminService.create(request.toCommand());
+        Long id = requirementSetCommandService.create(request.toCommand());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, id);
     }
 
@@ -60,7 +66,7 @@ public class AdminRequirementSetController implements AdminRequirementSetApi {
     @PutMapping("/{id}")
     public ApiResponse<Void> updateRequirementSet(
             @PathVariable Long id, @Valid @RequestBody RequirementSetUpdateRequest request) {
-        requirementSetAdminService.update(id, request.toCommand());
+        requirementSetCommandService.update(id, request.toCommand());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }
 }

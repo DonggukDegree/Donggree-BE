@@ -5,14 +5,15 @@ import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.LoginMemberId;
-import com.donggree.transcript.internal.application.CourseRecordCreateData;
-import com.donggree.transcript.internal.application.TranscriptCreateResult;
-import com.donggree.transcript.internal.application.TranscriptParseResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
-import com.donggree.transcript.internal.application.TranscriptService;
-import com.donggree.transcript.internal.application.TranscriptUpdateResult;
+import com.donggree.transcript.internal.application.TranscriptCommandService;
+import com.donggree.transcript.internal.application.TranscriptQueryService;
+import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
+import com.donggree.transcript.internal.application.command.TranscriptParseResult;
+import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
+import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
+import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.Grade;
@@ -46,14 +47,15 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class TranscriptController implements TranscriptApi {
 
-    private final TranscriptService transcriptService;
+    private final TranscriptQueryService transcriptQueryService;
+    private final TranscriptCommandService transcriptCommandService;
     private final CurriculumLookupService curriculumLookupService;
     private final MemberIdentityService memberIdentityService;
 
     @Override
     @GetMapping
     public ApiResponse<TranscriptReportResponse> getTranscriptReport(@LoginMemberId Long memberId) {
-        TranscriptQueryResult raw = transcriptService.getTranscriptRawReport(memberId);
+        TranscriptReportProjection raw = transcriptQueryService.getTranscriptRawReport(memberId);
 
         List<Long> deptIds = Stream.of(
                         raw.meta().departmentId(),
@@ -100,7 +102,7 @@ public class TranscriptController implements TranscriptApi {
             throw new GeneralException(TranscriptErrorCode.PDF_FILE_REQUIRED);
         }
         try {
-            TranscriptParseResult parseResult = transcriptService.parseTranscript(file.getBytes());
+            TranscriptParseResult parseResult = transcriptCommandService.parseTranscript(file.getBytes());
             ParsedTranscriptData parsed = parseResult.parsedData();
             Map<String, String> meta = parsed.meta();
 
@@ -131,11 +133,11 @@ public class TranscriptController implements TranscriptApi {
                     .findDepartmentIdByName(meta.get("복수2"))
                     .orElse(null);
 
-            TranscriptCreateData createData = transcriptService.buildCreateData(
+            TranscriptCreateData createData = transcriptCommandService.buildCreateData(
                     memberId, parseResult.rawDataJson(), parsed, deptId, sub1Id, sub2Id, dual1Id, dual2Id);
 
-            List<CourseRecordCreateData> courses = parsed.courses().stream()
-                    .map(c -> new CourseRecordCreateData(
+            List<CourseRecordCreateCommand> courses = parsed.courses().stream()
+                    .map(c -> new CourseRecordCreateCommand(
                             c.semester(),
                             c.category(),
                             (c.area() == null || c.area().isBlank()) ? null : c.area(),
@@ -147,7 +149,7 @@ public class TranscriptController implements TranscriptApi {
                     .toList();
 
             TranscriptCreateResult result =
-                    transcriptService.createTranscript(createData, courses, pdfStudentId, pdfName);
+                    transcriptCommandService.createTranscript(createData, courses, pdfStudentId, pdfName);
             return ApiResponse.onSuccess(
                     GeneralSuccessCode.CREATED,
                     new TranscriptCreateResponse(result.totalCredits(), result.recordedCredits(), result.creditGap()));
@@ -161,10 +163,10 @@ public class TranscriptController implements TranscriptApi {
     @PatchMapping
     public ApiResponse<CourseRecordUpdateResponse> updateCourseRecords(
             @LoginMemberId Long memberId, @Valid @RequestBody CourseRecordUpdateRequest request) {
-        List<CourseRecordCreateData> courses = request.courses().stream()
+        List<CourseRecordCreateCommand> courses = request.courses().stream()
                 .map(item -> {
                     try {
-                        return new CourseRecordCreateData(
+                        return new CourseRecordCreateCommand(
                                 item.semester(),
                                 item.courseType(),
                                 (item.areaName() == null || item.areaName().isBlank()) ? null : item.areaName(),
@@ -179,7 +181,7 @@ public class TranscriptController implements TranscriptApi {
                 })
                 .toList();
 
-        TranscriptUpdateResult result = transcriptService.replaceCourseRecords(memberId, courses);
+        TranscriptUpdateResult result = transcriptCommandService.replaceCourseRecords(memberId, courses);
 
         List<SemesterCourses> updatedCourses = result.semesterGroups().stream()
                 .map(g -> new SemesterCourses(g.semester(), toCourseRecords(g)))

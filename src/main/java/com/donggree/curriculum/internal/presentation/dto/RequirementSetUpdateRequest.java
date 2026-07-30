@@ -1,6 +1,6 @@
 package com.donggree.curriculum.internal.presentation.dto;
 
-import com.donggree.curriculum.internal.application.dto.RequirementSetUpdateCommand;
+import com.donggree.curriculum.internal.application.command.RequirementSetUpdateCommand;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
