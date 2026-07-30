@@ -1,9 +1,9 @@
 package com.donggree.curriculum.internal.presentation.swagger;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.dto.AreaTypeResponse;
-import com.donggree.curriculum.internal.application.dto.CourseClassificationResponse;
+import com.donggree.curriculum.internal.presentation.dto.AreaTypeResponse;
 import com.donggree.curriculum.internal.presentation.dto.CourseClassificationBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.CourseClassificationResponse;
 import com.donggree.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

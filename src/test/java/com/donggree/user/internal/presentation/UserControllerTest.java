@@ -13,8 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.global.support.RestDocsSupport;
-import com.donggree.user.internal.application.UserService;
-import com.donggree.user.internal.application.dto.UserInfoResponse;
+import com.donggree.user.internal.application.UserCommandService;
+import com.donggree.user.internal.application.UserQueryService;
+import com.donggree.user.internal.application.projection.UserInfoProjection;
 import com.donggree.user.internal.presentation.dto.OnboardingRequest;
 import com.donggree.user.internal.presentation.dto.UserInfoUpdateRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,12 +29,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class UserControllerTest extends RestDocsSupport {
 
-    private final UserService userService = Mockito.mock(UserService.class);
+    private final UserQueryService userQueryService = Mockito.mock(UserQueryService.class);
+    private final UserCommandService userCommandService = Mockito.mock(UserCommandService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new UserController(userService);
+        return new UserController(userQueryService, userCommandService);
     }
 
     @AfterEach
@@ -67,7 +69,7 @@ class UserControllerTest extends RestDocsSupport {
                                 fieldWithPath("message").description("응답 메시지"),
                                 fieldWithPath("result").description("없음"))));
 
-        Mockito.verify(userService).completeOnboarding(memberId, "2023123456", "하승연");
+        Mockito.verify(userCommandService).completeOnboarding(memberId, "2023123456", "하승연");
     }
 
     @Test
@@ -76,7 +78,8 @@ class UserControllerTest extends RestDocsSupport {
         SecurityContextHolder.getContext()
                 .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
-        given(userService.getUserInfo(memberId)).willReturn(new UserInfoResponse("2023123456", "하승연", "하승연", false));
+        given(userQueryService.getUserInfo(memberId))
+                .willReturn(new UserInfoProjection("2023123456", "하승연", "하승연", false));
 
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk())
@@ -106,8 +109,8 @@ class UserControllerTest extends RestDocsSupport {
 
         UserInfoUpdateRequest request = new UserInfoUpdateRequest("2023123456", "하승연", "동동이");
 
-        given(userService.updateUserInfo(memberId, "2023123456", "하승연", "동동이"))
-                .willReturn(new UserInfoResponse("2023123456", "하승연", "동동이", false));
+        given(userCommandService.updateUserInfo(memberId, "2023123456", "하승연", "동동이"))
+                .willReturn(new UserInfoProjection("2023123456", "하승연", "동동이", false));
 
         mockMvc.perform(patch("/api/users/me")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -154,6 +157,6 @@ class UserControllerTest extends RestDocsSupport {
                                 fieldWithPath("message").description("응답 메시지"),
                                 fieldWithPath("result").description("없음"))));
 
-        Mockito.verify(userService).deleteUser(memberId);
+        Mockito.verify(userCommandService).deleteUser(memberId);
     }
 }

@@ -12,11 +12,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.CourseClassificationAdminService;
-import com.donggree.curriculum.internal.application.dto.AreaTypeResponse;
-import com.donggree.curriculum.internal.application.dto.CourseClassificationResponse;
+import com.donggree.curriculum.internal.application.CourseClassificationCommandService;
+import com.donggree.curriculum.internal.application.CourseClassificationQueryService;
+import com.donggree.curriculum.internal.application.projection.AreaTypeProjection;
+import com.donggree.curriculum.internal.application.projection.CourseClassificationProjection;
 import com.donggree.curriculum.internal.presentation.dto.CourseClassificationBatchRequest;
-import com.donggree.curriculum.internal.presentation.dto.CourseClassificationUpsertItem;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -27,18 +27,22 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 
 class AdminCurriculumControllerTest extends RestDocsSupport {
 
-    private final CourseClassificationAdminService service = Mockito.mock(CourseClassificationAdminService.class);
+    private final CourseClassificationQueryService courseClassificationQueryService =
+            Mockito.mock(CourseClassificationQueryService.class);
+    private final CourseClassificationCommandService courseClassificationCommandService =
+            Mockito.mock(CourseClassificationCommandService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new AdminCurriculumController(service);
+        return new AdminCurriculumController(courseClassificationQueryService, courseClassificationCommandService);
     }
 
     @Test
     void 과목_분류를_다중_필터로_조회한다() throws Exception {
-        given(service.search(List.of(10L, 20L), List.of(CourseType.FIRST_MAJOR), List.of(2024)))
-                .willReturn(List.of(new CourseClassificationResponse(
+        given(courseClassificationQueryService.search(
+                        List.of(10L, 20L), List.of(CourseType.FIRST_MAJOR), List.of(2024)))
+                .willReturn(List.of(new CourseClassificationProjection(
                         1L, "CSE2001", "자료구조", 2023, 2025, CourseType.FIRST_MAJOR, 10L, "전공기초", "개론", "물리")));
 
         mockMvc.perform(get("/api/admin/course-classifications")
@@ -77,11 +81,11 @@ class AdminCurriculumControllerTest extends RestDocsSupport {
     @Test
     void 과목_분류를_배치_업서트한다() throws Exception {
         CourseClassificationBatchRequest request = new CourseClassificationBatchRequest(List.of(
-                new CourseClassificationUpsertItem(
+                new CourseClassificationBatchRequest.Item(
                         1L, "CSE2001", "자료구조", 2023, 2026, CourseType.FIRST_MAJOR, 10L, "개론", "물리"),
-                new CourseClassificationUpsertItem(
+                new CourseClassificationBatchRequest.Item(
                         null, "CSE2002", "알고리즘", 2023, 2025, CourseType.FIRST_MAJOR, null, null, null)));
-        given(service.upsert(Mockito.anyList())).willReturn(List.of(1L, 100L));
+        given(courseClassificationCommandService.upsert(Mockito.anyList())).willReturn(List.of(1L, 100L));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/admin/course-classifications")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,8 +117,8 @@ class AdminCurriculumControllerTest extends RestDocsSupport {
 
     @Test
     void 이수_영역을_조회한다() throws Exception {
-        given(service.getAreaTypes())
-                .willReturn(List.of(new AreaTypeResponse(10L, "전공기초"), new AreaTypeResponse(20L, "기본소양")));
+        given(courseClassificationQueryService.getAreaTypes())
+                .willReturn(List.of(new AreaTypeProjection(10L, "전공기초"), new AreaTypeProjection(20L, "기본소양")));
 
         mockMvc.perform(get("/api/admin/area-types"))
                 .andExpect(status().isOk())

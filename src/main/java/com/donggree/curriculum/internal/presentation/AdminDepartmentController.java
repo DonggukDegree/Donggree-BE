@@ -1,8 +1,8 @@
 package com.donggree.curriculum.internal.presentation;
 
-import com.donggree.curriculum.internal.application.DepartmentAdminService;
-import com.donggree.curriculum.internal.application.dto.CollegeResponse;
-import com.donggree.curriculum.internal.application.dto.DepartmentResponse;
+import com.donggree.curriculum.internal.application.DepartmentQueryService;
+import com.donggree.curriculum.internal.presentation.dto.CollegeResponse;
+import com.donggree.curriculum.internal.presentation.dto.DepartmentResponse;
 import com.donggree.curriculum.internal.presentation.swagger.AdminDepartmentApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
@@ -24,17 +24,25 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminDepartmentController implements AdminDepartmentApi {
 
-    private final DepartmentAdminService departmentAdminService;
+    private final DepartmentQueryService departmentQueryService;
 
     @Override
     @GetMapping("/colleges")
     public ApiResponse<List<CollegeResponse>> getColleges() {
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, departmentAdminService.getColleges());
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK,
+                departmentQueryService.getColleges().stream()
+                        .map(CollegeResponse::from)
+                        .toList());
     }
 
     @Override
     @GetMapping("/departments")
     public ApiResponse<List<DepartmentResponse>> getDepartments(@RequestParam(required = false) Long collegeId) {
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, departmentAdminService.getDepartments(collegeId));
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK,
+                departmentQueryService.getDepartments(collegeId).stream()
+                        .map(DepartmentResponse::from)
+                        .toList());
     }
 }

@@ -2,8 +2,8 @@ package com.donggree.graduation.internal.presentation.swagger;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.global.apiPayload.ApiResponse;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse;
-import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse;
+import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -21,7 +21,7 @@ public interface GraduationReportApi {
                 responseCode = "404",
                 description = "성적표 없음 또는 적용 가능한 졸업 요건 없음")
     })
-    ApiResponse<GraduationReportResponse> getReport(@Parameter(hidden = true) Long memberId);
+    ApiResponse<GraduationReportProjection> getReport(@Parameter(hidden = true) Long memberId);
 
     @Operation(
             summary = "영역별 이수 현황 조회",
@@ -33,7 +33,7 @@ public interface GraduationReportApi {
                 responseCode = "404",
                 description = "성적표 없음 또는 적용 가능한 졸업 요건 없음")
     })
-    ApiResponse<AreaDetailResponse> getAreaDetail(
+    ApiResponse<AreaDetailProjection> getAreaDetail(
             @Parameter(hidden = true) Long memberId,
             @Parameter(description = "이수 구분 코드 (COMMON_GENERAL, ACADEMIC_FOUNDATION, FIRST_MAJOR 등)")
                     CourseType courseType);

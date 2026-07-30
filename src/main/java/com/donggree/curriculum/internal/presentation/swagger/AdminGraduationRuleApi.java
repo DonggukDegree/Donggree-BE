@@ -1,9 +1,9 @@
 package com.donggree.curriculum.internal.presentation.swagger;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.dto.GraduationRuleResponse;
-import com.donggree.curriculum.internal.application.dto.RuleTypeResponse;
 import com.donggree.curriculum.internal.presentation.dto.GraduationRuleBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.GraduationRuleResponse;
+import com.donggree.curriculum.internal.presentation.dto.RuleTypeResponse;
 import com.donggree.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

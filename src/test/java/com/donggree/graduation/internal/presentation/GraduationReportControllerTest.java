@@ -14,15 +14,15 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
-import com.donggree.graduation.internal.application.GraduationReportService;
+import com.donggree.graduation.internal.application.GraduationQueryService;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.AreaSection;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.CourseItem;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.CreditStatus;
-import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse;
-import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.AreaOverview;
-import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.Summary;
+import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.projection.AreaDetailProjection.AreaSection;
+import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CourseItem;
+import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CreditStatus;
+import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
+import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
+import com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -35,11 +35,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class GraduationReportControllerTest extends RestDocsSupport {
 
-    private final GraduationReportService graduationReportService = Mockito.mock(GraduationReportService.class);
+    private final GraduationQueryService graduationQueryService = Mockito.mock(GraduationQueryService.class);
 
     @Override
     protected Object initController() {
-        return new GraduationReportController(graduationReportService);
+        return new GraduationReportController(graduationQueryService);
     }
 
     @Override
@@ -70,8 +70,8 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("ACADEMIC_FOUNDATION", "학문기초", 90, 3, false),
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
-        given(graduationReportService.getReport(memberId))
-                .willReturn(new GraduationReportResponse(summary, areaOverviews));
+        given(graduationQueryService.getReport(memberId))
+                .willReturn(new GraduationReportProjection(summary, areaOverviews));
 
         mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isOk())
@@ -109,7 +109,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
         Long memberId = 999L;
         authenticate(memberId);
 
-        given(graduationReportService.getReport(memberId))
+        given(graduationQueryService.getReport(memberId))
                 .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
         mockMvc.perform(get("/api/reports/summary"))
@@ -123,7 +123,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
         Long memberId = 1L;
         authenticate(memberId);
 
-        given(graduationReportService.getReport(memberId))
+        given(graduationQueryService.getReport(memberId))
                 .willThrow(new GeneralException(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
 
         mockMvc.perform(get("/api/reports/summary"))
@@ -151,10 +151,10 @@ class GraduationReportControllerTest extends RestDocsSupport {
         List<AreaSection> areaSections =
                 List.of(new AreaSection("동국인성", 4, 0, true, 동국인성Items), new AreaSection("자기계발", 1, 0, true, 자기계발Items));
 
-        AreaDetailResponse response =
-                new AreaDetailResponse(areaSections, List.of("EAS2 이전에 EAS1을 선이수해야 합니다."), new CreditStatus(17, 17, 0));
+        AreaDetailProjection response = new AreaDetailProjection(
+                areaSections, List.of("EAS2 이전에 EAS1을 선이수해야 합니다."), new CreditStatus(17, 17, 0));
 
-        given(graduationReportService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
+        given(graduationQueryService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
                 .willReturn(response);
 
         mockMvc.perform(get("/api/reports").param("courseType", "COMMON_GENERAL"))
@@ -200,7 +200,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
         Long memberId = 999L;
         authenticate(memberId);
 
-        given(graduationReportService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
+        given(graduationQueryService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
                 .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
         mockMvc.perform(get("/api/reports").param("courseType", "COMMON_GENERAL"))

@@ -13,11 +13,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.GraduationRuleAdminService;
-import com.donggree.curriculum.internal.application.dto.GraduationRuleResponse;
-import com.donggree.curriculum.internal.application.dto.RuleTypeResponse;
+import com.donggree.curriculum.internal.application.GraduationRuleCommandService;
+import com.donggree.curriculum.internal.application.GraduationRuleQueryService;
+import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
+import com.donggree.curriculum.internal.application.projection.RuleTypeProjection;
 import com.donggree.curriculum.internal.presentation.dto.GraduationRuleBatchRequest;
-import com.donggree.curriculum.internal.presentation.dto.GraduationRuleUpsertItem;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -28,20 +28,23 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 
 class AdminGraduationRuleControllerTest extends RestDocsSupport {
 
-    private final GraduationRuleAdminService service = Mockito.mock(GraduationRuleAdminService.class);
+    private final GraduationRuleQueryService graduationRuleQueryService =
+            Mockito.mock(GraduationRuleQueryService.class);
+    private final GraduationRuleCommandService graduationRuleCommandService =
+            Mockito.mock(GraduationRuleCommandService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new AdminGraduationRuleController(service);
+        return new AdminGraduationRuleController(graduationRuleQueryService, graduationRuleCommandService);
     }
 
     @Test
     void 규칙_종류를_조회한다() throws Exception {
-        given(service.getRuleTypes())
+        given(graduationRuleQueryService.getRuleTypes())
                 .willReturn(List.of(
-                        new RuleTypeResponse(1L, "TOTAL_CREDITS", null, "총학점 요건"),
-                        new RuleTypeResponse(2L, "MIN_AREA_CREDITS", CourseType.FIRST_MAJOR, "전공 영역 최소학점")));
+                        new RuleTypeProjection(1L, "TOTAL_CREDITS", null, "총학점 요건"),
+                        new RuleTypeProjection(2L, "MIN_AREA_CREDITS", CourseType.FIRST_MAJOR, "전공 영역 최소학점")));
 
         mockMvc.perform(get("/api/admin/rule-types"))
                 .andExpect(status().isOk())
@@ -60,8 +63,8 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
 
     @Test
     void 졸업_규칙을_다중_필터로_조회한다() throws Exception {
-        given(service.search(List.of(10L), List.of(CourseType.FIRST_MAJOR)))
-                .willReturn(List.of(new GraduationRuleResponse(
+        given(graduationRuleQueryService.search(List.of(10L), List.of(CourseType.FIRST_MAJOR)))
+                .willReturn(List.of(new GraduationRuleProjection(
                         1L, 10L, "MIN_AREA_CREDITS", CourseType.FIRST_MAJOR, "전공 영역 최소학점", "{\"min\":30}", "전공 요건")));
 
         mockMvc.perform(get("/api/admin/graduation-rules")
@@ -91,10 +94,11 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
     @Test
     void 졸업_규칙을_배치_업서트한다() throws Exception {
         GraduationRuleBatchRequest request = new GraduationRuleBatchRequest(List.of(
-                new GraduationRuleUpsertItem(
+                new GraduationRuleBatchRequest.Item(
                         1L, 10L, "총 취득학점 130 이상", objectMapper.readTree("{\"min\":130}"), "총학점 요건"),
-                new GraduationRuleUpsertItem(null, 20L, "전공 30학점 이상", objectMapper.readTree("{\"min\":30}"), null)));
-        given(service.upsert(Mockito.anyList())).willReturn(List.of(1L, 100L));
+                new GraduationRuleBatchRequest.Item(
+                        null, 20L, "전공 30학점 이상", objectMapper.readTree("{\"min\":30}"), null)));
+        given(graduationRuleCommandService.upsert(Mockito.anyList())).willReturn(List.of(1L, 100L));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/admin/graduation-rules")
                         .contentType(MediaType.APPLICATION_JSON)

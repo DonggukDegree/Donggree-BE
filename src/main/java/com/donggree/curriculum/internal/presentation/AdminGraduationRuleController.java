@@ -1,10 +1,11 @@
 package com.donggree.curriculum.internal.presentation;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.GraduationRuleAdminService;
-import com.donggree.curriculum.internal.application.dto.GraduationRuleResponse;
-import com.donggree.curriculum.internal.application.dto.RuleTypeResponse;
+import com.donggree.curriculum.internal.application.GraduationRuleCommandService;
+import com.donggree.curriculum.internal.application.GraduationRuleQueryService;
 import com.donggree.curriculum.internal.presentation.dto.GraduationRuleBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.GraduationRuleResponse;
+import com.donggree.curriculum.internal.presentation.dto.RuleTypeResponse;
 import com.donggree.curriculum.internal.presentation.swagger.AdminGraduationRuleApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
@@ -29,12 +30,17 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminGraduationRuleController implements AdminGraduationRuleApi {
 
-    private final GraduationRuleAdminService graduationRuleAdminService;
+    private final GraduationRuleQueryService graduationRuleQueryService;
+    private final GraduationRuleCommandService graduationRuleCommandService;
 
     @Override
     @GetMapping("/rule-types")
     public ApiResponse<List<RuleTypeResponse>> getRuleTypes() {
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, graduationRuleAdminService.getRuleTypes());
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK,
+                graduationRuleQueryService.getRuleTypes().stream()
+                        .map(RuleTypeResponse::from)
+                        .toList());
     }
 
     @Override
@@ -43,13 +49,16 @@ public class AdminGraduationRuleController implements AdminGraduationRuleApi {
             @RequestParam(required = false) List<Long> ruleTypeIds,
             @RequestParam(required = false) List<CourseType> courseTypes) {
         return ApiResponse.onSuccess(
-                GeneralSuccessCode.OK, graduationRuleAdminService.search(ruleTypeIds, courseTypes));
+                GeneralSuccessCode.OK,
+                graduationRuleQueryService.search(ruleTypeIds, courseTypes).stream()
+                        .map(GraduationRuleResponse::from)
+                        .toList());
     }
 
     @Override
     @PutMapping("/graduation-rules")
     public ApiResponse<List<Long>> upsertGraduationRules(@Valid @RequestBody GraduationRuleBatchRequest request) {
-        List<Long> ids = graduationRuleAdminService.upsert(request.toCommands());
+        List<Long> ids = graduationRuleCommandService.upsert(request.toCommands());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, ids);
     }
 }

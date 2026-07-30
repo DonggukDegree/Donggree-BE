@@ -1,0 +1,35 @@
+package com.donggree.graduation.internal.application.projection;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * 학업 리포트 조회 결과 프로젝션.
+ * 애그리거트(엔티티)가 없는 무상태 판정 모듈이므로, 여러 모듈의 조회 결과를 응용 계층에서
+ * 조립한 읽기 전용 모델이다. 컨트롤러가 그대로 HTTP 응답으로 반환한다.
+ * summary: 졸업 달성률 요약 / areaOverviews: courseType별 이수 현황
+ */
+public record GraduationReportProjection(Summary summary, List<AreaOverview> areaOverviews) {
+
+    /**
+     * 졸업 요건 전체 요약.
+     * unsatisfiedReasons: GRADUATION_REQ 카테고리에서 미충족된 rule_name 목록
+     */
+    public record Summary(
+            int achievementRate,
+            int earnedCredits,
+            int targetCredits,
+            int remainingCredits,
+            BigDecimal gpa,
+            boolean graduated,
+            List<String> unsatisfiedReasons) {}
+
+    /**
+     * courseType별 이수 현황.
+     * achievementRate: MIN_AREA_CREDITS 기준 학점 달성률 (earnedCredits / targetCredits × 100, max 100)
+     * remainingCredits: max(0, targetCredits - earnedCredits)
+     * satisfied: 해당 courseType에 적용되는 모든 MIN_AREA_CREDITS 규칙 충족 여부
+     */
+    public record AreaOverview(
+            String courseType, String courseTypeName, int achievementRate, int remainingCredits, boolean satisfied) {}
+}
