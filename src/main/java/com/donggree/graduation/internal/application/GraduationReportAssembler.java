@@ -34,6 +34,9 @@ public class GraduationReportAssembler {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** 최소 이수량 규칙 타입 — 구 MIN_AREA_CREDITS·SCIENCE_EXPERIMENT를 흡수한 통합 타입. */
+    private static final String MIN_CREDITS = "MIN_CREDITS";
+
     /** 학업 리포트 요약 + courseType별 개요를 조립한다. */
     public GraduationReportProjection assembleReport(
             TranscriptView transcript,
@@ -129,7 +132,7 @@ public class GraduationReportAssembler {
                 .collect(Collectors.groupingBy(GraduationRuleView::courseType));
 
         Map<CourseType, List<GraduationRuleView>> minAreaRulesByCourseType = rules.stream()
-                .filter(r -> r.courseType() != null && "MIN_AREA_CREDITS".equals(r.typeName()))
+                .filter(r -> r.courseType() != null && MIN_CREDITS.equals(r.typeName()))
                 .collect(Collectors.groupingBy(GraduationRuleView::courseType));
 
         List<CourseType> relevantCourseTypes = new ArrayList<>();
@@ -168,31 +171,8 @@ public class GraduationReportAssembler {
                     return result != null && result.satisfied();
                 });
 
-        // MIN_AREA_CREDITS rule_config를 한 번만 파싱하여 재사용
-        record AreaRuleConfig(boolean isNullArea, int minCredits) {}
-        List<AreaRuleConfig> parsedConfigs = minAreaRules.stream()
-                .map(r -> {
-                    try {
-                        JsonNode node = MAPPER.readTree(r.ruleConfig());
-                        boolean isNullArea = node.path("areaNames").isNull()
-                                || node.path("areaNames").isMissingNode();
-                        int credits = node.path("minCredits").asInt(0);
-                        return new AreaRuleConfig(isNullArea, credits);
-                    } catch (JsonProcessingException e) {
-                        return new AreaRuleConfig(false, 0);
-                    }
-                })
-                .toList();
-
         int earnedCredits = context.getTotalPassedCreditsByType(courseType);
-        int targetCredits = parsedConfigs.stream()
-                .filter(AreaRuleConfig::isNullArea)
-                .mapToInt(AreaRuleConfig::minCredits)
-                .max()
-                .orElseGet(() -> parsedConfigs.stream()
-                        .mapToInt(AreaRuleConfig::minCredits)
-                        .sum());
-        int remainingCredits = Math.max(0, targetCredits - earnedCredits);
+        int remainingCredits = Math.max(0, resolveTypeTargetCredits(minAreaRules) - earnedCredits);
 
         return new AreaOverview(
                 courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
@@ -266,10 +246,12 @@ public class GraduationReportAssembler {
             requiredRules.add(new RequiredRule(rule, codes, ruleArea));
         }
 
-        // areaNames가 단일 영역인 MIN_AREA_CREDITS rule → 해당 영역의 targetCredits
+        // 단일 영역 목표학점만 섹션에 귀속시킨다.
+        // 여러 영역을 합산하는 규칙은 어느 한 영역의 목표로 볼 수 없으므로 섹션 targetCredits는 0으로 두고,
+        // 미충족 시 unsatisfiedReasons에 규칙명으로 노출된다.
         Map<String, Integer> targetCreditsByArea = new HashMap<>();
         for (GraduationRuleView rule : areaRules) {
-            if (!"MIN_AREA_CREDITS".equals(rule.typeName())) continue;
+            if (!isCreditTargetRule(rule)) continue;
             List<String> areaNames = parseStringList(rule.ruleConfig(), "areaNames");
             if (areaNames.size() == 1) {
                 targetCreditsByArea.put(areaNames.get(0), parseIntField(rule.ruleConfig(), "minCredits", 0));
@@ -390,54 +372,54 @@ public class GraduationReportAssembler {
         return pdfAreaName;
     }
 
-    private static String resolveSubCategoryStatus(
+    /**
+     * 소분류(alias) 항목의 상태를 결정한다.
+     * 이 소분류를 대상으로 삼는 MIN_CREDITS(최소 이수량) 규칙이 있으면 그 판정 결과를 따르고,
+     * 없으면 필수가 아니므로 OPTIONAL이다. 소분류별 분기를 하드코딩하지 않으므로 규칙이 늘어도 여기는 그대로다.
+     */
+    private String resolveSubCategoryStatus(
             String subCategory, List<GraduationRuleView> areaRules, Map<Long, RuleResult> resultByRuleId) {
-        if ("실험".equals(subCategory)) {
-            return areaRules.stream()
-                    .filter(r -> "SCIENCE_EXPERIMENT".equals(r.typeName()))
-                    .findFirst()
-                    .map(r -> {
-                        RuleResult result = resultByRuleId.get(r.id());
-                        return (result != null && result.satisfied()) ? "SATISFIED" : "UNSATISFIED";
-                    })
-                    .orElse("OPTIONAL");
-        }
-        return "OPTIONAL";
+        return areaRules.stream()
+                .filter(r -> MIN_CREDITS.equals(r.typeName()))
+                .filter(r -> parseStringList(r.ruleConfig(), "subCategories").contains(subCategory))
+                .findFirst()
+                .map(r -> isRuleSatisfied(r, resultByRuleId) ? "SATISFIED" : "UNSATISFIED")
+                .orElse("OPTIONAL");
     }
 
     private AreaDetailProjection.CreditStatus buildTypeCredits(
             CourseType courseType, List<GraduationRuleView> areaRules, EvaluationContext context) {
         int earned = context.getTotalPassedCreditsByType(courseType);
-        List<GraduationRuleView> minAreaRules = areaRules.stream()
-                .filter(r -> "MIN_AREA_CREDITS".equals(r.typeName()))
-                .toList();
-
-        record ParsedMinArea(boolean isWholeType, int minCredits) {}
-        // ruleConfig JSON을 규칙당 한 번만 파싱해 areaNames 유무와 minCredits를 추출한다.
-        List<ParsedMinArea> parsedList = minAreaRules.stream()
-                .map(r -> {
-                    try {
-                        JsonNode node = MAPPER.readTree(r.ruleConfig());
-                        JsonNode areaNames = node.path("areaNames");
-                        boolean isWhole = !areaNames.isArray() || areaNames.isEmpty();
-                        int credits = node.path("minCredits").asInt(0);
-                        return new ParsedMinArea(isWhole, credits);
-                    } catch (JsonProcessingException e) {
-                        return new ParsedMinArea(false, 0);
-                    }
-                })
-                .toList();
-
-        // areaNames=null 규칙이 있으면 그 값 사용, 없으면 모든 MIN_AREA_CREDITS 합산
-        OptionalInt wholeType = parsedList.stream()
-                .filter(ParsedMinArea::isWholeType)
-                .mapToInt(ParsedMinArea::minCredits)
-                .max();
-        int target = wholeType.isPresent()
-                ? wholeType.getAsInt()
-                : parsedList.stream().mapToInt(ParsedMinArea::minCredits).sum();
-
+        int target = resolveTypeTargetCredits(areaRules);
         return new AreaDetailProjection.CreditStatus(earned, target, Math.max(0, target - earned));
+    }
+
+    /**
+     * 이수 구분 전체의 목표학점을 구한다.
+     * 영역 제한이 없는 규칙이 있으면 그중 최대값을 쓰고(ex. 공통교양 17학점),
+     * 없으면 영역별 목표학점을 합산한다(ex. 학문기초 기본소양 6 + MSC 21 = 27).
+     */
+    private int resolveTypeTargetCredits(List<GraduationRuleView> rules) {
+        OptionalInt wholeType = rules.stream()
+                .filter(this::isCreditTargetRule)
+                .filter(r -> parseStringList(r.ruleConfig(), "areaNames").isEmpty())
+                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+                .max();
+        if (wholeType.isPresent()) return wholeType.getAsInt();
+
+        return rules.stream()
+                .filter(this::isCreditTargetRule)
+                .filter(r -> !parseStringList(r.ruleConfig(), "areaNames").isEmpty())
+                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+                .sum();
+    }
+
+    /**
+     * 규칙의 minCredits를 리포트 목표학점으로 쓸 수 있는지 확인한다.
+     * minCredits가 없는 규칙(ex. 실험 교과목 1과목 필수 선택 — minCount만 사용)은 목표학점이 아니다.
+     */
+    private boolean isCreditTargetRule(GraduationRuleView rule) {
+        return MIN_CREDITS.equals(rule.typeName()) && hasNumberField(rule.ruleConfig(), "minCredits");
     }
 
     private List<String> parseStringList(String json, String field) {
@@ -451,6 +433,16 @@ public class GraduationReportAssembler {
             return result;
         } catch (JsonProcessingException e) {
             return List.of();
+        }
+    }
+
+    /** rule_config에 해당 숫자 필드가 실제로 들어 있는지 확인한다. */
+    private boolean hasNumberField(String ruleConfig, String fieldName) {
+        if (ruleConfig == null) return false;
+        try {
+            return MAPPER.readTree(ruleConfig).path(fieldName).isNumber();
+        } catch (JsonProcessingException e) {
+            return false;
         }
     }
 

@@ -148,11 +148,18 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 List.of(new CourseItem("불교와인간", 2, "SATISFIED", null), new CourseItem("자아와명상1", 2, "OPTIONAL", null));
         List<CourseItem> 자기계발Items = List.of(new CourseItem("진로탐색과비전", 1, "OPTIONAL", null));
 
-        List<AreaSection> areaSections =
-                List.of(new AreaSection("동국인성", 4, 0, true, 동국인성Items), new AreaSection("자기계발", 1, 0, true, 자기계발Items));
+        // 여러 영역을 합산해 판정하는 규칙(ex. 21세기시민·지역연구·미래위험사회와안전 중 2학점)은
+        // 목표학점을 어느 한 영역에 귀속시킬 수 없으므로 섹션 targetCredits는 0이고,
+        // 요건 자체는 unsatisfiedReasons에 규칙명으로 노출된다.
+        List<CourseItem> 지역연구Items = List.of(new CourseItem("동남아지역연구", 1, "OPTIONAL", null));
+
+        List<AreaSection> areaSections = List.of(
+                new AreaSection("동국인성", 4, 0, true, 동국인성Items),
+                new AreaSection("자기계발", 1, 0, true, 자기계발Items),
+                new AreaSection("지역연구", 1, 0, false, 지역연구Items));
 
         AreaDetailProjection response = new AreaDetailProjection(
-                areaSections, List.of("EAS2 이전에 EAS1을 선이수해야 합니다."), new CreditStatus(17, 17, 0));
+                areaSections, List.of("21세기시민·지역연구·미래위험사회와안전 중 2학점 이상 이수해야 합니다."), new CreditStatus(17, 17, 0));
 
         given(graduationQueryService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
                 .willReturn(response);

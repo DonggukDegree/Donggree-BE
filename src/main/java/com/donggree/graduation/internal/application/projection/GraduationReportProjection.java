@@ -26,9 +26,9 @@ public record GraduationReportProjection(Summary summary, List<AreaOverview> are
 
     /**
      * courseType별 이수 현황.
-     * achievementRate: MIN_AREA_CREDITS 기준 학점 달성률 (earnedCredits / targetCredits × 100, max 100)
-     * remainingCredits: max(0, targetCredits - earnedCredits)
-     * satisfied: 해당 courseType에 적용되는 모든 MIN_AREA_CREDITS 규칙 충족 여부
+     * achievementRate: 해당 courseType 규칙의 충족 비율 (충족 규칙 수 / 전체 규칙 수 × 100)
+     * remainingCredits: max(0, targetCredits - earnedCredits) — targetCredits는 MIN_CREDITS 규칙에서 결정
+     * satisfied: 해당 courseType에 적용되는 모든 규칙 충족 여부
      */
     public record AreaOverview(
             String courseType, String courseTypeName, int achievementRate, int remainingCredits, boolean satisfied) {}
