@@ -80,6 +80,42 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
     }
 
+    // --- requiredCourseSets가 없으면 졸업논문심사(PDF) 결과로 판정 ---
+
+    @Test
+    void 지정_과목이_없는_규칙은_졸업논문심사_합격이면_충족이다() {
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(0, 4.0, false, null, true, "단일", "S1", List.of()));
+
+        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isTrue();
+    }
+
+    @Test
+    void 지정_과목이_없는_규칙은_졸업논문심사_불합격이면_미충족이다() {
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(0, 4.0, false, null, false, "단일", "S1", List.of()));
+
+        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isFalse();
+    }
+
+    @Test
+    void 지정_과목이_없어도_면제_대상이면_충족이다() {
+        String config = "{\"exemptStudentTypes\":[\"학석사연계과정\"]}";
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(0, 4.0, false, null, false, "학석사연계과정", "S1", List.of()));
+
+        assertThat(evaluator.evaluate(rule(config), ctx).satisfied()).isTrue();
+    }
+
+    /** 지정 과목이 있는 규칙은 과목 이수만 본다 — 논문심사 결과에 영향받지 않는다. */
+    @Test
+    void 지정_과목이_있는_규칙은_논문심사_합격이어도_과목_이수만_본다() {
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(0, 4.0, false, null, true, "단일", "S1", List.of()));
+
+        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
+    }
+
     private GraduationRuleView rule(String config) {
         return new GraduationRuleView(1L, "THESIS", null, "종합설계1과 종합설계2 또는 개별연구를 이수해야 합니다.", config);
     }

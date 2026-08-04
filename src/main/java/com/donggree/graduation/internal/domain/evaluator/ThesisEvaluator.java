@@ -9,19 +9,30 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * 졸업논문(종합설계) 규칙 평가기.
+ * 졸업논문 규칙 평가기.
+ * 졸업 판정 방식이 학과마다 다르므로 requiredCourseSets 유무로 판정 경로를 나눈다.
+ *
  * ruleConfig:
+ *   // 지정 과목 이수로 판정 (ex. 컴퓨터·AI학부 종합설계)
  *   {
  *     "exemptStudentTypes": ["학석사연계과정"],
  *     "requiredCourseSets": [
  *       [["CSE4066","CSC4018"], ["CSE4067","CSC4019"]],
- *       [["CSE4066","CSC4018"], ["CS_개별연구"]]
+ *       [["CSE4066","CSC4018"], ["DAI*"]]
  *     ]
  *   }
  *
- * exemptStudentTypes에 해당하는 학생은 자동 충족 처리한다.
- * requiredCourseSets 중 하나의 세트에서 각 과목 그룹마다 하나 이상 이수하면 충족이다.
- * 동일유사 교과목은 같은 그룹 배열에 여러 코드로 표현한다.
+ *   // 성적표의 졸업논문심사 결과로 판정 (대부분의 학과)
+ *   {}
+ *
+ * 판정 순서:
+ *   1. exemptStudentTypes에 해당하는 학생은 자동 충족
+ *   2. requiredCourseSets가 있으면 — 그중 한 세트에서 각 과목 그룹마다 하나 이상 이수하면 충족
+ *      (동일유사 교과목은 같은 그룹 배열에 여러 코드로 표현한다)
+ *   3. requiredCourseSets가 없으면 — 성적표의 졸업논문심사가 합격이면 충족
+ *
+ * 학과 구분은 이 규칙이 아니라 requirement_set(department_id)이 담당하므로
+ * 규칙 자체에 적용 학과를 두지 않는다.
  */
 @Component
 public class ThesisEvaluator implements RuleEvaluator {
@@ -41,9 +52,12 @@ public class ThesisEvaluator implements RuleEvaluator {
         }
 
         List<List<List<String>>> courseSets = config.requiredCourseSets();
-        boolean satisfied = courseSets != null
-                && courseSets.stream()
-                        .anyMatch(set -> set.stream().allMatch(codes -> context.hasPassedAnyCourseByCode(codes)));
+        if (courseSets == null || courseSets.isEmpty()) {
+            return new RuleResult(rule.ruleName(), context.getTranscript().thesisStatus());
+        }
+
+        boolean satisfied = courseSets.stream()
+                .anyMatch(set -> set.stream().allMatch(codes -> context.hasPassedAnyCourseByCode(codes)));
 
         return new RuleResult(rule.ruleName(), satisfied);
     }
