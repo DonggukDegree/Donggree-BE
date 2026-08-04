@@ -12,6 +12,7 @@ import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CourseItem;
+import com.donggree.graduation.internal.domain.evaluator.MinCreditsEvaluator;
 import com.donggree.graduation.internal.domain.evaluator.RequiredCourseEvaluator;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptLookupService;
@@ -47,7 +48,7 @@ class GraduationQueryServiceTest {
         service = new GraduationQueryService(
                 transcriptLookupService,
                 curriculumLookupService,
-                List.of(new RequiredCourseEvaluator()),
+                List.of(new RequiredCourseEvaluator(), new MinCreditsEvaluator()),
                 new GraduationReportAssembler());
     }
 
@@ -131,7 +132,106 @@ class GraduationQueryServiceTest {
         });
     }
 
+    // --- 최소 이수량 규칙(MIN_CREDITS)의 목표학점 표시 ---
+
+    /**
+     * 여러 영역을 합산해 판정하는 규칙(21세기시민·지역연구·미래위험사회와안전 중 2학점)은
+     * 목표학점을 어느 한 영역에 귀속시킬 수 없어 섹션에 표시되지 않는다.
+     * 대신 미충족 시 unsatisfiedReasons에 규칙명으로 노출되어야 한다.
+     */
+    @Test
+    void 다중_영역_규칙_미충족은_미충족사유로_노출된다() {
+        givenTranscript(passed("RGC1075", "동남아지역연구", 1, "공교", null));
+        givenMinCreditsRule(
+                CourseType.COMMON_GENERAL,
+                "21세기시민·지역연구·미래위험사회와안전 중 2학점 이상 이수해야 합니다.",
+                "{\"courseType\":\"COMMON_GENERAL\",\"areaNames\":[\"21세기시민\",\"지역연구\",\"미래위험사회와안전\"],"
+                        + "\"minCredits\":2}");
+        givenClassification("RGC1075", CourseType.COMMON_GENERAL, "지역연구");
+
+        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+
+        assertThat(response.unsatisfiedReasons()).containsExactly("21세기시민·지역연구·미래위험사회와안전 중 2학점 이상 이수해야 합니다.");
+    }
+
+    /** 여러 영역을 합산하는 규칙이 있어도 화면은 영역별로 그대로 나뉘고, 섹션 targetCredits는 0이다. */
+    @Test
+    void 다중_영역_규칙일_때_개별_영역_섹션의_목표학점은_0이다() {
+        givenTranscript(passed("RGC1075", "동남아지역연구", 1, "공교", null));
+        givenMinCreditsRule(
+                CourseType.COMMON_GENERAL,
+                "21세기시민·지역연구·미래위험사회와안전 중 2학점 이상 이수해야 합니다.",
+                "{\"courseType\":\"COMMON_GENERAL\",\"areaNames\":[\"21세기시민\",\"지역연구\",\"미래위험사회와안전\"],"
+                        + "\"minCredits\":2}");
+        givenClassification("RGC1075", CourseType.COMMON_GENERAL, "지역연구");
+
+        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+
+        assertThat(response.areaDetails())
+                .filteredOn(section -> section.areaName().equals("지역연구"))
+                .singleElement()
+                .satisfies(section -> assertThat(section.targetCredits()).isZero());
+    }
+
+    /** 단일 영역 규칙은 목표학점을 그 영역에 귀속시킬 수 있으므로 섹션 targetCredits로 표현된다. */
+    @Test
+    void 단일_영역_규칙의_목표학점은_섹션에_그대로_표시된다() {
+        givenTranscript(passed("RGC1090", "리더십과봉사", 1, "공교", null));
+        givenMinCreditsRule(
+                CourseType.COMMON_GENERAL,
+                "리더십을 2학점 이상 이수해야 합니다.",
+                "{\"courseType\":\"COMMON_GENERAL\",\"areaNames\":[\"리더십\"],\"minCredits\":2}");
+        givenClassification("RGC1090", CourseType.COMMON_GENERAL, "리더십");
+
+        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+
+        assertThat(response.areaDetails())
+                .filteredOn(section -> section.areaName().equals("리더십"))
+                .singleElement()
+                .satisfies(section -> {
+                    assertThat(section.targetCredits()).isEqualTo(2);
+                    assertThat(section.satisfied()).isFalse();
+                });
+    }
+
+    /** 영역 제한이 없는 규칙(areaNames 없음)은 이수구분 전체 목표학점이 된다. */
+    @Test
+    void 이수구분_전체_규칙은_creditStatus의_목표학점이_된다() {
+        givenTranscript(passed("RGC0003", "불교와인간", 2, "공교", null));
+        givenMinCreditsRule(
+                CourseType.COMMON_GENERAL,
+                "공통교양을 17학점 이상 이수해야 합니다.",
+                "{\"courseType\":\"COMMON_GENERAL\",\"minCredits\":17}");
+        givenClassification("RGC0003", CourseType.COMMON_GENERAL, "자아성찰");
+
+        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+
+        assertThat(response.creditStatus().targetCredits()).isEqualTo(17);
+        assertThat(response.creditStatus().earnedCredits()).isEqualTo(2);
+        assertThat(response.creditStatus().remainingCredits()).isEqualTo(15);
+    }
+
+    /** minCredits가 없는 규칙(ex. 실험 과목 필수 선택 — minCount만 사용)은 목표학점 계산에 반영되지 않는다. */
+    @Test
+    void minCredits가_없는_규칙은_목표학점에_반영되지_않는다() {
+        givenTranscript(passed("PRI4002", "일반물리학및실험1", 3, "학기", null));
+        givenMinCreditsRule(
+                CourseType.ACADEMIC_FOUNDATION,
+                "실험 교과목 중 1과목을 필수 선택해야 합니다.",
+                "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"subCategories\":[\"실험\"],\"minCount\":1}");
+        givenClassification("PRI4002", CourseType.ACADEMIC_FOUNDATION, "과학");
+
+        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.ACADEMIC_FOUNDATION);
+
+        assertThat(response.creditStatus().targetCredits()).isZero();
+    }
+
     // --- 헬퍼 ---
+
+    private void givenMinCreditsRule(CourseType courseType, String ruleName, String ruleConfig) {
+        GraduationRuleView rule = new GraduationRuleView(2L, "MIN_CREDITS", courseType, ruleName, ruleConfig);
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of(rule));
+    }
 
     private void givenTranscript(CourseRecordView... records) {
         TranscriptView transcript = new TranscriptView(

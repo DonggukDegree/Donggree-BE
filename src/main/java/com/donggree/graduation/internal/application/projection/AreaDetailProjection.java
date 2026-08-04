@@ -12,6 +12,11 @@ import java.util.List;
 public record AreaDetailProjection(
         List<AreaSection> areaDetails, List<String> unsatisfiedReasons, CreditStatus creditStatus) {
 
+    /**
+     * targetCredits는 단일 영역 규칙에서만 채워진다.
+     * 여러 영역을 합산하는 규칙(ex. MSC 수학+과학 21학점)의 목표학점은 어느 한 영역에 귀속시킬 수 없으므로
+     * 해당 영역 섹션의 targetCredits는 0이다. 그 요건은 unsatisfiedReasons에 규칙명으로 노출된다.
+     */
     public record AreaSection(
             String areaName, int earnedCredits, int targetCredits, boolean satisfied, List<CourseItem> items) {}
 
