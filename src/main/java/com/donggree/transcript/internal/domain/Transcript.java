@@ -50,7 +50,8 @@ public class Transcript extends BaseEntity {
     @Column(name = "admission_year", nullable = false)
     private int admissionYear;
 
-    @Column(name = "student_type", length = 5)
+    // PDF "과정" 원문. "학석사연계과정"(7자) 같은 값이 들어오므로 5자로는 부족하다.
+    @Column(name = "student_type", length = 10)
     private String studentType;
 
     @Column(name = "department_id")
