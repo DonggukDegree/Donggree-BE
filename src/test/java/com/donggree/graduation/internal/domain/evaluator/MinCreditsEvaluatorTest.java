@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -121,6 +122,38 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
     }
 
+    // --- pdfAreaName 선택자 (전공기초/전공전문 — course_classification 미등록 과목) ---
+
+    /**
+     * 전공 과목은 course_classification에 등록돼 있지 않아 전공기초/전공전문 구분이 PDF에만 있다.
+     * courseType은 PDF 이수구분("전공")으로 추론된 값을 쓰고, 영역은 PDF 원문("기초"/"전문")으로 고른다.
+     */
+    @Test
+    void 전공전문_학점이_최소_이상이면_충족이다() {
+        var records = List.of(
+                majorCourse("CSE4029", "알고리즘", 3, "전문"),
+                majorCourse("CSE3012", "운영체제", 3, "전문"),
+                majorCourse("CSE1001", "컴퓨터과학개론", 3, "기초"));
+        var cls = Map.of(
+                "CSE4029", classification(CourseType.FIRST_MAJOR),
+                "CSE3012", classification(CourseType.FIRST_MAJOR),
+                "CSE1001", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = context(transcript(9, 4.0, records), cls);
+
+        assertThat(evaluator.evaluate(majorAdvancedRule(6), ctx).satisfied()).isTrue();
+    }
+
+    @Test
+    void 전공기초_학점은_전공전문_규칙에_합산되지_않는다() {
+        var records = List.of(majorCourse("CSE1001", "컴퓨터과학개론", 3, "기초"), majorCourse("CSE1002", "어드벤처디자인", 3, "기초"));
+        var cls = Map.of(
+                "CSE1001", classification(CourseType.FIRST_MAJOR),
+                "CSE1002", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
+
+        assertThat(evaluator.evaluate(majorAdvancedRule(6), ctx).satisfied()).isFalse();
+    }
+
     // --- courseCode 선택자 ---
 
     @Test
@@ -183,6 +216,20 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
     }
 
     private GraduationRuleView rule(String config) {
-        return new GraduationRuleView(3L, "MIN_CREDITS", CourseType.COMMON_GENERAL, "선택 이수 규칙", config);
+        return new GraduationRuleView(3L, "MIN_CREDITS", CourseType.COMMON_GENERAL, "최소 이수량 규칙", config);
+    }
+
+    private GraduationRuleView majorAdvancedRule(int minCredits) {
+        return new GraduationRuleView(
+                4L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "전공전문 과목을 " + minCredits + "학점 이상 이수해야 합니다.",
+                "{\"courseType\":\"FIRST_MAJOR\",\"pdfAreaNames\":[\"전문\"],\"minCredits\":" + minCredits + "}");
+    }
+
+    /** PDF 이수구분 "전공" + 영역 원문(기초/전문)을 가진 수강 이력. */
+    private static CourseRecordView majorCourse(String code, String name, int credits, String pdfAreaName) {
+        return new CourseRecordView("2024-1", code, "전공", pdfAreaName, name, credits, true, false);
     }
 }
