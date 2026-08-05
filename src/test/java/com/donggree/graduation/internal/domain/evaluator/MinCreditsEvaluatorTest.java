@@ -154,6 +154,48 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         assertThat(evaluator.evaluate(majorAdvancedRule(6), ctx).satisfied()).isFalse();
     }
 
+    // --- pdfCourseTypeName 선택자 (전필 — PDF 이수구분 원문) ---
+
+    /**
+     * 전공필수 여부는 PDF의 이수구분 칸("전필")에만 있고 영역 칸에는 "기초"/"전문"이 들어간다.
+     * 따라서 전필 학점은 pdfAreaNames가 아니라 pdfCourseTypeNames로 골라야 한다.
+     */
+    @Test
+    void 전필_과목의_학점만_합산해_최소_학점을_판정한다() {
+        var records = List.of(
+                majorRequiredCourse("CSC2007", "자료구조", 3, "전문"),
+                majorRequiredCourse("CSC2011", "컴퓨터구성", 3, "전문"),
+                majorCourse("CSE4029", "알고리즘", 3, "전문"));
+        var cls = Map.of(
+                "CSC2007", classification(CourseType.FIRST_MAJOR),
+                "CSC2011", classification(CourseType.FIRST_MAJOR),
+                "CSE4029", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = context(transcript(9, 4.0, records), cls);
+
+        assertThat(evaluator.evaluate(majorRequiredRule(6), ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(majorRequiredRule(9), ctx).satisfied()).isFalse();
+    }
+
+    @Test
+    void 전필이_아닌_전공_과목은_전필_규칙에_합산되지_않는다() {
+        var records = List.of(majorCourse("CSE4029", "알고리즘", 3, "전문"), majorCourse("CSE3012", "운영체제", 3, "전문"));
+        var cls = Map.of(
+                "CSE4029", classification(CourseType.FIRST_MAJOR),
+                "CSE3012", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
+
+        assertThat(evaluator.evaluate(majorRequiredRule(3), ctx).satisfied()).isFalse();
+    }
+
+    @Test
+    void 전필_과목도_영역_원문으로_고르면_전공전문_규칙에_합산된다() {
+        var records = List.of(majorRequiredCourse("CSC2007", "자료구조", 3, "전문"));
+        var cls = Map.of("CSC2007", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
+
+        assertThat(evaluator.evaluate(majorAdvancedRule(3), ctx).satisfied()).isTrue();
+    }
+
     // --- courseCode 선택자 ---
 
     @Test
@@ -163,6 +205,61 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var rule = rule("{\"courseCodes\": [\"DAI*\"], \"minCount\": 1}");
 
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+    }
+
+    // --- 선택자 조합 (AND) ---
+
+    /**
+     * 선택자를 여러 개 쓰면 모두 만족하는 과목만 대상이다.
+     * "전필 중 전공전문 영역" 처럼 교집합으로 좁히는 요건을 표현한다.
+     */
+    @Test
+    void 선택자를_여러_개_쓰면_모두_만족하는_과목만_대상이다() {
+        var records = List.of(
+                majorRequiredCourse("CSC2007", "자료구조", 3, "전문"), // 전필 + 전문 → 대상
+                majorRequiredCourse("CSE1001", "컴퓨터과학개론", 3, "기초"), // 전필이지만 기초 → 제외
+                majorCourse("CSE4029", "알고리즘", 3, "전문")); // 전문이지만 전필 아님 → 제외
+        var cls = Map.of(
+                "CSC2007", classification(CourseType.FIRST_MAJOR),
+                "CSE1001", classification(CourseType.FIRST_MAJOR),
+                "CSE4029", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = context(transcript(9, 4.0, records), cls);
+        var rule = rule(
+                "{\"courseType\":\"FIRST_MAJOR\",\"pdfCourseTypeNames\":[\"전필\"],\"pdfAreaNames\":[\"전문\"],\"minCredits\":3}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+
+        var stricter = rule(
+                "{\"courseType\":\"FIRST_MAJOR\",\"pdfCourseTypeNames\":[\"전필\"],\"pdfAreaNames\":[\"전문\"],\"minCredits\":6}");
+        assertThat(evaluator.evaluate(stricter, ctx).satisfied()).isFalse();
+    }
+
+    @Test
+    void 영역과_소분류를_함께_쓰면_둘_다_일치해야_대상이다() {
+        var records = List.of(
+                passed("PRI4002", "일반물리학및실험1", 3, "2023-1"), // 과학 + 실험 → 대상
+                passed("PRI4030", "공학수학실험", 3, "2023-2")); // 실험이지만 수학 영역 → 제외
+        var cls = Map.of(
+                "PRI4002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리학"),
+                "PRI4030", classification(CourseType.ACADEMIC_FOUNDATION, "수학", "실험", null));
+        EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
+        var rule = rule(
+                "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"과학\"],\"subCategories\":[\"실험\"],\"minCount\":1,\"minCredits\":3}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+
+        var needsTwo = rule(
+                "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"과학\"],\"subCategories\":[\"실험\"],\"minCount\":2}");
+        assertThat(evaluator.evaluate(needsTwo, ctx).satisfied()).isFalse();
+    }
+
+    @Test
+    void 분류_정보가_없는_과목은_분류_기반_선택자에_걸리지_않는다() {
+        var records = List.of(majorRequiredCourse("CSC9999", "미등록전공과목", 3, "전문"));
+        EvaluationContext ctx = context(transcript(3, 4.0, records), Map.of());
+        var rule = rule("{\"pdfCourseTypeNames\":[\"전필\"],\"areaNames\":[\"전공전문\"],\"minCredits\":3}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
     }
 
     // --- 선택자·임계값 조합 ---
@@ -228,8 +325,22 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "{\"courseType\":\"FIRST_MAJOR\",\"pdfAreaNames\":[\"전문\"],\"minCredits\":" + minCredits + "}");
     }
 
+    private GraduationRuleView majorRequiredRule(int minCredits) {
+        return new GraduationRuleView(
+                5L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "전공필수 과목을 " + minCredits + "학점 이상 이수해야 합니다.",
+                "{\"courseType\":\"FIRST_MAJOR\",\"pdfCourseTypeNames\":[\"전필\"],\"minCredits\":" + minCredits + "}");
+    }
+
     /** PDF 이수구분 "전공" + 영역 원문(기초/전문)을 가진 수강 이력. */
     private static CourseRecordView majorCourse(String code, String name, int credits, String pdfAreaName) {
         return new CourseRecordView("2024-1", code, "전공", pdfAreaName, name, credits, true, false);
+    }
+
+    /** PDF 이수구분 "전필"(전공필수) + 영역 원문(기초/전문)을 가진 수강 이력. */
+    private static CourseRecordView majorRequiredCourse(String code, String name, int credits, String pdfAreaName) {
+        return new CourseRecordView("2024-1", code, "전필", pdfAreaName, name, credits, true, false);
     }
 }
