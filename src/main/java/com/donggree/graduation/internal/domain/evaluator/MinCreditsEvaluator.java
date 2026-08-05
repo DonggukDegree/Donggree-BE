@@ -22,13 +22,24 @@ import org.springframework.stereotype.Component;
  *   {"courseType": "ACADEMIC_FOUNDATION", "areaNames": ["수학", "과학"], "minCredits": 21}
  *   {"courseType": "ACADEMIC_FOUNDATION", "subCategories": ["실험"], "minCount": 1}
  *   {"courseType": "FIRST_MAJOR", "pdfAreaNames": ["전문"], "minCredits": 30}
+ *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["전필"], "minCredits": 12}
+ *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["전필"], "pdfAreaNames": ["전문"], "minCredits": 9}
  *
- * - courseType: null이면 이수구분 제한 없이 전체 수강 이력을 대상으로 한다.
- * - 선택자(areaNames·subCategories·pdfAreaNames·courseCodes): 지정된 것들의 합집합(OR)이 대상 과목이 된다.
- *   모두 비어 있으면 courseType 전체가 대상이다. courseCodes는 "DAI*" 같은 prefix 패턴을 지원한다.
- *   pdfAreaNames는 성적표 PDF의 영역 원문("기초", "전문" 등)으로 고른다. course_classification에
- *   등록되지 않은 전공 과목의 전공기초/전공전문 구분이 PDF에만 존재하므로 필요하다.
- * - 임계값(minCredits·minCount): 지정된 것을 모두 만족해야 충족(AND)이다. 둘 다 없으면 설정 오류다.
+ * 대상 과목 선택 — 조건(courseType·선택자)은 모두 AND로 좁힌다.
+ * 값을 쓴 조건만 제약이 되고, 비어 있는(또는 null) 조건은 "제한 없음"이다.
+ * 따라서 조건을 하나도 쓰지 않으면 이수한 전체 수강 이력이 대상이 된다.
+ * 한 조건 안의 여러 값끼리는 OR다 — areaNames: ["수학", "과학"]은 수학이거나 과학.
+ *
+ * - courseType: course_classification 기준 이수구분.
+ * - areaNames·subCategories: course_classification의 영역·소분류.
+ * - pdfAreaNames: 성적표 PDF의 영역 원문("기초", "전문" 등). course_classification에 등록되지 않은
+ *   전공 과목의 전공기초/전공전문 구분이 PDF에만 존재하므로 필요하다.
+ * - pdfCourseTypeNames: 성적표 PDF의 이수구분 원문("전필", "전공", "공교", "학기", "일교", "자선").
+ *   전공필수 여부는 PDF의 이수구분 칸에만 "전필"로 표시되므로("전필" 과목의 영역 원문은 "기초"/"전문"이다),
+ *   전필 학점을 세려면 pdfAreaNames가 아니라 이 선택자를 써야 한다.
+ * - courseCodes: 학수번호. "DAI*" 같은 prefix 패턴을 지원한다.
+ *
+ * 임계값(minCredits·minCount): 지정된 것을 모두 만족해야 충족(AND)이다. 둘 다 없으면 설정 오류다.
  */
 @Component
 public class MinCreditsEvaluator implements RuleEvaluator {
@@ -58,36 +69,31 @@ public class MinCreditsEvaluator implements RuleEvaluator {
         return new RuleResult(rule.ruleName(), satisfied);
     }
 
-    /** 수강 이력 하나가 이 규칙의 대상 과목 묶음에 속하는지 판단한다. */
+    /**
+     * 수강 이력 하나가 이 규칙의 대상 과목 묶음에 속하는지 판단한다.
+     * 값을 쓴 조건은 모두 만족해야 하고(AND), 비어 있는 조건은 제약이 아니다.
+     */
     private boolean matches(CourseRecordView record, CourseType courseType, Config config, EvaluationContext context) {
         CourseClassificationView classification = context.getClassification(record.courseCode());
         if (courseType != null && (classification == null || classification.courseType() != courseType)) {
             return false;
         }
-        if (isEmpty(config.areaNames())
-                && isEmpty(config.subCategories())
-                && isEmpty(config.pdfAreaNames())
-                && isEmpty(config.courseCodes())) {
-            return true;
-        }
-        if (classification != null
-                && classification.areaName() != null
-                && !isEmpty(config.areaNames())
-                && config.areaNames().contains(classification.areaName())) {
-            return true;
-        }
-        if (classification != null
-                && classification.subCategory() != null
-                && !isEmpty(config.subCategories())
-                && config.subCategories().contains(classification.subCategory())) {
-            return true;
-        }
-        if (record.pdfAreaName() != null
-                && !isEmpty(config.pdfAreaNames())
-                && config.pdfAreaNames().contains(record.pdfAreaName())) {
-            return true;
-        }
-        return !isEmpty(config.courseCodes()) && context.codeMatchesAny(record.courseCode(), config.courseCodes());
+        return matchesSelector(config.areaNames(), classification == null ? null : classification.areaName())
+                && matchesSelector(config.subCategories(), classification == null ? null : classification.subCategory())
+                && matchesSelector(config.pdfAreaNames(), record.pdfAreaName())
+                && matchesSelector(config.pdfCourseTypeNames(), record.courseTypeName())
+                && matchesCourseCodes(config.courseCodes(), record, context);
+    }
+
+    /** 선택자가 비어 있으면 제약 없음, 값이 있으면 그중 하나와 일치해야 한다. 값을 모르는 과목은 제외된다. */
+    private static boolean matchesSelector(List<String> selector, String value) {
+        return isEmpty(selector) || (value != null && selector.contains(value));
+    }
+
+    /** 학수번호 선택자는 prefix 패턴("DAI*")을 지원하므로 별도로 매칭한다. */
+    private static boolean matchesCourseCodes(
+            List<String> courseCodes, CourseRecordView record, EvaluationContext context) {
+        return isEmpty(courseCodes) || context.codeMatchesAny(record.courseCode(), courseCodes);
     }
 
     private static boolean isEmpty(List<String> values) {
@@ -100,6 +106,7 @@ public class MinCreditsEvaluator implements RuleEvaluator {
             List<String> areaNames,
             List<String> subCategories,
             List<String> pdfAreaNames,
+            List<String> pdfCourseTypeNames,
             List<String> courseCodes,
             Integer minCredits,
             Integer minCount) {}
