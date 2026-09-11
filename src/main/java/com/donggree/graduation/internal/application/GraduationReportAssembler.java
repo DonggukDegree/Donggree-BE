@@ -42,9 +42,12 @@ public class GraduationReportAssembler {
             TranscriptView transcript,
             List<GraduationRuleView> rules,
             Map<Long, RuleResult> resultByRuleId,
-            EvaluationContext context) {
+            EvaluationContext context,
+            boolean hasUnsupportedMajor) {
         return new GraduationReportProjection(
-                buildSummary(transcript, rules, resultByRuleId), buildAreaOverviews(rules, resultByRuleId, context));
+                buildSummary(transcript, rules, resultByRuleId),
+                buildAreaOverviews(rules, resultByRuleId, context),
+                hasUnsupportedMajor);
     }
 
     /** 영역별 상세 이수 현황을 조립한다. areaRules는 대상 courseType에 속한 규칙만 넘긴다. */

@@ -71,7 +71,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
         given(graduationQueryService.getReport(memberId))
-                .willReturn(new GraduationReportProjection(summary, areaOverviews));
+                .willReturn(new GraduationReportProjection(summary, areaOverviews, false));
 
         mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isOk())
@@ -101,7 +101,10 @@ class GraduationReportControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.areaOverviews[].remainingCredits")
                                         .description("해당 영역의 잔여 학점"),
                                 fieldWithPath("result.areaOverviews[].satisfied")
-                                        .description("해당 영역의 요건 충족 여부"))));
+                                        .description("해당 영역의 요건 충족 여부"),
+                                fieldWithPath("result.hasUnsupportedMajor")
+                                        .description(
+                                                "복수전공·부전공 이력 유무. true면 해당 전공 요건이 판정되지 않고 그 과목이 주전공 학점에 합산돼 리포트가 실제보다 후할 수 있으므로 화면에서 안내해야 한다."))));
     }
 
     @Test

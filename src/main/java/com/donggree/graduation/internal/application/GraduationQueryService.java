@@ -63,7 +63,15 @@ public class GraduationQueryService {
         EvaluationContext context = buildContext(transcript);
         Map<Long, RuleResult> resultByRuleId = evaluateRules(rules, context);
 
-        return reportAssembler.assembleReport(transcript, rules, resultByRuleId, context);
+        return reportAssembler.assembleReport(
+                transcript, rules, resultByRuleId, context, hasUnsupportedMajor(transcript));
+    }
+
+    private boolean hasUnsupportedMajor(TranscriptView transcript) {
+        return transcript.dualMajor1Id() != null
+                || transcript.dualMajor2Id() != null
+                || transcript.subMajor1Id() != null
+                || transcript.subMajor2Id() != null;
     }
 
     public AreaDetailProjection getAreaDetail(Long memberId, CourseType courseType) {

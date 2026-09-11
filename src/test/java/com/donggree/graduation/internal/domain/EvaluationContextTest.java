@@ -12,7 +12,7 @@ class EvaluationContextTest {
 
     private final EvaluationContext context = new EvaluationContext(
             new TranscriptView(
-                    1L, 1L, 100L, 2023, "단일", 0, BigDecimal.valueOf(4.0), "S1", false, null, false, List.of()),
+                    1L, 1L, 100L, null, null, null, null, 2023, "단일", 0, BigDecimal.valueOf(4.0), "S1", false, null, false, List.of()),
             Map.of());
 
     @Test
