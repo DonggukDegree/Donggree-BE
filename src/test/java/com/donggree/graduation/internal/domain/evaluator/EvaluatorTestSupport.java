@@ -14,7 +14,22 @@ class EvaluatorTestSupport {
 
     static TranscriptView transcript(int totalCredits, double gpa, List<CourseRecordView> records) {
         return new TranscriptView(
-                1L, 1L, 100L, null, null, null, null, 2023, "단일", totalCredits, BigDecimal.valueOf(gpa), "S1", false, null, false, records);
+                1L,
+                1L,
+                100L,
+                null,
+                null,
+                null,
+                null,
+                2023,
+                "단일",
+                totalCredits,
+                BigDecimal.valueOf(gpa),
+                "S1",
+                false,
+                null,
+                false,
+                records);
     }
 
     static TranscriptView transcriptWith(
