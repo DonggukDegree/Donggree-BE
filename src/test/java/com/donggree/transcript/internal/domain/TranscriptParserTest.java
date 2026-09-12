@@ -177,6 +177,30 @@ class TranscriptParserTest {
             assertThat(meta.get("주전공")).isEqualTo("테스트학부");
         }
 
+        @Test
+        @DisplayName("영어패스제: 대상 학생의 PASS/FAIL이 파싱된다")
+        void english_pass_result_is_parsed() {
+            assertThat(parser.parseMeta("영어패스제 대상 FAIL\n").get("영어패스제결과")).isEqualTo("FAIL");
+            assertThat(parser.parseMeta("영어패스제 대상 PASS\n").get("영어패스제결과")).isEqualTo("PASS");
+        }
+
+        @Test
+        @DisplayName("영어패스제: 뒤에 PASS/FAIL이 없으면 null이다 (미대상 학생)")
+        void english_pass_result_is_null_when_no_verdict() {
+            // 미대상 학생은 PDF에 판정값이 찍히지 않는다. 이때 FAIL로 잘못 저장되면
+            // 해당 없는 학생에게 유의사항 문구가 뜨므로 반드시 null이어야 한다.
+            assertThat(parser.parseMeta("영어패스제 미대상\n").get("영어패스제결과")).isNull();
+        }
+
+        @Test
+        @DisplayName("영어패스제: 다음 줄의 PASS/FAIL을 끌어오지 않는다")
+        void english_pass_result_does_not_cross_lines() {
+            // 정규식에 DOTALL이 없어 '.'이 줄바꿈을 넘지 못한다.
+            // 넘게 되면 바로 아래 줄의 영어강의이수 결과를 영어패스제 결과로 잘못 읽는다.
+            String text = "영어패스제 미대상\n영어강의이수 : PASS\n";
+            assertThat(parser.parseMeta(text).get("영어패스제결과")).isNull();
+        }
+
         private ParsedTranscriptData parseFixture() {
             try (InputStream is = getClass().getClassLoader().getResourceAsStream("transcript-fixture.txt")) {
                 String text = new String(is.readAllBytes(), StandardCharsets.UTF_8);
