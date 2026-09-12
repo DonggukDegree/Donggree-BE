@@ -28,6 +28,7 @@ class EvaluatorTestSupport {
                 "S1",
                 false,
                 null,
+                null,
                 false,
                 records);
     }
@@ -56,6 +57,7 @@ class EvaluatorTestSupport {
                 englishLevel,
                 englishTarget,
                 completedEnglish,
+                null,
                 thesisStatus,
                 records);
     }

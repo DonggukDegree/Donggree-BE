@@ -69,6 +69,7 @@ class TranscriptMemberWithdrawnEventListenerTest {
                 true,
                 true,
                 null,
+                null,
                 false));
     }
 }

@@ -47,7 +47,8 @@ public class GraduationReportAssembler {
         return new GraduationReportProjection(
                 buildSummary(transcript, rules, resultByRuleId),
                 buildAreaOverviews(rules, resultByRuleId, context),
-                hasUnsupportedMajor);
+                hasUnsupportedMajor,
+                transcript.englishPassResult());
     }
 
     /** 영역별 상세 이수 현황을 조립한다. areaRules는 대상 courseType에 속한 규칙만 넘긴다. */

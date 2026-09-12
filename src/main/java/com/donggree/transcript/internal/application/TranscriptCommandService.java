@@ -89,6 +89,7 @@ public class TranscriptCommandService {
                 isYes(meta.get("글로벌인재트랙여부")),
                 meta.get("영어강의이수대상") != null,
                 toPassFail(meta.get("영어강의이수결과")),
+                toPassFail(meta.get("영어패스제결과")),
                 parseIntOrNull(meta.get("교직인적성합격횟수")),
                 "합격".equals(meta.get("졸업논문심사")));
     }

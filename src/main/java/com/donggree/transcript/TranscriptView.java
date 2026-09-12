@@ -22,5 +22,6 @@ public record TranscriptView(
         String englishLevel,
         boolean englishCourseTarget,
         Boolean completedEnglishResult,
+        Boolean englishPassResult,
         boolean thesisStatus,
         List<CourseRecordView> courseRecords) {}

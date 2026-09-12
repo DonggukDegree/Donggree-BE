@@ -67,6 +67,7 @@ class TranscriptTest {
                 false,
                 null,
                 null,
+                null,
                 false);
 
         assertThatThrownBy(() -> Transcript.create(data))
@@ -98,6 +99,7 @@ class TranscriptTest {
                 false,
                 null,
                 null,
+                null,
                 false);
 
         assertThatThrownBy(() -> Transcript.create(data))
@@ -127,6 +129,7 @@ class TranscriptTest {
                 false,
                 false,
                 false,
+                null,
                 null,
                 null,
                 false);
@@ -497,6 +500,7 @@ class TranscriptTest {
                 false,
                 null,
                 null,
+                null,
                 false));
     }
 
@@ -522,6 +526,7 @@ class TranscriptTest {
                 false,
                 true,
                 true,
+                null,
                 null,
                 false));
     }

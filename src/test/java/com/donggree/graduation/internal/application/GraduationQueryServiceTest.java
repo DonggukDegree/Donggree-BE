@@ -283,6 +283,7 @@ class GraduationQueryServiceTest {
                 "S1",
                 false,
                 null,
+                null,
                 false,
                 List.of(records));
         given(transcriptLookupService.findByMemberId(MEMBER_ID)).willReturn(Optional.of(transcript));

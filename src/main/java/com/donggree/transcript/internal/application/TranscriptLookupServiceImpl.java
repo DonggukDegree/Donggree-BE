@@ -48,6 +48,7 @@ public class TranscriptLookupServiceImpl implements TranscriptLookupService {
                 t.getEnglishLevel(),
                 t.isEnglishCourseTarget(),
                 t.getCompletedEnglishResult(),
+                t.getEnglishPassResult(),
                 t.isThesisStatus(),
                 records);
     }

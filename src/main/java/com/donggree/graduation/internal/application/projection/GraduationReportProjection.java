@@ -11,7 +11,7 @@ import java.util.List;
  * hasUnsupportedMajor: 판정에 반영되지 않은 전공(복수전공·부전공) 이력 유무.
  */
 public record GraduationReportProjection(
-        Summary summary, List<AreaOverview> areaOverviews, boolean hasUnsupportedMajor) {
+        Summary summary, List<AreaOverview> areaOverviews, boolean hasUnsupportedMajor, Boolean englishPassed) {
 
     /**
      * 졸업 요건 전체 요약.

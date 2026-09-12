@@ -102,6 +102,9 @@ public class Transcript extends BaseEntity {
     @Column(name = "completed_english_result")
     private Boolean completedEnglishResult;
 
+    @Column(name = "english_pass_result")
+    private Boolean englishPassResult;
+
     @Column(name = "teaching_aptitude_count")
     private Integer teachingAptitudeCount;
 
@@ -144,6 +147,7 @@ public class Transcript extends BaseEntity {
         this.globalTalentTrack = data.globalTalentTrack();
         this.englishCourseTarget = data.englishCourseTarget();
         this.completedEnglishResult = data.completedEnglishResult();
+        this.englishPassResult = data.englishPassResult();
         this.teachingAptitudeCount = data.teachingAptitudeCount();
         this.thesisStatus = data.thesisStatus();
     }

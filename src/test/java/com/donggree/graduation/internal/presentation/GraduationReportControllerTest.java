@@ -71,7 +71,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
         given(graduationQueryService.getReport(memberId))
-                .willReturn(new GraduationReportProjection(summary, areaOverviews, false));
+                .willReturn(new GraduationReportProjection(summary, areaOverviews, false, true));
 
         mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isOk())
@@ -110,7 +110,10 @@ class GraduationReportControllerTest extends RestDocsSupport {
                                                 .description("해당 영역의 요건 충족 여부"),
                                         fieldWithPath("result.hasUnsupportedMajor")
                                                 .description(
-                                                        "복수전공·부전공 이력 유무. true면 해당 전공 요건이 판정되지 않고 그 과목이 주전공 학점에 합산돼 리포트가 실제보다 후할 수 있으므로 화면에서 안내해야 한다."))));
+                                                        "복수전공·부전공 이력 유무. true면 해당 전공 요건이 판정되지 않고 그 과목이 주전공 학점에 합산돼 리포트가 실제보다 후할 수 있으므로 화면에서 안내해야 한다."),
+                                        fieldWithPath("result.englishPassed")
+                                                .description(
+                                                        "영어패스제 결과 (PASS=true / FAIL=false / 미기재=null). 졸업 규칙으로 판정하지 않아 충족 여부에 영향이 없고, false일 때만 리포트 유의사항 문구를 띄운다."))));
     }
 
     @Test

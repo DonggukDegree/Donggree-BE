@@ -26,5 +26,6 @@ public record TranscriptCreateData(
         boolean globalTalentTrack,
         boolean englishCourseTarget,
         Boolean completedEnglishResult,
+        Boolean englishPassResult,
         Integer teachingAptitudeCount,
         boolean thesisStatus) {}
