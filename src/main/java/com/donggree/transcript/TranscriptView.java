@@ -11,6 +11,10 @@ public record TranscriptView(
         Long id,
         Long memberId,
         Long departmentId,
+        Long dualMajor1Id,
+        Long dualMajor2Id,
+        Long subMajor1Id,
+        Long subMajor2Id,
         int admissionYear,
         String studentType,
         int totalCredits,
@@ -18,5 +22,6 @@ public record TranscriptView(
         String englishLevel,
         boolean englishCourseTarget,
         Boolean completedEnglishResult,
+        Boolean englishPassResult,
         boolean thesisStatus,
         List<CourseRecordView> courseRecords) {}

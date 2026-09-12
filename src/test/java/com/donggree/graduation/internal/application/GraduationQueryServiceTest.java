@@ -228,22 +228,61 @@ class GraduationQueryServiceTest {
 
     // --- 헬퍼 ---
 
+    // --- 미지원 전공 안내 ---
+
+    @Test
+    void 복수전공도_부전공도_없으면_미지원_안내가_꺼진다() {
+        givenTranscript();
+        givenMinCreditsRule(CourseType.FIRST_MAJOR, "전공 60학점", "{\"minCredits\":60}");
+        givenNoClassification();
+
+        assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isFalse();
+    }
+
+    @Test
+    void 복수전공이_있으면_미지원_안내가_켜진다() {
+        givenTranscriptWithMajors(200L, null, null, null);
+        givenMinCreditsRule(CourseType.FIRST_MAJOR, "전공 60학점", "{\"minCredits\":60}");
+        givenNoClassification();
+
+        assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
+    }
+
+    @Test
+    void 부전공만_있어도_미지원_안내가_켜진다() {
+        givenTranscriptWithMajors(null, null, 300L, null);
+        givenMinCreditsRule(CourseType.FIRST_MAJOR, "전공 60학점", "{\"minCredits\":60}");
+        givenNoClassification();
+
+        assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
+    }
+
     private void givenMinCreditsRule(CourseType courseType, String ruleName, String ruleConfig) {
         GraduationRuleView rule = new GraduationRuleView(2L, "MIN_CREDITS", courseType, ruleName, ruleConfig);
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of(rule));
     }
 
     private void givenTranscript(CourseRecordView... records) {
+        givenTranscriptWithMajors(null, null, null, null, records);
+    }
+
+    private void givenTranscriptWithMajors(
+            Long dual1Id, Long dual2Id, Long sub1Id, Long sub2Id, CourseRecordView... records) {
         TranscriptView transcript = new TranscriptView(
                 1L,
                 MEMBER_ID,
                 DEPARTMENT_ID,
+                dual1Id,
+                dual2Id,
+                sub1Id,
+                sub2Id,
                 ADMISSION_YEAR,
                 "단일",
                 3,
                 BigDecimal.valueOf(4.0),
                 "S1",
                 false,
+                null,
                 null,
                 false,
                 List.of(records));

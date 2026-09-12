@@ -205,6 +205,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                 false,
                 null,
                 null,
+                null,
                 false);
 
         given(transcriptCommandService.parseTranscript(any(byte[].class))).willReturn(parseResult);
