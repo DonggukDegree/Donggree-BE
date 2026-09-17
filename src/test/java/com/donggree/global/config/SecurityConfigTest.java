@@ -1,6 +1,7 @@
 package com.donggree.global.config;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
@@ -86,6 +88,12 @@ class SecurityConfigTest {
 
     @MockitoBean
     private com.donggree.curriculum.internal.application.DepartmentQueryService departmentQueryService;
+
+    @MockitoBean
+    private com.donggree.support.internal.application.FaqQueryService faqQueryService;
+
+    @MockitoBean
+    private com.donggree.support.internal.application.FaqCommandService faqCommandService;
 
     @TestConfiguration
     static class TestConfig {
@@ -166,6 +174,21 @@ class SecurityConfigTest {
     @Test
     void 관리자_경로는_인증_없이_접근하면_401을_반환한다() throws Exception {
         mockMvc.perform(get("/api/admin/ping")).andExpect(status().isUnauthorized());
+    }
+
+    // FAQ는 비로그인 홈의 푸터에서도 들어올 수 있어야 해서 읽기만 열어 뒀다.
+    @Test
+    void FAQ_조회는_인증_없이_접근할_수_있다() throws Exception {
+        mockMvc.perform(get("/api/faqs")).andExpect(status().isOk());
+    }
+
+    // 읽기를 연 것이 쓰기까지 열어버리지 않았는지 확인한다. (쓰기는 /api/admin/faqs)
+    @Test
+    void FAQ_등록은_인증_없이_접근할_수_없다() throws Exception {
+        mockMvc.perform(post("/api/admin/faqs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"제목\",\"content\":\"본문\"}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
