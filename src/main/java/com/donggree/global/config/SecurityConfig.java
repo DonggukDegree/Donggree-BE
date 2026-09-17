@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -86,6 +87,8 @@ public class SecurityConfig {
                     if (isLocal) {
                         auth.requestMatchers("/auth/test-login").permitAll();
                     }
+                    // FAQ는 비로그인 홈의 푸터에서도 들어올 수 있어야 하므로 읽기만 공개한다.
+                    auth.requestMatchers(HttpMethod.GET, "/api/faqs").permitAll();
                     // 관리자 영역은 경로 단위로 1차 방어한다. (SUPER_ADMIN 전용 엔드포인트는 컨트롤러의 @PreAuthorize로 2차 방어)
                     // RoleHierarchy에 의해 SUPER_ADMIN은 ADMIN 권한을 포함한다.
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");

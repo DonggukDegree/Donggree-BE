@@ -163,3 +163,35 @@ operation::graduation-get-report-no-requirement-set[]
 courseType 내 areaType별 상세 이수 현황을 조회한다. areaType별 이수 과목 목록(필수/선택), 미충족 사유, 해당 courseType 전체 학점 현황을 반환한다.
 
 operation::graduation-get-area-detail[]
+
+=== 자주 묻는 질문(FAQ)
+
+==== FAQ 목록 조회
+
+FAQ를 최신순으로 조회한다. 읽기 전용이며 비로그인 상태에서도 호출할 수 있다(화면의 '자주 묻는 질문'이 홈 푸터에 있다). 목록 한 건이 곧 아코디언 한 줄이라 제목과 본문을 함께 반환한다. 본문은 마크다운이 아닌 줄바꿈 포함 평문이다.
+
+operation::faq-list[]
+
+`tag`를 주면 해당 태그만 조회한다(SERVICE=서비스, COMMON=공통, MAJOR=전공). 미지정이면 전체이며, 화면 상단 칩의 '전체'가 여기에 해당한다.
+
+operation::faq-list-by-tag[]
+
+=== 관리자 FAQ 관리
+
+==== FAQ 등록
+
+FAQ를 등록하고 생성된 ID를 반환한다. `tag`는 SERVICE·COMMON·MAJOR 중 하나를 반드시 지정해야 하며, 누락하면 400(`VALID400_1`)을 반환한다.
+
+operation::admin-faq-create[]
+
+==== FAQ 수정
+
+FAQ의 태그·제목·본문을 전체 교체한다. 존재하지 않으면 404(SUPPORT404_1)를 반환한다.
+
+operation::admin-faq-update[]
+
+==== FAQ 삭제
+
+FAQ를 삭제한다. 존재하지 않으면 404(SUPPORT404_1)를 반환한다.
+
+operation::admin-faq-delete[]
