@@ -43,6 +43,7 @@ public class TranscriptLookupServiceImpl implements TranscriptLookupService {
                 t.getSubMajor2Id(),
                 t.getAdmissionYear(),
                 t.getStudentType(),
+                t.isEngineeringCertified(),
                 t.getTotalCredits(),
                 t.getGpa(),
                 t.getEnglishLevel(),

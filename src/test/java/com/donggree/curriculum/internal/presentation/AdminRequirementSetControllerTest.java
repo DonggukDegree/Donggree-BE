@@ -18,6 +18,7 @@ import com.donggree.curriculum.internal.application.RequirementSetQueryService;
 import com.donggree.curriculum.internal.application.command.RequirementSetCommand;
 import com.donggree.curriculum.internal.application.projection.RequirementSetProjection;
 import com.donggree.curriculum.internal.application.projection.RequirementSetSummaryProjection;
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
 import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
 import com.donggree.global.support.RestDocsSupport;
@@ -43,12 +44,31 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
 
     private RequirementSetProjection sample() {
         return new RequirementSetProjection(
-                1L, 10L, "컴퓨터·AI학부", 2023, 2025, 1, "23~25학번 졸업 요건", "https://img/sheet.png", true, List.of(1L, 2L));
+                1L,
+                10L,
+                "컴퓨터·AI학부",
+                2023,
+                2025,
+                RequirementTrack.ALL,
+                1,
+                "23~25학번 졸업 요건",
+                "https://img/sheet.png",
+                true,
+                List.of(1L, 2L));
     }
 
     private RequirementSetSummaryProjection summarySample() {
         return new RequirementSetSummaryProjection(
-                1L, 10L, "컴퓨터·AI학부", 2023, 2025, 1, "23~25학번 졸업 요건", "https://img/sheet.png", true);
+                1L,
+                10L,
+                "컴퓨터·AI학부",
+                2023,
+                2025,
+                RequirementTrack.ALL,
+                1,
+                "23~25학번 졸업 요건",
+                "https://img/sheet.png",
+                true);
     }
 
     @Test
@@ -78,6 +98,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                         .description("학과명 (없으면 null)"),
                                 fieldWithPath("result[].yearStart").description("적용 시작년도"),
                                 fieldWithPath("result[].yearEnd").description("적용 종료년도"),
+                                fieldWithPath("result[].track")
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정)"),
                                 fieldWithPath("result[].version").description("버전"),
                                 fieldWithPath("result[].description").optional().description("설명 (없으면 null)"),
                                 fieldWithPath("result[].sheetImageUrl")
@@ -107,6 +129,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                         .description("학과명 (없으면 null)"),
                                 fieldWithPath("result.yearStart").description("적용 시작년도"),
                                 fieldWithPath("result.yearEnd").description("적용 종료년도"),
+                                fieldWithPath("result.track")
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정)"),
                                 fieldWithPath("result.version").description("버전"),
                                 fieldWithPath("result.description").optional().description("설명 (없으면 null)"),
                                 fieldWithPath("result.sheetImageUrl").optional().description("시트 이미지 URL (없으면 null)"),
@@ -117,7 +141,15 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
     @Test
     void 졸업_요건_세트를_생성한다() throws Exception {
         RequirementSetRequest request = new RequirementSetRequest(
-                "첨단융합대학", "컴퓨터·AI학부", 2023, 2025, "23~25학번 졸업 요건", "https://img/sheet.png", true, List.of(1L, 2L));
+                "첨단융합대학",
+                "컴퓨터·AI학부",
+                2023,
+                2025,
+                RequirementTrack.ADVANCED,
+                "23~25학번 심화과정 졸업 요건",
+                "https://img/sheet.png",
+                true,
+                List.of(1L, 2L));
         given(requirementSetCommandService.create(any(RequirementSetCommand.class)))
                 .willReturn(100L);
 
@@ -133,6 +165,9 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                 fieldWithPath("departmentName").description("학과명(있으면 재사용, 없으면 학과 신규 등록)"),
                                 fieldWithPath("yearStart").description("적용 시작년도"),
                                 fieldWithPath("yearEnd").description("적용 종료년도"),
+                                fieldWithPath("track")
+                                        .optional()
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정). 미지정 시 ALL"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),
@@ -146,8 +181,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
 
     @Test
     void 졸업_요건_세트를_수정한다() throws Exception {
-        RequirementSetUpdateRequest request =
-                new RequirementSetUpdateRequest(2023, 2026, "수정된 설명", null, false, List.of(1L, 3L));
+        RequirementSetUpdateRequest request = new RequirementSetUpdateRequest(
+                2023, 2026, RequirementTrack.GENERAL, "수정된 설명", null, false, List.of(1L, 3L));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/admin/requirement-sets/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -160,6 +195,9 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                         requestFields(
                                 fieldWithPath("yearStart").description("적용 시작년도"),
                                 fieldWithPath("yearEnd").description("적용 종료년도"),
+                                fieldWithPath("track")
+                                        .optional()
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정). 미지정 시 ALL"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),

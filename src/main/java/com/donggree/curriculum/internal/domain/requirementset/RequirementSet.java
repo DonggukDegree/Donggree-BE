@@ -1,9 +1,12 @@
 package com.donggree.curriculum.internal.domain.requirementset;
 
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
 import com.donggree.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -21,7 +24,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 졸업 요건 세트를 나타내는 루트 애그리거트.
- * 특정 학과의 입학년도 범위에 적용되는 졸업 규칙들의 모음이다.
+ * 특정 학과의 입학년도 범위와 과정(일반/심화)에 적용되는 졸업 규칙들의 모음이다.
  * GraduationRule을 하위 엔티티로 소유하며, 반드시 이 엔티티를 통해 규칙을 추가한다.
  */
 @Entity
@@ -29,8 +32,8 @@ import lombok.NoArgsConstructor;
         name = "requirement_set",
         uniqueConstraints =
                 @UniqueConstraint(
-                        name = "uk_requirement_set_dept_year_version",
-                        columnNames = {"department_id", "year_start", "year_end", "version"}))
+                        name = "uk_requirement_set_dept_year_track_version",
+                        columnNames = {"department_id", "year_start", "year_end", "track", "version"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RequirementSet extends BaseEntity {
@@ -47,6 +50,11 @@ public class RequirementSet extends BaseEntity {
 
     @Column(name = "year_end", nullable = false)
     private int yearEnd;
+
+    /** 이 세트가 적용되는 과정. 과정 구분이 없는 학과는 ALL 하나만 둔다. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private RequirementTrack track;
 
     @Column(nullable = false)
     private int version;
@@ -75,37 +83,40 @@ public class RequirementSet extends BaseEntity {
             Long departmentId,
             int yearStart,
             int yearEnd,
+            RequirementTrack track,
             int version,
             String description,
             String sheetImageUrl,
             boolean active) {
-        assignValidated(departmentId, yearStart, yearEnd, version, description, sheetImageUrl, active);
+        assignValidated(departmentId, yearStart, yearEnd, track, version, description, sheetImageUrl, active);
     }
 
     public static RequirementSet create(
             Long departmentId,
             int yearStart,
             int yearEnd,
+            RequirementTrack track,
             int version,
             String description,
             String sheetImageUrl,
             boolean active) {
-        return new RequirementSet(departmentId, yearStart, yearEnd, version, description, sheetImageUrl, active);
+        return new RequirementSet(departmentId, yearStart, yearEnd, track, version, description, sheetImageUrl, active);
     }
 
     /**
      * 요건 세트의 스칼라 정보를 전체 교체한다(PUT). 생성과 동일한 불변식을 재검증한다.
-     * 적용년도·학과·버전 등 식별 정보까지 수정할 수 있다. 연결 규칙은 {@link #replaceRules(List)}로 별도 교체한다.
+     * 적용년도·과정·학과·버전 등 식별 정보까지 수정할 수 있다. 연결 규칙은 {@link #replaceRules(List)}로 별도 교체한다.
      */
     public void update(
             Long departmentId,
             int yearStart,
             int yearEnd,
+            RequirementTrack track,
             int version,
             String description,
             String sheetImageUrl,
             boolean active) {
-        assignValidated(departmentId, yearStart, yearEnd, version, description, sheetImageUrl, active);
+        assignValidated(departmentId, yearStart, yearEnd, track, version, description, sheetImageUrl, active);
     }
 
     /** 연결된 졸업 규칙 목록을 통째로 교체한다. 규칙 선택/해제(체크 토글)를 반영하는 데 사용한다. */
@@ -118,12 +129,16 @@ public class RequirementSet extends BaseEntity {
             Long departmentId,
             int yearStart,
             int yearEnd,
+            RequirementTrack track,
             int version,
             String description,
             String sheetImageUrl,
             boolean active) {
         if (departmentId == null) {
             throw new IllegalArgumentException("departmentId must not be null");
+        }
+        if (track == null) {
+            throw new IllegalArgumentException("track must not be null");
         }
         if (yearStart > yearEnd) {
             throw new IllegalArgumentException("yearStart must be less than or equal to yearEnd");
@@ -134,6 +149,7 @@ public class RequirementSet extends BaseEntity {
         this.departmentId = departmentId;
         this.yearStart = yearStart;
         this.yearEnd = yearEnd;
+        this.track = track;
         this.version = version;
         this.description = description;
         this.sheetImageUrl = sheetImageUrl;
@@ -141,10 +157,11 @@ public class RequirementSet extends BaseEntity {
     }
 
     /**
-     * 주어진 입학년도가 이 졸업 요건 세트의 적용 범위에 포함되는지 판별한다.
+     * 주어진 입학년도와 과정의 학생에게 이 졸업 요건 세트가 적용되는지 판별한다.
+     * 적용년도 범위에 들면서, 과정 구분도 맞아야 한다({@link RequirementTrack#covers}).
      */
-    public boolean appliesTo(int admissionYear) {
-        return admissionYear >= yearStart && admissionYear <= yearEnd;
+    public boolean appliesTo(int admissionYear, RequirementTrack studentTrack) {
+        return admissionYear >= yearStart && admissionYear <= yearEnd && track.covers(studentTrack);
     }
 
     /**

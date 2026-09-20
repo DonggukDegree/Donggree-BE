@@ -207,6 +207,32 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
     }
 
+    /**
+     * 설계교과목처럼 "정해진 과목 묶음에서 N학점 이상"인 요건은 courseCodes + minCredits로 표현한다.
+     * 별도 규칙 타입이 필요하지 않다는 것을 고정해 두는 테스트다.
+     */
+    @Test
+    void 지정한_학수번호_묶음에서_최소학점을_판정한다() {
+        var designCourses = "[\"CSE3001\",\"CSE3002\",\"CSE4066\",\"CSE4067\"]";
+        var rule = rule("{\"courseCodes\": " + designCourses + ", \"minCredits\": 9}");
+
+        var enough = List.of(
+                passed("CSE3001", "소프트웨어공학", 3, "2023-1"),
+                passed("CSE3002", "캡스톤디자인", 3, "2023-2"),
+                passed("CSE4066", "종합설계1", 3, "2024-1"),
+                passed("CSE1001", "컴퓨터과학개론", 3, "2022-1")); // 설계교과목이 아니므로 집계에서 빠진다
+        assertThat(evaluator
+                        .evaluate(rule, context(transcript(12, 4.0, enough), Map.of()))
+                        .satisfied())
+                .isTrue();
+
+        var notEnough = List.of(passed("CSE3001", "소프트웨어공학", 3, "2023-1"), passed("CSE1001", "컴퓨터과학개론", 3, "2022-1"));
+        assertThat(evaluator
+                        .evaluate(rule, context(transcript(6, 4.0, notEnough), Map.of()))
+                        .satisfied())
+                .isFalse();
+    }
+
     // --- 선택자 조합 (AND) ---
 
     /**

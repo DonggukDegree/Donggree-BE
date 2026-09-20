@@ -55,8 +55,11 @@ public class GraduationQueryService {
                 .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
+        // 학과·입학년도에 더해 과정(일반/심화)까지 맞는 세트를 고른다. 학생의 과정에 해당하는 세트가
+        // 없으면 다른 과정의 요건으로 판정하지 않고 미지원 학과와 동일하게 실패시킨다.
         RequirementSetView requirementSet = curriculumLookupService
-                .findActiveRequirementSet(transcript.departmentId(), transcript.admissionYear())
+                .findActiveRequirementSet(
+                        transcript.departmentId(), transcript.admissionYear(), transcript.engineeringCertified())
                 .orElseThrow(() -> new GeneralException(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
 
         List<GraduationRuleView> rules = curriculumLookupService.findGraduationRules(requirementSet.id());
@@ -79,7 +82,8 @@ public class GraduationQueryService {
                 .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
         RequirementSetView requirementSet = curriculumLookupService
-                .findActiveRequirementSet(transcript.departmentId(), transcript.admissionYear())
+                .findActiveRequirementSet(
+                        transcript.departmentId(), transcript.admissionYear(), transcript.engineeringCertified())
                 .orElseThrow(() -> new GeneralException(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
 
         List<GraduationRuleView> allRules = curriculumLookupService.findGraduationRules(requirementSet.id());

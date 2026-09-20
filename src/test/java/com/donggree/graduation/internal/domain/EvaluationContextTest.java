@@ -21,6 +21,7 @@ class EvaluationContextTest {
                     null,
                     2023,
                     "단일",
+                    false,
                     0,
                     BigDecimal.valueOf(4.0),
                     "S1",
