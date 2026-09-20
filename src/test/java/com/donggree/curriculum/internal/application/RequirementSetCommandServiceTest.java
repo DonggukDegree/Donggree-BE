@@ -12,6 +12,7 @@ import com.donggree.curriculum.internal.domain.college.College;
 import com.donggree.curriculum.internal.domain.college.CollegeRepository;
 import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleRepository;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSet;
@@ -34,7 +35,12 @@ class RequirementSetCommandServiceTest {
             requirementSetRepository, graduationRuleRepository, departmentRepository, collegeRepository);
 
     private RequirementSet set(Long id, int yearStart, int yearEnd, int version, boolean active) {
-        RequirementSet s = RequirementSet.create(1L, yearStart, yearEnd, version, "설명", null, active);
+        return set(id, yearStart, yearEnd, RequirementTrack.ALL, version, active);
+    }
+
+    private RequirementSet set(
+            Long id, int yearStart, int yearEnd, RequirementTrack track, int version, boolean active) {
+        RequirementSet s = RequirementSet.create(1L, yearStart, yearEnd, track, version, "설명", null, active);
         if (id != null) {
             ReflectionTestUtils.setField(s, "id", id);
         }
@@ -64,11 +70,20 @@ class RequirementSetCommandServiceTest {
     }
 
     private RequirementSetCommand command(boolean active, List<Long> ruleIds) {
-        return new RequirementSetCommand("첨단융합대학", "컴퓨터·AI학부", 2023, 2025, "설명", null, active, ruleIds);
+        return command(RequirementTrack.ALL, active, ruleIds);
+    }
+
+    private RequirementSetCommand command(RequirementTrack track, boolean active, List<Long> ruleIds) {
+        return new RequirementSetCommand("첨단융합대학", "컴퓨터·AI학부", 2023, 2025, track, "설명", null, active, ruleIds);
     }
 
     private RequirementSetUpdateCommand updateCommand(int yearStart, int yearEnd, boolean active, List<Long> ruleIds) {
-        return new RequirementSetUpdateCommand(yearStart, yearEnd, "설명", null, active, ruleIds);
+        return updateCommand(yearStart, yearEnd, RequirementTrack.ALL, active, ruleIds);
+    }
+
+    private RequirementSetUpdateCommand updateCommand(
+            int yearStart, int yearEnd, RequirementTrack track, boolean active, List<Long> ruleIds) {
+        return new RequirementSetUpdateCommand(yearStart, yearEnd, track, "설명", null, active, ruleIds);
     }
 
     @Test
@@ -77,7 +92,8 @@ class RequirementSetCommandServiceTest {
         given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
         // 같은 학과·적용년도 lineage에 version 2가 이미 있으면 다음은 3
-        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(1L, 2023, 2025))
+        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
+                        1L, 2023, 2025, RequirementTrack.ALL))
                 .willReturn(Optional.of(set(50L, 2023, 2025, 2, false)));
         given(graduationRuleRepository.findAllById(List.of(10L, 20L))).willReturn(List.of(rule(10L), rule(20L)));
         given(requirementSetRepository.save(any())).willAnswer(invocation -> {
@@ -108,7 +124,8 @@ class RequirementSetCommandServiceTest {
             ReflectionTestUtils.setField(saved, "id", 5L);
             return saved;
         });
-        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(5L, 2023, 2025))
+        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
+                        5L, 2023, 2025, RequirementTrack.ALL))
                 .willReturn(Optional.empty());
         given(requirementSetRepository.save(any())).willAnswer(invocation -> {
             RequirementSet saved = invocation.getArgument(0);
@@ -127,6 +144,46 @@ class RequirementSetCommandServiceTest {
     }
 
     @Test
+    void 심화과정_세트는_일반과정_세트와_겹침_검사를_하지_않아_같은_적용년도에_공존한다() {
+        given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
+        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
+                .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
+        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
+                        1L, 2023, 2025, RequirementTrack.ADVANCED))
+                .willReturn(Optional.empty());
+        given(requirementSetRepository.save(any())).willAnswer(invocation -> {
+            RequirementSet saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 100L);
+            return saved;
+        });
+
+        service.create(command(RequirementTrack.ADVANCED, true, List.of()));
+
+        // 겹침 검사 대상은 {ALL, ADVANCED}뿐이다. GENERAL 세트는 다른 학생을 보므로 검사에서 빠진다.
+        Mockito.verify(requirementSetRepository)
+                .existsByActiveTrueAndDepartmentIdAndTrackInAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
+                        1L, RequirementTrack.ADVANCED.conflictingTracks(), 2025, 2023);
+        ArgumentCaptor<RequirementSet> captor = ArgumentCaptor.forClass(RequirementSet.class);
+        Mockito.verify(requirementSetRepository).save(captor.capture());
+        assertThat(captor.getValue().getTrack()).isEqualTo(RequirementTrack.ADVANCED);
+    }
+
+    @Test
+    void 과정이_바뀌면_버전_lineage도_그_과정_기준으로_다시_잡힌다() {
+        RequirementSet existing = set(1L, 2023, 2025, RequirementTrack.GENERAL, 3, true);
+        given(requirementSetRepository.findById(1L)).willReturn(Optional.of(existing));
+        // 심화과정 lineage에는 이미 version 1이 있으므로 다음은 2
+        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
+                        1L, 2023, 2025, RequirementTrack.ADVANCED))
+                .willReturn(Optional.of(set(9L, 2023, 2025, RequirementTrack.ADVANCED, 1, false)));
+
+        service.update(1L, updateCommand(2023, 2025, RequirementTrack.ADVANCED, true, List.of()));
+
+        assertThat(existing.getTrack()).isEqualTo(RequirementTrack.ADVANCED);
+        assertThat(existing.getVersion()).isEqualTo(2);
+    }
+
+    @Test
     void 활성으로_생성_시_적용년도가_겹치는_다른_활성_세트가_있으면_예외를_던진다() {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
         given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
@@ -134,8 +191,8 @@ class RequirementSetCommandServiceTest {
         // 기존 활성 세트가 신규 2023~2025 와 겹침 (DB exists가 true 반환)
         given(
                         requirementSetRepository
-                                .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
-                                        1L, 2025, 2023))
+                                .existsByActiveTrueAndDepartmentIdAndTrackInAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
+                                        1L, RequirementTrack.ALL.conflictingTracks(), 2025, 2023))
                 .willReturn(true);
 
         assertThatThrownBy(() -> service.create(command(true, List.of())))
@@ -149,7 +206,8 @@ class RequirementSetCommandServiceTest {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
         given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
-        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(1L, 2023, 2025))
+        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
+                        1L, 2023, 2025, RequirementTrack.ALL))
                 .willReturn(Optional.empty());
         given(requirementSetRepository.save(any())).willAnswer(invocation -> {
             RequirementSet saved = invocation.getArgument(0);
@@ -162,8 +220,8 @@ class RequirementSetCommandServiceTest {
         assertThat(id).isEqualTo(100L);
         // 비활성은 겹침 검증을 하지 않으므로 활성 겹침 exists 쿼리를 호출하지 않는다
         Mockito.verify(requirementSetRepository, Mockito.never())
-                .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
-                        any(), Mockito.anyInt(), Mockito.anyInt());
+                .existsByActiveTrueAndDepartmentIdAndTrackInAndYearStartLessThanEqualAndYearEndGreaterThanEqual(
+                        any(), any(), Mockito.anyInt(), Mockito.anyInt());
     }
 
     @Test
@@ -171,7 +229,8 @@ class RequirementSetCommandServiceTest {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
         given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
-        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(1L, 2023, 2025))
+        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
+                        1L, 2023, 2025, RequirementTrack.ALL))
                 .willReturn(Optional.empty());
         given(graduationRuleRepository.findAllById(List.of(10L, 999L))).willReturn(List.of(rule(10L)));
 
@@ -210,12 +269,15 @@ class RequirementSetCommandServiceTest {
         existing.addRule(rule(99L));
         given(requirementSetRepository.findById(1L)).willReturn(Optional.of(existing));
         // 옮겨갈 2024~2026 lineage 최신 버전이 1이면 다음은 2
-        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndOrderByVersionDesc(1L, 2024, 2026))
+        given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
+                        1L, 2024, 2026, RequirementTrack.ALL))
                 .willReturn(Optional.of(set(8L, 2024, 2026, 1, false)));
         given(graduationRuleRepository.findAllById(List.of(10L))).willReturn(List.of(rule(10L)));
 
         // 수정 요청에는 학과·단과대명이 아예 없으므로 학과는 변경될 수 없다(생성 시 확정)
-        service.update(1L, new RequirementSetUpdateCommand(2024, 2026, "수정", "url", false, List.of(10L)));
+        service.update(
+                1L,
+                new RequirementSetUpdateCommand(2024, 2026, RequirementTrack.ALL, "수정", "url", false, List.of(10L)));
 
         assertThat(existing.getDepartmentId()).isEqualTo(1L);
         assertThat(existing.getYearStart()).isEqualTo(2024);
@@ -245,8 +307,8 @@ class RequirementSetCommandServiceTest {
         // 자신을 제외한 다른 활성 세트가 적용년도와 겹침 (DB exists가 true 반환)
         given(
                         requirementSetRepository
-                                .existsByActiveTrueAndDepartmentIdAndYearStartLessThanEqualAndYearEndGreaterThanEqualAndIdNot(
-                                        1L, 2025, 2023, 1L))
+                                .existsByActiveTrueAndDepartmentIdAndTrackInAndYearStartLessThanEqualAndYearEndGreaterThanEqualAndIdNot(
+                                        1L, RequirementTrack.ALL.conflictingTracks(), 2025, 2023, 1L))
                 .willReturn(true);
 
         assertThatThrownBy(() -> service.update(1L, updateCommand(2023, 2025, true, List.of())))

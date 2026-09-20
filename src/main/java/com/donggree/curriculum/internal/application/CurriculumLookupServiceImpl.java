@@ -12,6 +12,7 @@ import com.donggree.curriculum.internal.domain.courseclassification.CourseClassi
 import com.donggree.curriculum.internal.domain.courseclassification.CourseClassificationRepository;
 import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSetRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleType;
@@ -68,9 +69,11 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     }
 
     @Override
-    public Optional<RequirementSetView> findActiveRequirementSet(Long departmentId, int admissionYear) {
+    public Optional<RequirementSetView> findActiveRequirementSet(
+            Long departmentId, int admissionYear, boolean engineeringCertified) {
+        RequirementTrack studentTrack = RequirementTrack.ofStudent(engineeringCertified);
         return requirementSetRepository.findByDepartmentIdAndActiveTrue(departmentId).stream()
-                .filter(rs -> rs.appliesTo(admissionYear))
+                .filter(rs -> rs.appliesTo(admissionYear, studentTrack))
                 .findFirst()
                 .map(rs ->
                         new RequirementSetView(rs.getId(), rs.getDepartmentId(), rs.getYearStart(), rs.getYearEnd()));

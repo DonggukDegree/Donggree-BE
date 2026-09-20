@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSet;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSetRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleType;
@@ -101,7 +102,7 @@ class GraduationRuleRepositoryTest {
         List<GraduationRule> all = graduationRuleRepository.findAll();
         GraduationRule linked1 = all.get(0);
         GraduationRule linked2 = all.get(1);
-        RequirementSet set = RequirementSet.create(1L, 2023, 2025, 1, null, null, true);
+        RequirementSet set = RequirementSet.create(1L, 2023, 2025, RequirementTrack.ALL, 1, null, null, true);
         set.replaceRules(List.of(linked1, linked2));
         Long setId = requirementSetRepository.save(set).getId();
 

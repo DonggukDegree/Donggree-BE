@@ -17,6 +17,7 @@ public record TranscriptView(
         Long subMajor2Id,
         int admissionYear,
         String studentType,
+        boolean engineeringCertified,
         int totalCredits,
         BigDecimal gpa,
         String englishLevel,

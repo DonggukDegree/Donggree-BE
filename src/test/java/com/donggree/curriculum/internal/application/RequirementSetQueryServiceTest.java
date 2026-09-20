@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import com.donggree.curriculum.internal.application.projection.RequirementSetProjection;
 import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSet;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSetRepository;
@@ -26,7 +27,8 @@ class RequirementSetQueryServiceTest {
             requirementSetQueryRepository, requirementSetRepository, departmentRepository);
 
     private RequirementSet set(Long id, int yearStart, int yearEnd, int version, boolean active) {
-        RequirementSet s = RequirementSet.create(1L, yearStart, yearEnd, version, "설명", null, active);
+        RequirementSet s =
+                RequirementSet.create(1L, yearStart, yearEnd, RequirementTrack.ALL, version, "설명", null, active);
         if (id != null) {
             ReflectionTestUtils.setField(s, "id", id);
         }

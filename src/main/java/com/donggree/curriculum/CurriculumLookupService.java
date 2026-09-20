@@ -20,10 +20,13 @@ public interface CurriculumLookupService {
     Optional<String> findCollegeNameByDepartmentId(Long departmentId);
 
     /**
-     * 학과와 입학년도에 적용되는 활성 졸업 요건 세트를 조회한다.
-     * yearStart ≤ admissionYear ≤ yearEnd 조건을 만족하는 활성 세트를 반환한다.
+     * 학과·입학년도·과정에 적용되는 활성 졸업 요건 세트를 조회한다.
+     * yearStart ≤ admissionYear ≤ yearEnd 조건을 만족하면서 학생의 과정에도 맞는 활성 세트를 반환한다.
+     *
+     * @param engineeringCertified 성적표의 공학인증심화대상 여부(true면 심화과정)
      */
-    Optional<RequirementSetView> findActiveRequirementSet(Long departmentId, int admissionYear);
+    Optional<RequirementSetView> findActiveRequirementSet(
+            Long departmentId, int admissionYear, boolean engineeringCertified);
 
     /** requirement_set_id에 속한 졸업 규칙 전체를 조회한다. */
     List<GraduationRuleView> findGraduationRules(Long requirementSetId);

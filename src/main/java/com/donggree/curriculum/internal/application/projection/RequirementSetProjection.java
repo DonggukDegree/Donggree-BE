@@ -1,5 +1,6 @@
 package com.donggree.curriculum.internal.application.projection;
 
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import java.util.List;
 
 /**
@@ -12,6 +13,7 @@ public record RequirementSetProjection(
         String departmentName,
         int yearStart,
         int yearEnd,
+        RequirementTrack track,
         int version,
         String description,
         String sheetImageUrl,

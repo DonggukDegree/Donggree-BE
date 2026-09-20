@@ -34,6 +34,7 @@ public class RequirementSetRepositoryImpl implements RequirementSetRepositoryCus
                         d.departmentName,
                         rs.yearStart,
                         rs.yearEnd,
+                        rs.track,
                         rs.version,
                         rs.description,
                         rs.sheetImageUrl,

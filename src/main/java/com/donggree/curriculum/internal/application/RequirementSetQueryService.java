@@ -79,6 +79,7 @@ public class RequirementSetQueryService {
                 departmentName,
                 set.getYearStart(),
                 set.getYearEnd(),
+                set.getTrack(),
                 set.getVersion(),
                 set.getDescription(),
                 set.getSheetImageUrl(),

@@ -1,6 +1,7 @@
 package com.donggree.graduation.internal.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -10,6 +11,8 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
+import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CourseItem;
 import com.donggree.graduation.internal.domain.evaluator.MinCreditsEvaluator;
@@ -257,6 +260,31 @@ class GraduationQueryServiceTest {
         assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
     }
 
+    // --- 과정(일반/심화)별 요건 세트 선택 ---
+
+    @Test
+    void 심화과정_학생은_공학인증심화대상_여부를_넘겨_세트를_조회한다() {
+        givenTranscriptOf(true, null, null, null, null);
+        given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, true))
+                .willReturn(Optional.of(new RequirementSetView(REQUIREMENT_SET_ID, DEPARTMENT_ID, 2020, 2025)));
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
+
+        assertThat(service.getReport(MEMBER_ID)).isNotNull();
+    }
+
+    @Test
+    void 심화과정_학생에게_맞는_세트가_없으면_미지원_학과와_동일하게_리포트_생성이_실패한다() {
+        // 일반과정 세트만 등록된 학과. 그 요건으로 대신 판정하지 않고 실패시킨다.
+        givenTranscriptOf(true, null, null, null, null);
+        given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, true))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getReport(MEMBER_ID))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
+    }
+
     private void givenMinCreditsRule(CourseType courseType, String ruleName, String ruleConfig) {
         GraduationRuleView rule = new GraduationRuleView(2L, "MIN_CREDITS", courseType, ruleName, ruleConfig);
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of(rule));
@@ -268,6 +296,19 @@ class GraduationQueryServiceTest {
 
     private void givenTranscriptWithMajors(
             Long dual1Id, Long dual2Id, Long sub1Id, Long sub2Id, CourseRecordView... records) {
+        givenTranscriptOf(false, dual1Id, dual2Id, sub1Id, sub2Id, records);
+        given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(REQUIREMENT_SET_ID, DEPARTMENT_ID, 2020, 2025)));
+    }
+
+    /** 성적표만 준비한다. 요건 세트 조회 스텁은 호출부에서 과정에 맞춰 따로 건다. */
+    private void givenTranscriptOf(
+            boolean engineeringCertified,
+            Long dual1Id,
+            Long dual2Id,
+            Long sub1Id,
+            Long sub2Id,
+            CourseRecordView... records) {
         TranscriptView transcript = new TranscriptView(
                 1L,
                 MEMBER_ID,
@@ -278,6 +319,7 @@ class GraduationQueryServiceTest {
                 sub2Id,
                 ADMISSION_YEAR,
                 "단일",
+                engineeringCertified,
                 3,
                 BigDecimal.valueOf(4.0),
                 "S1",
@@ -287,8 +329,6 @@ class GraduationQueryServiceTest {
                 false,
                 List.of(records));
         given(transcriptLookupService.findByMemberId(MEMBER_ID)).willReturn(Optional.of(transcript));
-        given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR))
-                .willReturn(Optional.of(new RequirementSetView(REQUIREMENT_SET_ID, DEPARTMENT_ID, 2020, 2025)));
     }
 
     private void givenRequiredRule(String courseCode, String ruleName) {

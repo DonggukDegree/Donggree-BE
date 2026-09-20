@@ -116,6 +116,68 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
     }
 
+    // --- 부분 면제: 면제 대상이어도 지정 과목만 이수한 것으로 간주한다 ---
+
+    // 컴퓨터·AI학부 심화과정. 학석사연계과정은 종합설계2·개별연구만 면제되고 종합설계1은 그대로 요구된다.
+    private static final String PARTIAL_EXEMPT_CONFIG = "{\"exemptStudentTypes\":[\"학석사연계과정\"],"
+            + "\"exemptCourseCodes\":[\"CSE4067\",\"CSC4019\",\"DAI*\"],"
+            + "\"requiredCourseSets\":["
+            + "[[\"CSE4066\",\"CSC4018\"],[\"CSE4067\",\"CSC4019\"]],"
+            + "[[\"CSE4066\",\"CSC4018\"],[\"DAI*\"]]"
+            + "]}";
+
+    @Test
+    void 부분면제_대상이_종합설계1을_이수하면_충족이다() {
+        // 종합설계2·개별연구는 면제되므로 종합설계1만 이수하면 된다.
+        var records = List.of(passed("CSE4066", "종합설계1", 3, "2024-1"));
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(3, 4.0, false, null, false, "학석사연계과정", "S1", records));
+
+        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+                .isTrue();
+    }
+
+    @Test
+    void 부분면제_대상이어도_종합설계1을_이수하지_않으면_미충족이다() {
+        // 전체 면제가 아니라는 점이 핵심이다.
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(0, 4.0, false, null, false, "학석사연계과정", "S1", List.of()));
+
+        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+                .isFalse();
+    }
+
+    @Test
+    void 부분면제_대상이_동일유사_코드로_종합설계1을_이수해도_충족이다() {
+        var records = List.of(passed("CSC4018", "종합설계1", 3, "2024-1"));
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(3, 4.0, false, null, false, "학석사연계과정", "S1", records));
+
+        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+                .isTrue();
+    }
+
+    @Test
+    void 부분면제_대상이_아닌_학생은_면제_과목_목록의_영향을_받지_않는다() {
+        // 일반과정 학생은 종합설계1만으로는 여전히 미충족이다.
+        var records = List.of(passed("CSE4066", "종합설계1", 3, "2024-1"));
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(3, 4.0, false, null, false, "단일", "S1", records));
+
+        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+                .isFalse();
+    }
+
+    @Test
+    void 부분면제_대상이_아닌_학생은_종합설계1과_2를_모두_이수해야_충족이다() {
+        var records = List.of(passed("CSE4066", "종합설계1", 3, "2024-1"), passed("CSE4067", "종합설계2", 3, "2024-2"));
+        EvaluationContext ctx =
+                contextNoClassification(transcriptWith(6, 4.0, false, null, false, "단일", "S1", records));
+
+        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+                .isTrue();
+    }
+
     private GraduationRuleView rule(String config) {
         return new GraduationRuleView(1L, "THESIS", null, "종합설계1과 종합설계2 또는 개별연구를 이수해야 합니다.", config);
     }
