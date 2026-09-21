@@ -58,10 +58,10 @@ public class GraduationReportAssembler {
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
             Map<String, CourseClassificationView> allCls,
-            List<String> globalRequiredCodes) {
+            List<String> roleRequiredCodes) {
 
         List<AreaDetailProjection.AreaSection> areaDetails =
-                buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls, globalRequiredCodes);
+                buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls, roleRequiredCodes);
 
         List<String> unsatisfiedReasons = areaRules.stream()
                 .filter(r -> {
@@ -82,9 +82,14 @@ public class GraduationReportAssembler {
         return extractRequiredCodes(rules);
     }
 
-    /** 학생에게 실제로 적용되는 REQUIRED_COURSE 규칙의 courseCodes를 모은다 (충족 판정 기준). */
-    public List<String> applicableRequiredCourseCodes(List<GraduationRuleView> rules, String studentEnglishLevel) {
+    /** 학생에게 실제로 적용되는 REQUIRED_COURSE 규칙을 주전공·복수전공 표시 범위에 맞게 모은다. */
+    public List<String> applicableRequiredCourseCodes(
+            List<GraduationRuleView> rules, String studentEnglishLevel, CourseType displayedCourseType) {
+        boolean secondaryArea = displayedCourseType == CourseType.SECOND_MAJOR;
         return applicableRequiredRules(rules, studentEnglishLevel).stream()
+                // 복수전공 규칙은 GraduationQueryService에서 음수 스코프 ID를 부여한다.
+                // 역할이 다른 같은 학수번호가 상세 화면에서 잘못 충족 표시되는 것을 막는다.
+                .filter(rule -> secondaryArea == (rule.id() < 0))
                 .flatMap(r -> parseStringList(r.ruleConfig(), "courseCodes").stream())
                 .distinct()
                 .toList();
@@ -220,7 +225,7 @@ public class GraduationReportAssembler {
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
             Map<String, CourseClassificationView> allCls,
-            List<String> globalRequiredCodes) {
+            List<String> roleRequiredCodes) {
 
         String fallbackArea = courseTypeKoreanName(courseType);
         List<CourseRecordView> allPassed = context.getPassedCoursesByType(courseType);
@@ -292,7 +297,7 @@ public class GraduationReportAssembler {
             LinkedHashMap<String, List<CourseRecordView>> bySubCategory = new LinkedHashMap<>();
             List<CourseRecordView> individualOptional = new ArrayList<>();
             for (CourseRecordView cr : areaCourses) {
-                if (context.codeMatchesAny(cr.courseCode(), globalRequiredCodes)) {
+                if (context.codeMatchesAny(cr.courseCode(), roleRequiredCodes)) {
                     requiredFulfilled.add(cr);
                     continue;
                 }

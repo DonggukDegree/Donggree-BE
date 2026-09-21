@@ -4,6 +4,7 @@ import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.transcript.CourseRecordView;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Component;
  *   {"courseType": "FIRST_MAJOR", "pdfAreaNames": ["전문"], "minCredits": 30}
  *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["전필"], "minCredits": 12}
  *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["전필"], "pdfAreaNames": ["전문"], "minCredits": 9}
+ *   {"courseType": "SECOND_MAJOR", "minCredits": 36, "applicableMajorRoles": ["SECONDARY"]}
  *
  * 대상 과목 선택 — 조건(courseType·선택자)은 모두 AND로 좁힌다.
  * 값을 쓴 조건만 제약이 되고, 비어 있는(또는 null) 조건은 "제한 없음"이다.
@@ -55,7 +57,12 @@ public class MinCreditsEvaluator implements RuleEvaluator {
         if (config.minCredits() == null && config.minCount() == null) {
             throw new IllegalStateException("MIN_CREDITS는 minCredits 또는 minCount가 필요합니다: " + rule.ruleConfig());
         }
-        CourseType courseType = config.courseType() == null ? null : CourseType.valueOf(config.courseType());
+        CourseType configuredCourseType = config.courseType() == null ? null : CourseType.valueOf(config.courseType());
+        // 학과 세트의 기존 주전공 규칙을 복수전공 역할로 재사용한다.
+        CourseType courseType =
+                context.getMajorRole() == MajorRole.SECONDARY && configuredCourseType == CourseType.FIRST_MAJOR
+                        ? CourseType.SECOND_MAJOR
+                        : configuredCourseType;
 
         List<CourseRecordView> selected = context.getPassedCourses().stream()
                 .filter(record -> matches(record, courseType, config, context))
@@ -74,7 +81,7 @@ public class MinCreditsEvaluator implements RuleEvaluator {
      * 값을 쓴 조건은 모두 만족해야 하고(AND), 비어 있는 조건은 제약이 아니다.
      */
     private boolean matches(CourseRecordView record, CourseType courseType, Config config, EvaluationContext context) {
-        CourseClassificationView classification = context.getClassification(record.courseCode());
+        CourseClassificationView classification = context.getClassification(record);
         if (courseType != null && (classification == null || classification.courseType() != courseType)) {
             return false;
         }
