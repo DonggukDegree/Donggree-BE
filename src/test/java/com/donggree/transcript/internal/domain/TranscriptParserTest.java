@@ -211,6 +211,79 @@ class TranscriptParserTest {
         }
     }
 
+    @Nested
+    @DisplayName("복수전공 텍스트 픽스처 기반 파싱")
+    class DualMajorTextFixtureParsingTest {
+
+        private final ParsedTranscriptData result = parseDualMajorFixture();
+
+        @Test
+        @DisplayName("복수전공 학과명과 기준 학기를 분리한다")
+        void dual_major_department_and_reference_semester_are_separated() {
+            assertThat(result.meta().get("복수1")).isEqualTo("테스트복수전공");
+            assertThat(result.meta().get("복수1기준학기")).isEqualTo("2026-2");
+            assertThat(result.meta().get("복수2")).isNull();
+            assertThat(result.meta().get("복수2기준학기")).isNull();
+        }
+
+        @Test
+        @DisplayName("복수전공 과목과 기초·전문 영역을 파싱한다")
+        void dual_major_courses_and_areas_are_parsed() {
+            List<ParsedCourse> dualMajorCourses = result.courses().stream()
+                    .filter(course -> "복수1".equals(course.category()))
+                    .toList();
+
+            assertThat(dualMajorCourses).hasSize(3);
+            assertThat(dualMajorCourses)
+                    .extracting(ParsedCourse::courseCode)
+                    .containsExactly("CSC4016", "ENE2002", "ENE2003");
+            assertThat(dualMajorCourses).extracting(ParsedCourse::area).containsExactly("전문", "기초", "기초");
+            assertThat(dualMajorCourses).extracting(ParsedCourse::credits).containsOnly(3);
+        }
+
+        @Test
+        @DisplayName("공통 학기의 과목을 파싱한다")
+        void common_semester_course_is_parsed() {
+            assertThat(result.courses()).anySatisfy(course -> {
+                assertThat(course.semester()).isEqualTo("2023-공통");
+                assertThat(course.courseCode()).isEqualTo("RGC1051");
+                assertThat(course.credits()).isEqualTo(2);
+            });
+        }
+
+        @Test
+        @DisplayName("복수전공 요약 정보를 파싱한다")
+        void dual_major_summary_is_parsed() {
+            Map<String, String> meta = result.meta();
+
+            assertThat(meta.get("복수1총학점")).isEqualTo("9");
+            assertThat(meta.get("복수1기초학점")).isEqualTo("6");
+            assertThat(meta.get("복수1전문학점")).isEqualTo("3");
+            assertThat(meta.get("복수1평점")).isEqualTo("4.17");
+            assertThat(meta.get("복수1졸업논문심사")).isEqualTo("미판정");
+        }
+
+        @Test
+        @DisplayName("총취득학점과 파싱된 과목 학점 합계가 일치한다")
+        void total_credits_matches_sum() {
+            int parsedTotal =
+                    result.courses().stream().mapToInt(ParsedCourse::credits).sum();
+
+            assertThat(result.courses()).hasSize(5);
+            assertThat(parsedTotal).isEqualTo(Integer.parseInt(result.meta().get("총취득학점")));
+        }
+
+        private ParsedTranscriptData parseDualMajorFixture() {
+            try (InputStream is =
+                    getClass().getClassLoader().getResourceAsStream("transcript-dual-major-fixture.txt")) {
+                String text = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                return parser.parse(text);
+            } catch (IOException e) {
+                throw new RuntimeException("복수전공 텍스트 픽스처 로딩 실패", e);
+            }
+        }
+    }
+
     // ====== PDF 파싱 테스트 (로컬 전용, PDF 파일이 있을 때만 실행) ======
 
     @Nested
@@ -258,6 +331,20 @@ class TranscriptParserTest {
 
             assertThat(result.courses()).isNotEmpty();
             assertCreditsMatch(result, "test4.pdf");
+        }
+
+        @Test
+        @DisplayName("test-dup.pdf 파싱 시 복수전공 과목과 총학점이 일치한다")
+        void parse_dual_major_pdf() throws IOException {
+            ParsedTranscriptData result = parsePdfIfAvailable("pdf/test-dup.pdf");
+            if (result == null) return;
+
+            assertThat(result.meta().get("복수1")).isNotBlank();
+            assertThat(result.meta().get("복수1기준학기")).matches("\\d{4}-(1|2|여름|겨울)");
+            assertThat(result.courses())
+                    .filteredOn(course -> "복수1".equals(course.category()))
+                    .isNotEmpty();
+            assertCreditsMatch(result, "test-dup.pdf");
         }
 
         private void assertCreditsMatch(ParsedTranscriptData result, String fileName) {

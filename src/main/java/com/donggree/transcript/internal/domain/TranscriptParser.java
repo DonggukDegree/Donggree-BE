@@ -1,6 +1,7 @@
 package com.donggree.transcript.internal.domain;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,8 @@ public class TranscriptParser {
             "공교", Set.of("자아", "동국", "시민", "대학", "리더", "명작", "사고", "미래", "창의", "자기", "영어", "글", "SW", "한국"),
             "전공", Set.of("기초", "전문"),
             "전필", Set.of("기초", "전문"),
+            "복수1", Set.of("기초", "전문"),
+            "복수2", Set.of("기초", "전문"),
             "일교", Set.of("1", "2", "3", "4", "5", "6"),
             "학기", Set.of("1", "2", "3", "4", "5", "6"),
             "자선", Set.of("기초", "전문"));
@@ -27,8 +30,8 @@ public class TranscriptParser {
 
     private static final String GRADE_RE = "(?:A[+0]|B[+0]|C[+0]|D[+0]|[A-DF]|NP|P)";
     private static final String AREA_RE = "(?:[가-힣]{1,2}|[A-Za-z]{2}|\\d)";
-    private static final String SEMESTER_RE = "\\d{4}-(?:[12]|여름|겨울)";
-    private static final String CATEGORY_RE = "공교|전공|전필|일교|학기|자선";
+    private static final String SEMESTER_RE = "\\d{4}-(?:[12]|여름|겨울|공통)";
+    private static final String CATEGORY_RE = "공교|전공|전필|복수1|복수2|일교|학기|자선";
     private static final String CODE_RE = "[A-Z]{2,3}\\d{3,5}|\\d{6}";
 
     /** 과목 행 시작 패턴: 학기 학년 이수구분 과목코드 */
@@ -81,7 +84,21 @@ public class TranscriptParser {
         {"교직인적성합격횟수", "교직인적성합격횟수\\s*:\\s*(\\d+)"},
         {"주전공", "주전공\\s*:?\\s*(.+?)\\s+DC"},
         {"주전공코드", "(DC-\\d+(?:\\([^)]*\\))?)"},
+        {"복수1총학점", "복수1\\s*:\\s*총\\s*(\\d+)\\s*학점"},
+        {"복수1기초학점", "복수1\\s*:\\s*총\\s*\\d+\\s*학점\\s*\\([^)]*?기초\\s*:\\s*(\\d+)"},
+        {"복수1전문학점", "복수1\\s*:\\s*총\\s*\\d+\\s*학점\\s*\\([^)]*?전문\\s*:\\s*(\\d+)"},
+        {"복수1평점", "복수1평점\\s*:\\s*([\\d.]+)"},
+        {"복수1졸업논문심사", "졸업논문\\(시험\\)\\s*심사\\(복수1\\)\\s*:\\s*([가-힣]+)"},
+        {"복수2총학점", "복수2\\s*:\\s*총\\s*(\\d+)\\s*학점"},
+        {"복수2기초학점", "복수2\\s*:\\s*총\\s*\\d+\\s*학점\\s*\\([^)]*?기초\\s*:\\s*(\\d+)"},
+        {"복수2전문학점", "복수2\\s*:\\s*총\\s*\\d+\\s*학점\\s*\\([^)]*?전문\\s*:\\s*(\\d+)"},
+        {"복수2평점", "복수2평점\\s*:\\s*([\\d.]+)"},
+        {"복수2졸업논문심사", "졸업논문\\(시험\\)\\s*심사\\(복수2\\)\\s*:\\s*([가-힣]+)"},
     };
+
+    /** 복수전공 학과명 뒤에 붙는 기준 학기 표기. 예: 전자전기공학부(2026-2) */
+    private static final Pattern DUAL_MAJOR_WITH_REFERENCE_SEMESTER =
+            Pattern.compile("(.+?)\\s*\\((\\d{4}-(?:[12]|여름|겨울))\\)\\s*");
 
     /**
      * PDF에서 추출한 텍스트를 파싱하여 메타 정보와 수강 이력을 반환한다.
@@ -115,8 +132,14 @@ public class TranscriptParser {
             keyNames.add(km.group(1));
         }
 
+        Set<String> parsedTopKeys = new HashSet<>();
         for (int i = 0; i < keyPositions.size(); i++) {
             String key = keyNames.get(i);
+            // "복수1"처럼 상단 학생 정보와 하단 학점 요약에 같은 이름이 쓰이는 키가 있다.
+            // 상단 메타는 최초 출현값만 채택하고 하단 값은 SUMMARY_RULES의 별도 키로 파싱한다.
+            if (!parsedTopKeys.add(key)) {
+                continue;
+            }
             int valStart = keyPositions.get(i)[1];
             int valEnd = (i + 1 < keyPositions.size()) ? keyPositions.get(i + 1)[0] : valStart + 100;
             valEnd = Math.min(valEnd, text.length());
@@ -139,6 +162,11 @@ public class TranscriptParser {
             }
         }
 
+        // 복수전공은 "전자전기공학부(2026-2)"처럼 학과명 뒤에 기준 학기가 붙는다.
+        // 학과 ID 조회에는 정제된 학과명만 사용하고, 기준 학기는 raw_data.meta에 별도로 보존한다.
+        normalizeDualMajor(meta, "복수1");
+        normalizeDualMajor(meta, "복수2");
+
         // 2단계: 하단 요약 — 개별 정규표현식으로 파싱
         for (String[] rule : SUMMARY_RULES) {
             Matcher m = Pattern.compile(rule[1]).matcher(text);
@@ -158,6 +186,24 @@ public class TranscriptParser {
         meta.put("이수학기", regularSemesters > 0 ? String.valueOf(regularSemesters) : null);
 
         return meta;
+    }
+
+    private void normalizeDualMajor(Map<String, String> meta, String key) {
+        String value = meta.get(key);
+        String referenceSemesterKey = key + "기준학기";
+        if (value == null || value.isBlank()) {
+            meta.put(referenceSemesterKey, null);
+            return;
+        }
+
+        Matcher matcher = DUAL_MAJOR_WITH_REFERENCE_SEMESTER.matcher(value);
+        if (!matcher.matches()) {
+            meta.put(referenceSemesterKey, null);
+            return;
+        }
+
+        meta.put(key, matcher.group(1).trim());
+        meta.put(referenceSemesterKey, matcher.group(2));
     }
 
     // ====== 과목 파싱 ======

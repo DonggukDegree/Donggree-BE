@@ -123,4 +123,34 @@ class GraduationRuleCommandServiceTest {
                 .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                         .isEqualTo(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE));
     }
+
+    @Test
+    void 적용_대상이_없는_MIN_CREDITS는_저장할_수_없다() {
+        GraduationRuleCommand data =
+                new GraduationRuleCommand(10L, "전공 72학점", "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":72}", null);
+        given(ruleTypeRepository.findAllById(Set.of(10L)))
+                .willReturn(List.of(ruleType(10L, "MIN_CREDITS", CourseType.FIRST_MAJOR)));
+
+        assertThatThrownBy(() -> service.upsert(List.of(item(null, data))))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(CurriculumErrorCode.INVALID_MAJOR_ROLE_CONFIG));
+    }
+
+    @Test
+    void 적용_대상이_있는_REQUIRED_COURSE는_저장할_수_있다() {
+        GraduationRuleCommand data = new GraduationRuleCommand(
+                10L, "자료구조 필수", "{\"courseCodes\":[\"CSE2001\"],\"applicableMajorRoles\":[\"SINGLE_PRIMARY\"]}", null);
+        given(ruleTypeRepository.findAllById(Set.of(10L)))
+                .willReturn(List.of(ruleType(10L, "REQUIRED_COURSE", CourseType.FIRST_MAJOR)));
+        given(graduationRuleRepository.findByRuleTypeIdAndRuleName(10L, "자료구조 필수"))
+                .willReturn(Optional.empty());
+        given(graduationRuleRepository.save(any())).willAnswer(invocation -> {
+            GraduationRule saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 100L);
+            return saved;
+        });
+
+        assertThat(service.upsert(List.of(item(null, data)))).containsExactly(100L);
+    }
 }

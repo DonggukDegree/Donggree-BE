@@ -25,7 +25,8 @@ public record GraduationRuleBatchRequest(@NotEmpty(message = "items는 비어 �
     /**
      * 배치 업서트의 단일 졸업 규칙 항목.
      * id가 null이면 신규 등록, non-null이면 해당 규칙을 전체 교체(수정)한다.
-     * ruleConfig는 규칙 종류별 스키마를 따르는 JSON 객체로 받아 jsonb 문자열로 저장한다(서버는 스키마 검증하지 않음).
+     * ruleConfig는 규칙 종류별 스키마를 따르는 JSON 객체로 받아 jsonb 문자열로 저장한다.
+     * MIN_CREDITS·REQUIRED_COURSE의 applicableMajorRoles는 서버에서 필수 여부와 허용값을 검증한다.
      */
     public record Item(
             @Schema(example = "1", description = "수정 대상 규칙 ID. null이면 신규 등록") Long id,

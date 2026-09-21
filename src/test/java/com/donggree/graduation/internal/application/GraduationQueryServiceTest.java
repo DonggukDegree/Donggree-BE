@@ -70,6 +70,14 @@ class GraduationQueryServiceTest {
     }
 
     @Test
+    void 이수구분_복수는_제2전공으로_추론된다() {
+        assertThat(GraduationQueryService.inferClassification("복수1").courseType())
+                .isEqualTo(CourseType.SECOND_MAJOR);
+        assertThat(GraduationQueryService.inferClassification("복수2").courseType())
+                .isEqualTo(CourseType.SECOND_MAJOR);
+    }
+
+    @Test
     void 알_수_없는_이수구분은_courseType이_null로_추론된다() {
         assertThat(GraduationQueryService.inferClassification("알수없음").courseType())
                 .isNull();
@@ -243,12 +251,122 @@ class GraduationQueryServiceTest {
     }
 
     @Test
-    void 복수전공이_있으면_미지원_안내가_켜진다() {
+    void 복수전공은_평가하므로_미지원_안내가_꺼진다() {
+        givenTranscriptWithMajors(200L, null, null, null, passed("DAI1001", "복수전공", 3, "복수1", "전문"));
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+        given(curriculumLookupService.findGraduationRules(20L))
+                .willReturn(List.of(new GraduationRuleView(
+                        3L,
+                        "MIN_CREDITS",
+                        CourseType.FIRST_MAJOR,
+                        "복수전공 3학점",
+                        "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":3,\"applicableMajorRoles\":[\"SECONDARY\"]}")));
+        givenNoClassification();
+
+        assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isFalse();
+    }
+
+    @Test
+    void 복수전공_학생은_주전공과_복수전공_규칙을_각각_평가한다() {
+        givenTranscriptWithMajors(
+                200L,
+                null,
+                null,
+                null,
+                passed("CSE1001", "주전공", 3, "전공", "전문"),
+                passed("DAI1001", "복수전공", 3, "복수1", "전문"));
+        GraduationRuleView singleOnly = new GraduationRuleView(
+                1L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "단일전공 72학점",
+                "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":72,\"applicableMajorRoles\":[\"SINGLE_PRIMARY\"]}");
+        GraduationRuleView dualPrimary = new GraduationRuleView(
+                2L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "복수전공자 주전공 3학점",
+                "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":3,\"applicableMajorRoles\":[\"DUAL_PRIMARY\"]}");
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
+                .willReturn(List.of(singleOnly, dualPrimary));
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+        GraduationRuleView secondary = new GraduationRuleView(
+                3L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "복수전공 3학점",
+                "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":3,\"applicableMajorRoles\":[\"SECONDARY\"]}");
+        given(curriculumLookupService.findGraduationRules(20L)).willReturn(List.of(secondary));
+        givenNoClassification();
+
+        var report = service.getReport(MEMBER_ID);
+
+        assertThat(report.summary().achievementRate()).isEqualTo(100);
+        assertThat(report.areaOverviews())
+                .anySatisfy(area -> {
+                    assertThat(area.courseType()).isEqualTo("FIRST_MAJOR");
+                    assertThat(area.satisfied()).isTrue();
+                })
+                .anySatisfy(area -> {
+                    assertThat(area.courseType()).isEqualTo("SECOND_MAJOR");
+                    assertThat(area.satisfied()).isTrue();
+                    assertThat(area.remainingCredits()).isZero();
+                });
+    }
+
+    @Test
+    void 복수전공_학과의_적용_세트가_없어도_주전공_리포트와_경고를_반환한다() {
         givenTranscriptWithMajors(200L, null, null, null);
-        givenMinCreditsRule(CourseType.FIRST_MAJOR, "전공 60학점", "{\"minCredits\":60}");
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.empty());
         givenNoClassification();
 
         assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
+    }
+
+    @Test
+    void 두_번째_복수전공은_판정하지_않고_정확도_경고를_반환한다() {
+        givenTranscriptWithMajors(null, 200L, null, null);
+        givenNoClassification();
+
+        assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
+    }
+
+    @Test
+    void 편입생은_리포트를_반환하면서_정확도_경고를_표시한다() {
+        givenTranscriptOf(false, null, null, null, null, true);
+        given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(REQUIREMENT_SET_ID, DEPARTMENT_ID, 2020, 2025)));
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
+        givenNoClassification();
+
+        assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
+    }
+
+    @Test
+    void 복수전공_필수과목을_주전공에서_이수해도_주전공_화면의_필수_충족으로_표시하지_않는다() {
+        givenTranscriptWithMajors(200L, null, null, null, passed("DAI1001", "인공지능", 3, "전공", "전문"));
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+        GraduationRuleView secondaryRequired = new GraduationRuleView(
+                3L,
+                "REQUIRED_COURSE",
+                CourseType.FIRST_MAJOR,
+                "인공지능은 필수",
+                "{\"courseCodes\":[\"DAI1001\"],\"applicableMajorRoles\":[\"SECONDARY\"]}");
+        given(curriculumLookupService.findGraduationRules(20L)).willReturn(List.of(secondaryRequired));
+        givenNoClassification();
+
+        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
+
+        assertThat(items(response))
+                .filteredOn(item -> item.title().equals("인공지능"))
+                .singleElement()
+                .satisfies(item -> assertThat(item.status()).isEqualTo("OPTIONAL"));
     }
 
     @Test
@@ -309,6 +427,17 @@ class GraduationQueryServiceTest {
             Long sub1Id,
             Long sub2Id,
             CourseRecordView... records) {
+        givenTranscriptOf(engineeringCertified, dual1Id, dual2Id, sub1Id, sub2Id, false, records);
+    }
+
+    private void givenTranscriptOf(
+            boolean engineeringCertified,
+            Long dual1Id,
+            Long dual2Id,
+            Long sub1Id,
+            Long sub2Id,
+            boolean transfer,
+            CourseRecordView... records) {
         TranscriptView transcript = new TranscriptView(
                 1L,
                 MEMBER_ID,
@@ -327,6 +456,7 @@ class GraduationQueryServiceTest {
                 null,
                 null,
                 false,
+                transfer,
                 List.of(records));
         given(transcriptLookupService.findByMemberId(MEMBER_ID)).willReturn(Optional.of(transcript));
     }

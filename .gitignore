@@ -37,8 +37,8 @@ out/
 
 ### VS Code ###
 .vscode/
-.claude/
-CLAUDE.md
+.agents/
+AGENTS.md
 
 ### macOS ###
 .DS_Store

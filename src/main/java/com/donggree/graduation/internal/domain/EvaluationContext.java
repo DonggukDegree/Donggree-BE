@@ -18,11 +18,59 @@ public class EvaluationContext {
 
     private final TranscriptView transcript;
     private final Map<String, CourseClassificationView> classificationByCourseCode;
+    private final MajorRole majorRole;
+    private final String secondaryCourseTypeName;
+    private final boolean includeAllMajorRoles;
 
     public EvaluationContext(
             TranscriptView transcript, Map<String, CourseClassificationView> classificationByCourseCode) {
+        this(
+                transcript,
+                classificationByCourseCode,
+                transcript.dualMajor1Id() == null && transcript.dualMajor2Id() == null
+                        ? MajorRole.SINGLE_PRIMARY
+                        : MajorRole.DUAL_PRIMARY,
+                null,
+                false);
+    }
+
+    private EvaluationContext(
+            TranscriptView transcript,
+            Map<String, CourseClassificationView> classificationByCourseCode,
+            MajorRole majorRole,
+            String secondaryCourseTypeName,
+            boolean includeAllMajorRoles) {
         this.transcript = transcript;
         this.classificationByCourseCode = Map.copyOf(classificationByCourseCode);
+        this.majorRole = majorRole;
+        this.secondaryCourseTypeName = secondaryCourseTypeName;
+        this.includeAllMajorRoles = includeAllMajorRoles;
+    }
+
+    public static EvaluationContext primary(
+            TranscriptView transcript,
+            Map<String, CourseClassificationView> classificationByCourseCode,
+            MajorRole majorRole) {
+        if (!majorRole.isPrimary()) {
+            throw new IllegalArgumentException("주전공 평가에는 주전공 역할이 필요합니다.");
+        }
+        return new EvaluationContext(transcript, classificationByCourseCode, majorRole, null, false);
+    }
+
+    public static EvaluationContext secondary(
+            TranscriptView transcript,
+            Map<String, CourseClassificationView> classificationByCourseCode,
+            String secondaryCourseTypeName) {
+        if (!"복수1".equals(secondaryCourseTypeName)) {
+            throw new IllegalArgumentException("복수전공 평가에는 복수1 이수구분이 필요합니다.");
+        }
+        return new EvaluationContext(
+                transcript, classificationByCourseCode, MajorRole.SECONDARY, secondaryCourseTypeName, false);
+    }
+
+    public static EvaluationContext report(
+            TranscriptView transcript, Map<String, CourseClassificationView> classificationByCourseCode) {
+        return new EvaluationContext(transcript, classificationByCourseCode, MajorRole.SINGLE_PRIMARY, null, true);
     }
 
     public TranscriptView getTranscript() {
@@ -33,10 +81,31 @@ public class EvaluationContext {
         return classificationByCourseCode.get(courseCode);
     }
 
+    /** 복수1·복수2 과목은 학수번호의 원래 분류와 무관하게 제2전공으로 해석한다. */
+    public CourseClassificationView getClassification(CourseRecordView record) {
+        CourseClassificationView classification = getClassification(record.courseCode());
+        if (!isSecondaryCourseTypeName(record.courseTypeName())) {
+            return classification;
+        }
+
+        return new CourseClassificationView(
+                CourseType.SECOND_MAJOR,
+                classification != null && classification.areaName() != null
+                        ? classification.areaName()
+                        : record.pdfAreaName(),
+                classification == null ? null : classification.subCategory(),
+                classification == null ? null : classification.subjectDomain());
+    }
+
+    public MajorRole getMajorRole() {
+        return majorRole;
+    }
+
     /** 이수 처리된(F·NP 제외) 수강 이력 전체를 반환한다. */
     public List<CourseRecordView> getPassedCourses() {
         return transcript.courseRecords().stream()
                 .filter(CourseRecordView::passed)
+                .filter(this::belongsToEvaluationScope)
                 .toList();
     }
 
@@ -44,7 +113,7 @@ public class EvaluationContext {
     public List<CourseRecordView> getPassedCoursesByType(CourseType courseType) {
         return getPassedCourses().stream()
                 .filter(cr -> {
-                    CourseClassificationView cls = classificationByCourseCode.get(cr.courseCode());
+                    CourseClassificationView cls = getClassification(cr);
                     return cls != null && cls.courseType() == courseType;
                 })
                 .toList();
@@ -57,7 +126,7 @@ public class EvaluationContext {
     public List<CourseRecordView> getPassedCoursesByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
         return getPassedCourses().stream()
                 .filter(cr -> {
-                    CourseClassificationView cls = classificationByCourseCode.get(cr.courseCode());
+                    CourseClassificationView cls = getClassification(cr);
                     if (cls == null || cls.courseType() != courseType) return false;
                     return areaNames == null || areaNames.contains(cls.areaName());
                 })
@@ -104,6 +173,18 @@ public class EvaluationContext {
         return patterns.stream()
                 .anyMatch(p ->
                         p.endsWith("*") ? courseCode.startsWith(p.substring(0, p.length() - 1)) : courseCode.equals(p));
+    }
+
+    private boolean belongsToEvaluationScope(CourseRecordView record) {
+        if (includeAllMajorRoles) return true;
+        if (majorRole == MajorRole.SECONDARY) {
+            return secondaryCourseTypeName.equals(record.courseTypeName());
+        }
+        return !isSecondaryCourseTypeName(record.courseTypeName());
+    }
+
+    private static boolean isSecondaryCourseTypeName(String courseTypeName) {
+        return "복수1".equals(courseTypeName) || "복수2".equals(courseTypeName);
     }
 
     /** 특정 courseType의 이수 학점 합계를 반환한다. */
