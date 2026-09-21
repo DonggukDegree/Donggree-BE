@@ -176,6 +176,42 @@ class TranscriptTest {
     }
 
     @Test
+    void 복수전공_학과_ID와_과목의_PDF_이수구분을_보존한다() {
+        Transcript transcript = Transcript.create(new TranscriptCreateData(
+                1L,
+                "{\"meta\":{\"복수1기준학기\":\"2026-2\"}}",
+                2022,
+                "재학",
+                "학사과정",
+                10L,
+                null,
+                null,
+                20L,
+                null,
+                9,
+                new BigDecimal("4.17"),
+                6,
+                "S1",
+                true,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                null,
+                false));
+
+        CourseRecord record =
+                transcript.addCourseRecord("2026-1", "복수1", "전문", "CSC4016", "컴퓨터네트워크", 3, Grade.A_PLUS, false);
+
+        assertThat(transcript.getDualMajor1Id()).isEqualTo(20L);
+        assertThat(transcript.getRawData()).contains("복수1기준학기").contains("2026-2");
+        assertThat(record.getCourseTypeName()).isEqualTo("복수1");
+        assertThat(record.getAreaName()).isEqualTo("전문");
+    }
+
+    @Test
     void getCourseRecords는_불변_리스트를_반환한다() {
         Transcript transcript = createTranscript();
         transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);

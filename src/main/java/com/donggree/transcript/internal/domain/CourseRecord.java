@@ -20,6 +20,7 @@ import lombok.NoArgsConstructor;
  * 개별 수강 이력을 나타내는 엔티티.
  * Transcript 애그리거트의 하위 엔티티로, 반드시 Transcript를 통해 생성된다.
  * course_type_name, area_name, course_name, credits는 PDF 업로드 시점 스냅샷으로 직접 저장한다(반정규화).
+ * 복수전공 과목은 PDF 원문 이수구분인 "복수1" 또는 "복수2"를 course_type_name에 보존한다.
  * course_type_name과 area_name은 PDF 원시값이며 졸업 판정에 사용하지 않는다.
  * course_code는 course_classification 매칭용 논리적 참조로 보관한다.
  */

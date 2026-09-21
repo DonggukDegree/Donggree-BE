@@ -3,6 +3,7 @@ package com.donggree.transcript.internal.presentation;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -153,7 +154,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.courses[].records[].credits")
                                         .description("학점"),
                                 fieldWithPath("result.courses[].records[].courseType")
-                                        .description("이수 구분 — PDF 원시 문자열 (예: 전공, 공교, 일교, 학기)"),
+                                        .description("이수 구분 — PDF 원시 문자열 (예: 전공, 복수1, 복수2, 공교, 일교, 학기)"),
                                 fieldWithPath("result.courses[].records[].areaName")
                                         .type(JsonFieldType.NULL)
                                         .optional()
@@ -171,6 +172,7 @@ class TranscriptControllerTest extends RestDocsSupport {
 
         Map<String, String> meta = Map.of(
                 "학과", "컴퓨터·AI학부",
+                "복수1", "전자전기공학부",
                 "교육과정 적용년도", "2023",
                 "학적상태", "재학",
                 "과정", "학사",
@@ -192,7 +194,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                 10L,
                 null,
                 null,
-                null,
+                20L,
                 null,
                 60,
                 new BigDecimal("3.50"),
@@ -210,6 +212,7 @@ class TranscriptControllerTest extends RestDocsSupport {
 
         given(transcriptCommandService.parseTranscript(any(byte[].class))).willReturn(parseResult);
         given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
+        given(curriculumLookupService.findDepartmentIdByName("전자전기공학부")).willReturn(Optional.of(20L));
         given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
         given(transcriptCommandService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(createData);
@@ -236,6 +239,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.recordedCredits").description("등록된 수강 이력 학점의 합"),
                                 fieldWithPath("result.creditGap")
                                         .description("총취득학점 - 과목 학점 합. 0이 아니면 불일치(양수: 이수 이력 추가 필요, 음수: 과목 합이 더 많음)"))));
+
+        then(transcriptCommandService).should().buildCreateData(memberId, "{}", parsedData, 10L, null, null, 20L, null);
     }
 
     @Test
