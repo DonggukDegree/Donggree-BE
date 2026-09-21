@@ -6,7 +6,9 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.transcript.CourseRecordView;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
@@ -126,6 +128,17 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 "{\"courseCodes\":[\"RGC1030\"],\"requiredEnglishLevels\":[\"S4\"]}");
 
         assertThat(evaluator.evaluate(basicEasRule, ctx).satisfied()).isFalse();
+    }
+
+    @Test
+    void 복수전공_필수과목은_해당_복수_순번에서_이수해야_한다() {
+        var records = List.of(new CourseRecordView("2024-1", "DAI1001", "복수2", "전문", "인공지능", 3, true, false));
+        EvaluationContext ctx = EvaluationContext.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
+
+        assertThat(evaluator
+                        .evaluate(rule("{\"courseCodes\":[\"DAI1001\"]}"), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     private GraduationRuleView rule(String config) {

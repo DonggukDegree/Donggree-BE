@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;
@@ -298,6 +299,34 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var rule = rule("{\"courseType\": \"COMMON_GENERAL\", \"minCredits\": 2}");
 
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+    }
+
+    @Test
+    void 주전공_평가는_복수전공_이수학점을_합산하지_않는다() {
+        var records = List.of(
+                new CourseRecordView("2024-1", "CSE1001", "전공", "전문", "주전공", 3, true, false),
+                new CourseRecordView("2024-1", "DAI1001", "복수1", "전문", "복수전공", 3, true, false));
+        var cls = Map.of(
+                "CSE1001", classification(CourseType.FIRST_MAJOR),
+                "DAI1001", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = EvaluationContext.primary(transcript(6, 4.0, records), cls, MajorRole.DUAL_PRIMARY);
+        var rule = rule("{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":6}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
+    }
+
+    @Test
+    void 복수전공_평가는_해당_복수_순번의_학점만_집계한다() {
+        var records = List.of(
+                new CourseRecordView("2024-1", "DAI1001", "복수1", "전문", "인공지능1", 3, true, false),
+                new CourseRecordView("2024-1", "BUS1001", "복수2", "전문", "경영1", 3, true, false));
+        var cls = Map.of(
+                "DAI1001", classification(CourseType.FIRST_MAJOR),
+                "BUS1001", classification(CourseType.FIRST_MAJOR));
+        EvaluationContext ctx = EvaluationContext.secondary(transcript(6, 4.0, records), cls, "복수1");
+        var rule = rule("{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":6}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
     }
 
     @Test

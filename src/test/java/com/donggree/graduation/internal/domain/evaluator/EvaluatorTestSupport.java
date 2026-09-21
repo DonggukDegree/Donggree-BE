@@ -31,6 +31,7 @@ class EvaluatorTestSupport {
                 null,
                 null,
                 false,
+                false,
                 records);
     }
 
@@ -61,6 +62,7 @@ class EvaluatorTestSupport {
                 completedEnglish,
                 null,
                 thesisStatus,
+                false,
                 records);
     }
 
