@@ -15,7 +15,7 @@ public record GraduationReportProjection(
 
     /**
      * 졸업 요건 전체 요약.
-     * unsatisfiedReasons: GRADUATION_REQ 카테고리에서 미충족된 rule_name 목록
+     * unsatisfiedReasons: 총학점·평점 등 전공 역할과 이수구분이 없는 공통 미충족 사유
      */
     public record Summary(
             int achievementRate,
@@ -28,9 +28,9 @@ public record GraduationReportProjection(
 
     /**
      * courseType별 이수 현황.
-     * achievementRate: 해당 courseType 규칙의 충족 비율 (충족 규칙 수 / 전체 규칙 수 × 100)
+     * achievementRate: 전공은 해당 역할의 전체 요건, 교양·학문기초는 기존 이수구분 요건의 충족 비율
      * remainingCredits: max(0, targetCredits - earnedCredits) — targetCredits는 MIN_CREDITS 규칙에서 결정
-     * satisfied: 해당 courseType에 적용되는 모든 규칙 충족 여부
+     * satisfied: achievementRate와 같은 규칙 목록의 전체 충족 여부. 학점 집계는 원래 이수구분 유지
      */
     public record AreaOverview(
             String courseType, String courseTypeName, int achievementRate, int remainingCredits, boolean satisfied) {}

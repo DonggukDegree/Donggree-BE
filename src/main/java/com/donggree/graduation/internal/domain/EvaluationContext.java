@@ -109,6 +109,21 @@ public class EvaluationContext {
                 .toList();
     }
 
+    /**
+     * 복수전공 학과의 학문기초는 PDF의 복수1 칸에만 기록되지 않는다.
+     * 학문기초 규칙은 공통 이수 내역에서도 분류·학수번호로 선택하고,
+     * 전공 규칙과 논문 과목 세트의 복수1 제한은 그대로 유지한다. 복수2는 평가 대상이 아니다.
+     */
+    public List<CourseRecordView> getPassedCoursesForRule(CourseType ruleCourseType) {
+        if (majorRole != MajorRole.SECONDARY || ruleCourseType != CourseType.ACADEMIC_FOUNDATION) {
+            return getPassedCourses();
+        }
+        return transcript.courseRecords().stream()
+                .filter(CourseRecordView::passed)
+                .filter(record -> !"복수2".equals(record.courseTypeName()))
+                .toList();
+    }
+
     /** 특정 courseType의 이수 수강 이력을 반환한다. 분류가 없는 과목은 제외된다. */
     public List<CourseRecordView> getPassedCoursesByType(CourseType courseType) {
         return getPassedCourses().stream()

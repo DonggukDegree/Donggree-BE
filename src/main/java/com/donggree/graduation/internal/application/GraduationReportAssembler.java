@@ -41,20 +41,22 @@ public class GraduationReportAssembler {
     public GraduationReportProjection assembleReport(
             TranscriptView transcript,
             List<GraduationRuleView> rules,
+            List<GraduationRuleView> statusRules,
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
             boolean hasUnsupportedMajor) {
         return new GraduationReportProjection(
-                buildSummary(transcript, rules, resultByRuleId),
-                buildAreaOverviews(rules, resultByRuleId, context),
+                buildSummary(transcript, rules, statusRules, resultByRuleId),
+                buildAreaOverviews(rules, statusRules, resultByRuleId, context),
                 hasUnsupportedMajor,
                 transcript.englishPassResult());
     }
 
-    /** 영역별 상세 이수 현황을 조립한다. areaRules는 대상 courseType에 속한 규칙만 넘긴다. */
+    /** areaRules는 과목·학점용, statusRules는 사유 표시용이며 각각 해당 탭의 규칙만 넘긴다. */
     public AreaDetailProjection assembleAreaDetail(
             CourseType courseType,
             List<GraduationRuleView> areaRules,
+            List<GraduationRuleView> statusRules,
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
             Map<String, CourseClassificationView> allCls,
@@ -63,7 +65,7 @@ public class GraduationReportAssembler {
         List<AreaDetailProjection.AreaSection> areaDetails =
                 buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls, roleRequiredCodes);
 
-        List<String> unsatisfiedReasons = areaRules.stream()
+        List<String> unsatisfiedReasons = statusRules.stream()
                 .filter(r -> {
                     RuleResult result = resultByRuleId.get(r.id());
                     return result != null && !result.satisfied();
@@ -89,14 +91,19 @@ public class GraduationReportAssembler {
         return applicableRequiredRules(rules, studentEnglishLevel).stream()
                 // 복수전공 규칙은 GraduationQueryService에서 음수 스코프 ID를 부여한다.
                 // 역할이 다른 같은 학수번호가 상세 화면에서 잘못 충족 표시되는 것을 막는다.
-                .filter(rule -> secondaryArea == (rule.id() < 0))
+                .filter(rule -> secondaryArea == (rule.id() < 0)
+                        // 복수전공 학문기초 필수는 공통 이수 내역에서도 충족 가능하다.
+                        || (rule.id() < 0 && rule.courseType() == CourseType.ACADEMIC_FOUNDATION))
                 .flatMap(r -> parseStringList(r.ruleConfig(), "courseCodes").stream())
                 .distinct()
                 .toList();
     }
 
     private Summary buildSummary(
-            TranscriptView transcript, List<GraduationRuleView> rules, Map<Long, RuleResult> resultByRuleId) {
+            TranscriptView transcript,
+            List<GraduationRuleView> rules,
+            List<GraduationRuleView> statusRules,
+            Map<Long, RuleResult> resultByRuleId) {
         long satisfiedCount =
                 resultByRuleId.values().stream().filter(RuleResult::satisfied).count();
         int achievementRate = rules.isEmpty() ? 0 : (int) (satisfiedCount * 100 / rules.size());
@@ -113,8 +120,8 @@ public class GraduationReportAssembler {
         boolean graduated =
                 !resultByRuleId.isEmpty() && resultByRuleId.values().stream().allMatch(RuleResult::satisfied);
 
-        // courseType == null인 규칙이 졸업요건 규칙 — 미충족된 것만 사유로 노출
-        List<String> unsatisfiedReasons = rules.stream()
+        // 역할별 사유는 제1·제2전공에 표시하고 총학점·평점 등 공통 사유만 요약에 남긴다.
+        List<String> unsatisfiedReasons = statusRules.stream()
                 .filter(r -> r.courseType() == null)
                 .filter(r -> {
                     RuleResult result = resultByRuleId.get(r.id());
@@ -135,8 +142,15 @@ public class GraduationReportAssembler {
     }
 
     private List<AreaOverview> buildAreaOverviews(
-            List<GraduationRuleView> rules, Map<Long, RuleResult> resultByRuleId, EvaluationContext context) {
+            List<GraduationRuleView> rules,
+            List<GraduationRuleView> statusRules,
+            Map<Long, RuleResult> resultByRuleId,
+            EvaluationContext context) {
         Map<CourseType, List<GraduationRuleView>> rulesByCourseType = rules.stream()
+                .filter(r -> r.courseType() != null)
+                .collect(Collectors.groupingBy(GraduationRuleView::courseType));
+
+        Map<CourseType, List<GraduationRuleView>> statusRulesByCourseType = statusRules.stream()
                 .filter(r -> r.courseType() != null)
                 .collect(Collectors.groupingBy(GraduationRuleView::courseType));
 
@@ -146,13 +160,23 @@ public class GraduationReportAssembler {
 
         List<CourseType> relevantCourseTypes = new ArrayList<>();
         for (CourseType ct : CourseType.values()) {
-            if (rulesByCourseType.containsKey(ct) || context.getTotalPassedCreditsByType(ct) > 0) {
+            if (rulesByCourseType.containsKey(ct)
+                    || statusRulesByCourseType.containsKey(ct)
+                    || context.getTotalPassedCreditsByType(ct) > 0) {
                 relevantCourseTypes.add(ct);
             }
         }
 
         return relevantCourseTypes.stream()
-                .map(ct -> buildAreaOverview(ct, rulesByCourseType, minAreaRulesByCourseType, resultByRuleId, context))
+                // 전공 카드는 해당 역할의 모든 요건을 반영한다. 교양·학문기초의 기존 이수 판정은 유지한다.
+                .map(ct -> buildAreaOverview(
+                        ct,
+                        ct == CourseType.FIRST_MAJOR || ct == CourseType.SECOND_MAJOR
+                                ? statusRulesByCourseType
+                                : rulesByCourseType,
+                        minAreaRulesByCourseType,
+                        resultByRuleId,
+                        context))
                 .toList();
     }
 
@@ -263,7 +287,8 @@ public class GraduationReportAssembler {
             if (!isCreditTargetRule(rule)) continue;
             List<String> areaNames = parseStringList(rule.ruleConfig(), "areaNames");
             if (areaNames.size() == 1) {
-                targetCreditsByArea.put(areaNames.get(0), parseIntField(rule.ruleConfig(), "minCredits", 0));
+                targetCreditsByArea.merge(
+                        areaNames.get(0), parseIntField(rule.ruleConfig(), "minCredits", 0), Math::max);
             }
         }
 
@@ -416,10 +441,21 @@ public class GraduationReportAssembler {
                 .max();
         if (wholeType.isPresent()) return wholeType.getAsInt();
 
+        // A/B 학과가 같은 영역 학점을 요구해도 학생이 그 학점을 두 번 취득할 필요는 없다.
+        // 동일 영역 묶음은 더 큰 기준을 표시하고, 서로 다른 묶음은 기존처럼 합산한다.
         return rules.stream()
                 .filter(this::isCreditTargetRule)
                 .filter(r -> !parseStringList(r.ruleConfig(), "areaNames").isEmpty())
-                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+                .collect(Collectors.toMap(
+                        r -> parseStringList(r.ruleConfig(), "areaNames").stream()
+                                .distinct()
+                                .sorted()
+                                .toList(),
+                        r -> parseIntField(r.ruleConfig(), "minCredits", 0),
+                        Math::max))
+                .values()
+                .stream()
+                .mapToInt(Integer::intValue)
                 .sum();
     }
 

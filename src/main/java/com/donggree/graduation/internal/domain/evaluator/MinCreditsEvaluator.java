@@ -64,7 +64,7 @@ public class MinCreditsEvaluator implements RuleEvaluator {
                         ? CourseType.SECOND_MAJOR
                         : configuredCourseType;
 
-        List<CourseRecordView> selected = context.getPassedCourses().stream()
+        List<CourseRecordView> selected = context.getPassedCoursesForRule(rule.courseType()).stream()
                 .filter(record -> matches(record, courseType, config, context))
                 .toList();
 

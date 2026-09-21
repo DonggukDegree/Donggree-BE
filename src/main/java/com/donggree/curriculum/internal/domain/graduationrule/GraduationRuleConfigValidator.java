@@ -8,7 +8,8 @@ import java.util.Set;
 public final class GraduationRuleConfigValidator {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Set<String> ROLE_AWARE_TYPES = Set.of("MIN_CREDITS", "REQUIRED_COURSE");
+    private static final Set<String> ROLE_AWARE_TYPES =
+            Set.of("MIN_CREDITS", "REQUIRED_COURSE", "THESIS", "ENGLISH_COURSE");
     private static final Set<String> MAJOR_ROLES = Set.of("SINGLE_PRIMARY", "DUAL_PRIMARY", "SECONDARY");
 
     private GraduationRuleConfigValidator() {}

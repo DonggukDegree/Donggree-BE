@@ -6,7 +6,7 @@ import java.util.List;
  * 영역별 이수 현황 조회 결과 프로젝션.
  * 애그리거트를 거치지 않고 여러 모듈 조회 결과를 응용 계층에서 조립한 읽기 전용 모델이다.
  * areaDetails: courseType 내 areaName별 이수 현황
- * unsatisfiedReasons: 해당 courseType에서 미충족된 rule_name 목록
+ * unsatisfiedReasons: 역할별 사유는 제1·제2전공, 역할 옵션 없는 규칙은 기존 이수구분에 표시
  * creditStatus: 해당 courseType 전체 학점 이수 현황
  */
 public record AreaDetailProjection(

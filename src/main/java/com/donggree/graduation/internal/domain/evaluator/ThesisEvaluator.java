@@ -2,6 +2,7 @@ package com.donggree.graduation.internal.domain.evaluator;
 
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -32,12 +33,15 @@ import org.springframework.stereotype.Component;
  *     ]
  *   }
  *
- *   // 성적표의 졸업논문심사 결과로 판정 (대부분의 학과)
- *   {}
+ *   // 복수전공 학과의 졸업논문(시험) 심사 결과로 판정
+ *   {"applicableMajorRoles": ["SECONDARY"]}
+ *
+ * 모든 신규·수정 규칙에는 applicableMajorRoles를 지정한다.
+ * 과목·면제 설정이 없는 기존 {} 규칙은 두 주전공 역할에 계속 적용된다.
  *
  * 판정 순서:
  *   1. exemptStudentTypes에 해당하는 학생 중 exemptCourseCodes가 없으면 — 규칙 전체 면제(자동 충족)
- *   2. requiredCourseSets가 없으면 — 성적표의 졸업논문심사가 합격이면 충족
+ *   2. requiredCourseSets가 없으면 — 적용 역할에 해당하는 논문·시험 심사가 합격이면 충족
  *   3. requiredCourseSets가 있으면 — 그중 한 세트에서 각 과목 그룹마다 하나 이상 이수하면 충족
  *      (동일유사 교과목은 같은 그룹 배열에 여러 코드로 표현한다)
  *
@@ -73,7 +77,10 @@ public class ThesisEvaluator implements RuleEvaluator {
 
         List<List<List<String>>> courseSets = config.requiredCourseSets();
         if (courseSets == null || courseSets.isEmpty()) {
-            return new RuleResult(rule.ruleName(), context.getTranscript().thesisStatus());
+            boolean passed = context.getMajorRole() == MajorRole.SECONDARY
+                    ? context.getTranscript().dualMajor1ThesisStatus()
+                    : context.getTranscript().thesisStatus();
+            return new RuleResult(rule.ruleName(), passed);
         }
 
         // 부분 면제일 때만 면제 과목 목록을 적용한다. 면제 대상이 아닌 학생에겐 영향이 없다.
