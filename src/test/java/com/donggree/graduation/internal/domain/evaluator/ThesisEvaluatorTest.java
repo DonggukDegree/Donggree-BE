@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.MajorRole;
+import com.donggree.transcript.CourseRecordView;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ThesisEvaluatorTest extends EvaluatorTestSupport {
@@ -176,6 +179,75 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
 
         assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
                 .isTrue();
+    }
+
+    @Test
+    void 주전공_합격을_복수전공_합격으로_재사용하지_않는다() {
+        var transcript = transcriptWithThesisStatuses(true, false, "학사과정", List.of());
+
+        assertThat(evaluator
+                        .evaluate(rule("{}"), EvaluationContext.primary(transcript, Map.of(), MajorRole.DUAL_PRIMARY))
+                        .satisfied())
+                .isTrue();
+        assertThat(evaluator
+                        .evaluate(rule("{}"), EvaluationContext.secondary(transcript, Map.of(), "복수1"))
+                        .satisfied())
+                .isFalse();
+    }
+
+    @Test
+    void 복수전공_합격을_주전공_합격으로_재사용하지_않는다() {
+        var transcript = transcriptWithThesisStatuses(false, true, "학사과정", List.of());
+
+        assertThat(evaluator
+                        .evaluate(rule("{}"), EvaluationContext.primary(transcript, Map.of(), MajorRole.DUAL_PRIMARY))
+                        .satisfied())
+                .isFalse();
+        assertThat(evaluator
+                        .evaluate(rule("{}"), EvaluationContext.secondary(transcript, Map.of(), "복수1"))
+                        .satisfied())
+                .isTrue();
+    }
+
+    @Test
+    void 복수전공_과목_판정에는_복수1_과목만_사용한다() {
+        var primaryCourse = new CourseRecordView("2024-1", "CSE4066", "전공", "전문", "설계", 3, true, false);
+        var dual2Course = new CourseRecordView("2024-1", "CSE4066", "복수2", "전문", "설계", 3, true, false);
+        var secondaryCourse = new CourseRecordView("2024-1", "CSE4066", "복수1", "전문", "설계", 3, true, false);
+        var configuredRule = rule("{\"requiredCourseSets\":[[[\"CSE4066\"]]]}");
+
+        for (CourseRecordView course : List.of(primaryCourse, dual2Course, secondaryCourse)) {
+            var transcript = transcriptWithThesisStatuses(true, true, "학사과정", List.of(course));
+            var context = EvaluationContext.secondary(transcript, Map.of(), "복수1");
+
+            assertThat(evaluator.evaluate(configuredRule, context).satisfied()).isEqualTo(course == secondaryCourse);
+        }
+    }
+
+    @Test
+    void 복수전공에도_전체_면제를_적용한다() {
+        var transcript = transcriptWithThesisStatuses(false, false, "학석사연계과정", List.of());
+        var context = EvaluationContext.secondary(transcript, Map.of(), "복수1");
+
+        assertThat(evaluator.evaluate(rule(CONFIG), context).satisfied()).isTrue();
+    }
+
+    @Test
+    void 복수전공_부분_면제도_나머지_복수1_과목_이수를_요구한다() {
+        var course = new CourseRecordView("2024-1", "CSE4066", "복수1", "전문", "설계", 3, true, false);
+        var withCourse = transcriptWithThesisStatuses(false, false, "학석사연계과정", List.of(course));
+        var withoutCourse = transcriptWithThesisStatuses(true, true, "학석사연계과정", List.of());
+
+        assertThat(evaluator
+                        .evaluate(rule(PARTIAL_EXEMPT_CONFIG), EvaluationContext.secondary(withCourse, Map.of(), "복수1"))
+                        .satisfied())
+                .isTrue();
+        assertThat(evaluator
+                        .evaluate(
+                                rule(PARTIAL_EXEMPT_CONFIG),
+                                EvaluationContext.secondary(withoutCourse, Map.of(), "복수1"))
+                        .satisfied())
+                .isFalse();
     }
 
     private GraduationRuleView rule(String config) {

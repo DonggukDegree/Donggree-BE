@@ -32,6 +32,7 @@ class EvaluatorTestSupport {
                 null,
                 false,
                 false,
+                false,
                 records);
     }
 
@@ -62,6 +63,32 @@ class EvaluatorTestSupport {
                 completedEnglish,
                 null,
                 thesisStatus,
+                false,
+                false,
+                records);
+    }
+
+    static TranscriptView transcriptWithThesisStatuses(
+            boolean primaryPassed, boolean secondaryPassed, String studentType, List<CourseRecordView> records) {
+        return new TranscriptView(
+                1L,
+                1L,
+                100L,
+                200L,
+                null,
+                null,
+                null,
+                2023,
+                studentType,
+                false,
+                0,
+                BigDecimal.valueOf(4.0),
+                "S1",
+                false,
+                null,
+                null,
+                primaryPassed,
+                secondaryPassed,
                 false,
                 records);
     }

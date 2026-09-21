@@ -68,6 +68,7 @@ public class GraduationQueryService {
         return reportAssembler.assembleReport(
                 transcript,
                 rules,
+                buildStatusRules(scopes),
                 resultByRuleId,
                 reportContext,
                 requiresAccuracyWarning(transcript, resolved.dualMajor1Evaluated()));
@@ -92,6 +93,9 @@ public class GraduationQueryService {
                 scopes.stream().flatMap(scope -> scope.rules().stream()).toList();
         List<GraduationRuleView> areaRules =
                 allRules.stream().filter(r -> courseType.equals(r.courseType())).toList();
+        List<GraduationRuleView> statusRules = buildStatusRules(scopes).stream()
+                .filter(r -> courseType.equals(r.courseType()))
+                .toList();
 
         Map<Long, RuleResult> resultByRuleId = evaluateScopes(scopes);
         EvaluationContext context = EvaluationContext.report(transcript, classifications);
@@ -117,7 +121,7 @@ public class GraduationQueryService {
                 reportAssembler.applicableRequiredCourseCodes(allRules, transcript.englishLevel(), courseType);
 
         return reportAssembler.assembleAreaDetail(
-                courseType, areaRules, resultByRuleId, context, allCls, roleRequiredCodes);
+                courseType, areaRules, statusRules, resultByRuleId, context, allCls, roleRequiredCodes);
     }
 
     private Map<String, CourseClassificationView> buildClassifications(TranscriptView transcript) {
@@ -220,7 +224,31 @@ public class GraduationQueryService {
                 rule.courseType() == CourseType.FIRST_MAJOR ? CourseType.SECOND_MAJOR : rule.courseType();
         // 주전공 규칙과 ID가 겹치지 않도록 리포트 조립에만 쓰이는 음수 스코프 ID를 부여한다.
         long scopedRuleId = -(1_000_000_000L + rule.id());
-        return new GraduationRuleView(scopedRuleId, rule.typeName(), displayType, rule.ruleName(), rule.ruleConfig());
+        // 학문기초 과목 카드처럼 두 학과의 요건을 함께 표시하는 곳에서도 출처를 구별한다.
+        String ruleName = "THESIS".equals(rule.typeName())
+                        || "ENGLISH_COURSE".equals(rule.typeName())
+                        || rule.courseType() == CourseType.ACADEMIC_FOUNDATION
+                ? "[복수전공] " + rule.ruleName()
+                : rule.ruleName();
+        return new GraduationRuleView(scopedRuleId, rule.typeName(), displayType, ruleName, rule.ruleConfig());
+    }
+
+    /**
+     * 미충족 사유와 전공별 달성률·PASS/FAIL에만 쓰는 표시용 규칙을 만든다.
+     * 검사할 과목 및 학점·과목 카드의 분류는 원래 규칙을 사용해야 하므로 이 목록으로 평가하지 않는다.
+     * 여러 역할이 선택되어 있어도 학생에게 실제 적용된 역할을 기준으로 표시한다.
+     */
+    private List<GraduationRuleView> buildStatusRules(List<ScopedRules> scopes) {
+        return scopes.stream()
+                .flatMap(scope -> scope.rules().stream().map(rule -> {
+                    if (!MajorRoleRuleMatcher.supportsMajorRole(rule)) return rule;
+                    CourseType statusType = scope.context().getMajorRole().isPrimary()
+                            ? CourseType.FIRST_MAJOR
+                            : CourseType.SECOND_MAJOR;
+                    return new GraduationRuleView(
+                            rule.id(), rule.typeName(), statusType, rule.ruleName(), rule.ruleConfig());
+                }))
+                .toList();
     }
 
     private Map<Long, RuleResult> evaluateScopes(List<ScopedRules> scopes) {

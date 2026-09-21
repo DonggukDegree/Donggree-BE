@@ -39,6 +39,28 @@ class TranscriptParserTest {
 
     // ====== 텍스트 픽스처 기반 파싱 테스트 (CI에서 항상 실행) ======
 
+    @Test
+    void 논문_시험_결과의_순서와_관계없이_주전공과_복수전공을_구별한다() {
+        var result = parser.parse(
+                """
+                졸업논문(시험) 심사(복수1): 합격
+                졸업논문(시험) 심사(복수2): 합격
+                졸업논문(시험) 심사(주전공): 불합격
+                """);
+
+        assertThat(result.meta().get("졸업논문심사")).isEqualTo("불합격");
+        assertThat(result.meta().get("복수1졸업논문심사")).isEqualTo("합격");
+        assertThat(result.meta().get("복수2졸업논문심사")).isEqualTo("합격");
+    }
+
+    @Test
+    void 주전공_시험_결과가_없으면_복수전공_결과로_채우지_않는다() {
+        var result = parser.parse("졸업논문(시험) 심사(복수1): 합격");
+
+        assertThat(result.meta().get("졸업논문심사")).isNull();
+        assertThat(result.meta().get("복수1졸업논문심사")).isEqualTo("합격");
+    }
+
     @Nested
     @DisplayName("텍스트 픽스처 기반 파싱")
     class TextFixtureParsingTest {

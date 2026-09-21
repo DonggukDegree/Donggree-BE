@@ -47,7 +47,8 @@ public class RequiredCourseEvaluator implements RuleEvaluator {
             }
         }
 
-        boolean satisfied = context.hasPassedAnyCourseByCode(config.courseCodes());
+        boolean satisfied = context.getPassedCoursesForRule(rule.courseType()).stream()
+                .anyMatch(record -> context.codeMatchesAny(record.courseCode(), config.courseCodes()));
         return new RuleResult(rule.ruleName(), satisfied);
     }
 

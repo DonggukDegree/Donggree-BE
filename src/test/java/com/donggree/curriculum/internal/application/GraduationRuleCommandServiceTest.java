@@ -153,4 +153,55 @@ class GraduationRuleCommandServiceTest {
 
         assertThat(service.upsert(List.of(item(null, data)))).containsExactly(100L);
     }
+
+    @Test
+    void THESIS_등록시_적용_대상_누락을_거절한다() {
+        given(ruleTypeRepository.findAllById(Set.of(10L))).willReturn(List.of(ruleType(10L, "THESIS", null)));
+        var data = new GraduationRuleCommand(10L, "졸업시험 합격", "{}", null);
+
+        assertThatThrownBy(() -> service.upsert(List.of(item(null, data))))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(CurriculumErrorCode.INVALID_MAJOR_ROLE_CONFIG));
+    }
+
+    @Test
+    void 기존_THESIS에_복수전공_적용_대상을_저장한다() {
+        GraduationRule existing = rule(1L, 10L, "졸업시험 합격");
+        given(graduationRuleRepository.findById(1L)).willReturn(Optional.of(existing));
+        given(ruleTypeRepository.findAllById(Set.of(10L))).willReturn(List.of(ruleType(10L, "THESIS", null)));
+        given(graduationRuleRepository.findByRuleTypeIdAndRuleName(10L, "졸업시험 합격"))
+                .willReturn(Optional.of(existing));
+        String config = "{\"applicableMajorRoles\":[\"SINGLE_PRIMARY\",\"DUAL_PRIMARY\",\"SECONDARY\"]}";
+
+        assertThat(service.upsert(List.of(item(1L, new GraduationRuleCommand(10L, "졸업시험 합격", config, null)))))
+                .containsExactly(1L);
+        assertThat(existing.getRuleConfig()).isEqualTo(config);
+    }
+
+    @Test
+    void 영어강의_등록시_적용_대상_누락을_거절한다() {
+        given(ruleTypeRepository.findAllById(Set.of(10L))).willReturn(List.of(ruleType(10L, "ENGLISH_COURSE", null)));
+        var data = new GraduationRuleCommand(
+                10L, "전공 영어강의 4과목", "{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":4}", null);
+
+        assertThatThrownBy(() -> service.upsert(List.of(item(null, data))))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(CurriculumErrorCode.INVALID_MAJOR_ROLE_CONFIG));
+    }
+
+    @Test
+    void 기존_영어강의에_복수전공_적용_대상을_저장한다() {
+        GraduationRule existing = rule(1L, 10L, "전공 영어강의 4과목");
+        given(graduationRuleRepository.findById(1L)).willReturn(Optional.of(existing));
+        given(ruleTypeRepository.findAllById(Set.of(10L))).willReturn(List.of(ruleType(10L, "ENGLISH_COURSE", null)));
+        given(graduationRuleRepository.findByRuleTypeIdAndRuleName(10L, "전공 영어강의 4과목"))
+                .willReturn(Optional.of(existing));
+        String config = "{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":4,\"applicableMajorRoles\":[\"SECONDARY\"]}";
+
+        assertThat(service.upsert(List.of(item(1L, new GraduationRuleCommand(10L, "전공 영어강의 4과목", config, null)))))
+                .containsExactly(1L);
+        assertThat(existing.getRuleConfig()).isEqualTo(config);
+    }
 }
