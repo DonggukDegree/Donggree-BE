@@ -4,12 +4,15 @@ import com.donggree.curriculum.internal.application.command.GraduationRuleComman
 import com.donggree.curriculum.internal.application.command.GraduationRuleUpsertCommand;
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
+import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleConfigValidator;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleRepository;
+import com.donggree.curriculum.internal.domain.ruletype.RuleType;
 import com.donggree.curriculum.internal.domain.ruletype.RuleTypeRepository;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +39,8 @@ public class GraduationRuleCommandService {
     @Transactional
     public List<Long> upsert(List<GraduationRuleUpsertCommand> items) {
         validateNoDuplicateKeysInBatch(items);
-        validateRuleTypesExist(items);
+        Map<Long, RuleType> ruleTypes = findAndValidateRuleTypes(items);
+        validateRuleConfigs(items, ruleTypes);
 
         List<Long> ids = new ArrayList<>();
         for (GraduationRuleUpsertCommand item : items) {
@@ -86,15 +90,27 @@ public class GraduationRuleCommandService {
     }
 
     /** 배치에 등장하는 모든 ruleTypeId(중복 제외)가 실제로 존재하는지 한 번의 조회로 검증한다. */
-    private void validateRuleTypesExist(List<GraduationRuleUpsertCommand> items) {
+    private Map<Long, RuleType> findAndValidateRuleTypes(List<GraduationRuleUpsertCommand> items) {
         Set<Long> ruleTypeIds =
                 items.stream().map(item -> item.data().ruleTypeId()).collect(Collectors.toSet());
         if (ruleTypeIds.isEmpty()) {
-            return;
+            return Map.of();
         }
-        int foundCount = ruleTypeRepository.findAllById(ruleTypeIds).size();
-        if (foundCount != ruleTypeIds.size()) {
+        Map<Long, RuleType> ruleTypes = ruleTypeRepository.findAllById(ruleTypeIds).stream()
+                .collect(Collectors.toMap(RuleType::getId, ruleType -> ruleType));
+        if (ruleTypes.size() != ruleTypeIds.size()) {
             throw new GeneralException(CurriculumErrorCode.RULE_TYPE_NOT_FOUND);
+        }
+        return ruleTypes;
+    }
+
+    private void validateRuleConfigs(List<GraduationRuleUpsertCommand> items, Map<Long, RuleType> ruleTypes) {
+        for (GraduationRuleUpsertCommand item : items) {
+            GraduationRuleCommand data = item.data();
+            RuleType ruleType = ruleTypes.get(data.ruleTypeId());
+            if (!GraduationRuleConfigValidator.hasValidMajorRoles(ruleType.getTypeName(), data.ruleConfig())) {
+                throw new GeneralException(CurriculumErrorCode.INVALID_MAJOR_ROLE_CONFIG);
+            }
         }
     }
 }

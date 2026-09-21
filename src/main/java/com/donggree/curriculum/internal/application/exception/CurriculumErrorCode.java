@@ -27,6 +27,11 @@ public enum CurriculumErrorCode implements BaseErrorCode {
 
     DEPARTMENT_NOT_FOUND(HttpStatus.BAD_REQUEST, "CURRICULUM400_3", "존재하지 않는 학과입니다."),
 
+    INVALID_MAJOR_ROLE_CONFIG(
+            HttpStatus.BAD_REQUEST,
+            "CURRICULUM400_4",
+            "MIN_CREDITS·REQUIRED_COURSE의 규칙 적용 대상을 허용된 값으로 하나 이상 선택해야 합니다."),
+
     ACTIVE_REQUIREMENT_SET_OVERLAP(
             HttpStatus.CONFLICT, "CURRICULUM409_3", "같은 학과에 적용년도가 겹치는 다른 활성 졸업 요건 세트가 이미 존재합니다. 기존 세트를 먼저 비활성화하세요."),
 
