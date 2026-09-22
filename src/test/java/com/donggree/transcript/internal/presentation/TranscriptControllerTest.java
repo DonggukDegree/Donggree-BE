@@ -96,6 +96,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                 "재학",
                 60,
                 new BigDecimal("3.50"),
+                new BigDecimal("4.50"),
+                null,
                 4,
                 LocalDateTime.of(2024, 3, 1, 9, 0, 0),
                 LocalDateTime.of(2024, 6, 1, 9, 0, 0));
@@ -111,6 +113,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.meta.collegeName").value("정보통신공학대학"))
+                .andExpect(jsonPath("$.result.meta.majorGpa").value(4.5))
+                .andExpect(jsonPath("$.result.meta.dualMajor1Gpa").value(org.hamcrest.Matchers.nullValue()))
                 .andDo(document(
                         "transcript-get-report",
                         responseFields(
@@ -142,6 +146,14 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.meta.academicStatus").description("학적 상태 (재학/휴학/졸업 등)"),
                                 fieldWithPath("result.meta.totalCredits").description("총 취득 학점"),
                                 fieldWithPath("result.meta.gpa").description("평점 평균"),
+                                fieldWithPath("result.meta.majorGpa")
+                                        .type(JsonFieldType.NUMBER)
+                                        .optional()
+                                        .description("현재 전공·전필 과목의 학점 가중평점 (F 포함, P·NP 제외, 계산 가능한 학점이 없으면 null)"),
+                                fieldWithPath("result.meta.dualMajor1Gpa")
+                                        .type(JsonFieldType.NUMBER)
+                                        .optional()
+                                        .description("현재 복수1 과목의 학점 가중평점 (복수전공 미등록 또는 계산 가능한 학점이 없으면 null)"),
                                 fieldWithPath("result.meta.completedSemesters").description("이수 학기 수"),
                                 fieldWithPath("result.meta.createdAt").description("성적표 최초 생성 시각"),
                                 fieldWithPath("result.meta.updatedAt").description("성적표 최종 수정 시각"),
@@ -163,6 +175,37 @@ class TranscriptControllerTest extends RestDocsSupport {
                                         .description("성적 (A+, A0, B+, B0, C+, C0, D+, D0, F, P, NP)"),
                                 fieldWithPath("result.courses[].records[].retake")
                                         .description("재수강 여부"))));
+    }
+
+    @Test
+    void 복수전공_평점과_계산불가_전공평점을_구별하여_반환한다() throws Exception {
+        authenticate(1L);
+        RawMeta rawMeta = new RawMeta(
+                2023,
+                10L,
+                null,
+                null,
+                20L,
+                null,
+                "재학",
+                3,
+                new BigDecimal("3.50"),
+                null,
+                new BigDecimal("0.00"),
+                4,
+                LocalDateTime.of(2024, 3, 1, 9, 0),
+                LocalDateTime.of(2024, 6, 1, 9, 0));
+        given(transcriptQueryService.getTranscriptRawReport(1L))
+                .willReturn(new TranscriptReportProjection(rawMeta, List.of()));
+        given(curriculumLookupService.findDepartmentNamesByIds(List.of(10L, 20L)))
+                .willReturn(Map.of(10L, "주전공학과", 20L, "복수전공학과"));
+
+        mockMvc.perform(get("/api/users/me/reports"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.meta.gpa").value(3.5))
+                .andExpect(jsonPath("$.result.meta.dualMajor1").value("복수전공학과"))
+                .andExpect(jsonPath("$.result.meta.majorGpa").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.result.meta.dualMajor1Gpa").value(0.0));
     }
 
     @Test

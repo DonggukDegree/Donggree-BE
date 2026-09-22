@@ -22,6 +22,8 @@ public record TranscriptReportProjection(RawMeta meta, List<RawSemesterGroup> se
             String academicStatus,
             int totalCredits,
             BigDecimal gpa,
+            BigDecimal majorGpa,
+            BigDecimal dualMajor1Gpa,
             int completedSemesters,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {}

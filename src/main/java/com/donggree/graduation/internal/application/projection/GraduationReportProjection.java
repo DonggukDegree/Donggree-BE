@@ -15,7 +15,7 @@ public record GraduationReportProjection(
 
     /**
      * 졸업 요건 전체 요약.
-     * unsatisfiedReasons: 총학점·평점 등 전공 역할과 이수구분이 없는 공통 미충족 사유
+     * unsatisfiedReasons: 주전공 요건 중 이수구분이 없는 총학점·평점·영어강의·졸업시험 등의 미충족 사유
      */
     public record Summary(
             int achievementRate,
@@ -28,7 +28,7 @@ public record GraduationReportProjection(
 
     /**
      * courseType별 이수 현황.
-     * achievementRate: 전공은 해당 역할의 전체 요건, 교양·학문기초는 기존 이수구분 요건의 충족 비율
+     * achievementRate: 제2전공은 복수전공 추가 요건, 그 외는 원래 이수구분 요건의 충족 비율
      * remainingCredits: max(0, targetCredits - earnedCredits) — targetCredits는 MIN_CREDITS 규칙에서 결정
      * satisfied: achievementRate와 같은 규칙 목록의 전체 충족 여부. 학점 집계는 원래 이수구분 유지
      */

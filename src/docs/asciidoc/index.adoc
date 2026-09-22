@@ -164,6 +164,14 @@ courseType 내 areaType별 상세 이수 현황을 조회한다. areaType별 이
 
 operation::graduation-get-area-detail[]
 
+==== 관리자 PDF 리포트 미리보기
+
+ADMIN·SUPER_ADMIN 전용 일회성 PDF 판정. 이름·학번 일치 검사 및 DB 저장 없이 일반 사용자와 같은 파서·판정기·리포트 조립기 사용.
+주전공에 적용 가능한 활성 세트가 필요하며, 일반 리포트와 동일한 정확도 경고 정책 적용.
+한 요청으로 요약과 모든 영역 상세 반환. 회원 정보·원본 PDF·파싱 원문은 응답 제외, 응답 캐시 금지.
+
+operation::admin-report-preview[]
+
 === 자주 묻는 질문(FAQ)
 
 ==== FAQ 목록 조회

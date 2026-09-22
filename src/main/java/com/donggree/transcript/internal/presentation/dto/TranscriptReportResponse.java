@@ -21,6 +21,8 @@ public record TranscriptReportResponse(Meta meta, List<SemesterCourses> courses)
             String academicStatus,
             int totalCredits,
             BigDecimal gpa,
+            BigDecimal majorGpa,
+            BigDecimal dualMajor1Gpa,
             int completedSemesters,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {}

@@ -1,6 +1,10 @@
 package com.donggree.global.config;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,6 +19,8 @@ import com.donggree.user.internal.application.AuthService;
 import com.donggree.user.internal.application.UserCommandService;
 import com.donggree.user.internal.application.UserQueryService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -62,6 +68,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     private MemberIdentityService memberIdentityService;
+
+    @MockitoBean
+    private com.donggree.transcript.TranscriptPreviewService transcriptPreviewService;
 
     @MockitoBean
     private com.donggree.graduation.internal.application.GraduationQueryService graduationQueryService;
@@ -146,6 +155,42 @@ class SecurityConfigTest {
 
     private String bearer(String role) {
         return "Bearer " + jwtTokenProvider.generateAccessToken(1L, role);
+    }
+
+    @Test
+    void PDF_미리보기는_비로그인_접근_차단() throws Exception {
+        mockMvc.perform(multipart("/api/admin/reports/preview").file("file", new byte[] {1}))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(transcriptPreviewService, graduationQueryService);
+    }
+
+    @Test
+    void PDF_미리보기는_학생_접근_차단() throws Exception {
+        mockMvc.perform(multipart("/api/admin/reports/preview")
+                        .file("file", new byte[] {1})
+                        .header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(transcriptPreviewService, graduationQueryService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ADMIN", "SUPER_ADMIN"})
+    void PDF_미리보기는_관리자_역할만으로_허용하고_본인확인과_저장_미호출(String role) throws Exception {
+        var report = new com.donggree.graduation.internal.application.projection.GraduationReportProjection(
+                new com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary(
+                        0, 0, 130, 130, java.math.BigDecimal.ZERO, false, java.util.List.of()),
+                java.util.List.of(),
+                false,
+                null);
+        given(graduationQueryService.preview(any()))
+                .willReturn(new com.donggree.graduation.internal.application.projection.ReportPreviewProjection(
+                        report, java.util.Map.of()));
+        mockMvc.perform(multipart("/api/admin/reports/preview")
+                        .file("file", new byte[] {1})
+                        .header("Authorization", bearer(role)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.report.summary.targetCredits").value(130));
+        verifyNoInteractions(memberIdentityService, transcriptCommandService, userCommandService);
     }
 
     // role 클레임이 없는 토큰(구버전 액세스 토큰)을 모사한다. 리프레시 토큰은 memberId만 담고 role이 없다.

@@ -43,6 +43,8 @@ public class TranscriptQueryService {
                 transcript.getAcademicStatus(),
                 transcript.getTotalCredits(),
                 transcript.getGpa(),
+                transcript.calculateMajorGpa(),
+                transcript.calculateDualMajor1Gpa(),
                 transcript.getCompletedSemesters(),
                 transcript.getCreatedAt(),
                 transcript.getUpdatedAt());

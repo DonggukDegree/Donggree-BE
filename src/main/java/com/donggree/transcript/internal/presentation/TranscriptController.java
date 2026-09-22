@@ -83,6 +83,8 @@ public class TranscriptController implements TranscriptApi {
                 raw.meta().academicStatus(),
                 raw.meta().totalCredits(),
                 raw.meta().gpa(),
+                raw.meta().majorGpa(),
+                raw.meta().dualMajor1Gpa(),
                 raw.meta().completedSemesters(),
                 raw.meta().createdAt(),
                 raw.meta().updatedAt());

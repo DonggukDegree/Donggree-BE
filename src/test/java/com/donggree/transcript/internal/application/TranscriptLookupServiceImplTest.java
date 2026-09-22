@@ -15,7 +15,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 class TranscriptLookupServiceImplTest {
 
     private final TranscriptRepository repository = mock(TranscriptRepository.class);
-    private final TranscriptLookupServiceImpl service = new TranscriptLookupServiceImpl(repository, new ObjectMapper());
+    private final TranscriptLookupServiceImpl service =
+            new TranscriptLookupServiceImpl(repository, new TranscriptViewMapper(new ObjectMapper()));
 
     @Test
     void 저장된_복수1_합격_결과를_주전공과_분리해서_전달한다() {
