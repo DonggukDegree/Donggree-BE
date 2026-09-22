@@ -9,6 +9,7 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
+import com.donggree.graduation.internal.application.projection.ReportPreviewProjection;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.MajorRoleRuleMatcher;
@@ -53,25 +54,55 @@ public class GraduationQueryService {
     }
 
     public GraduationReportProjection getReport(Long memberId) {
-        TranscriptView transcript = transcriptLookupService
+        return assembleReport(evaluateTranscript(findTranscript(memberId)));
+    }
+
+    public AreaDetailProjection getAreaDetail(Long memberId, CourseType courseType) {
+        return assembleAreaDetail(courseType, evaluateTranscript(findTranscript(memberId)));
+    }
+
+    /** 임시 성적표도 사용자와 같은 판정·조립 경로를 사용하며, 저장 성적표는 조회하지 않는다. */
+    public ReportPreviewProjection preview(TranscriptView transcript) {
+        ReportEvaluation evaluation = evaluateTranscript(transcript);
+        GraduationReportProjection report = assembleReport(evaluation);
+        Map<CourseType, AreaDetailProjection> details = new LinkedHashMap<>();
+        for (var area : report.areaOverviews()) {
+            CourseType courseType = CourseType.valueOf(area.courseType());
+            details.put(courseType, assembleAreaDetail(courseType, evaluation));
+        }
+        return new ReportPreviewProjection(report, details);
+    }
+
+    private TranscriptView findTranscript(Long memberId) {
+        return transcriptLookupService
                 .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
+    }
 
+    /** 한 번의 미리보기에서는 세트 선택과 판정을 한 번만 수행해 요약·상세에 같은 결과를 사용한다. */
+    private ReportEvaluation evaluateTranscript(TranscriptView transcript) {
         Map<String, CourseClassificationView> classifications = buildClassifications(transcript);
         ResolvedRules resolved = resolveScopedRules(transcript, classifications);
         List<ScopedRules> scopes = resolved.scopes();
         List<GraduationRuleView> rules =
                 scopes.stream().flatMap(scope -> scope.rules().stream()).toList();
-        Map<Long, RuleResult> resultByRuleId = evaluateScopes(scopes);
-        EvaluationContext reportContext = EvaluationContext.report(transcript, classifications);
-
-        return reportAssembler.assembleReport(
+        return new ReportEvaluation(
                 transcript,
                 rules,
                 buildStatusRules(scopes),
-                resultByRuleId,
-                reportContext,
+                evaluateScopes(scopes),
+                EvaluationContext.report(transcript, classifications),
                 requiresAccuracyWarning(transcript, resolved.dualMajor1Evaluated()));
+    }
+
+    private GraduationReportProjection assembleReport(ReportEvaluation evaluation) {
+        return reportAssembler.assembleReport(
+                evaluation.transcript(),
+                evaluation.rules(),
+                evaluation.statusRules(),
+                evaluation.results(),
+                evaluation.context(),
+                evaluation.accuracyWarning());
     }
 
     private boolean requiresAccuracyWarning(TranscriptView transcript, boolean dualMajor1Evaluated) {
@@ -82,23 +113,16 @@ public class GraduationQueryService {
                 || transcript.transfer();
     }
 
-    public AreaDetailProjection getAreaDetail(Long memberId, CourseType courseType) {
-        TranscriptView transcript = transcriptLookupService
-                .findByMemberId(memberId)
-                .orElseThrow(() -> new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
-        Map<String, CourseClassificationView> classifications = buildClassifications(transcript);
-        List<ScopedRules> scopes =
-                resolveScopedRules(transcript, classifications).scopes();
-        List<GraduationRuleView> allRules =
-                scopes.stream().flatMap(scope -> scope.rules().stream()).toList();
+    private AreaDetailProjection assembleAreaDetail(CourseType courseType, ReportEvaluation evaluation) {
+        TranscriptView transcript = evaluation.transcript();
+        List<GraduationRuleView> allRules = evaluation.rules();
         List<GraduationRuleView> areaRules =
                 allRules.stream().filter(r -> courseType.equals(r.courseType())).toList();
-        List<GraduationRuleView> statusRules = buildStatusRules(scopes).stream()
+        List<GraduationRuleView> statusRules = evaluation.statusRules().stream()
                 .filter(r -> courseType.equals(r.courseType()))
                 .toList();
-
-        Map<Long, RuleResult> resultByRuleId = evaluateScopes(scopes);
-        EvaluationContext context = EvaluationContext.report(transcript, classifications);
+        Map<Long, RuleResult> resultByRuleId = evaluation.results();
+        EvaluationContext context = evaluation.context();
 
         // REQUIRED_COURSE rule의 과목이 미이수된 경우에도 areaName을 알기 위해 별도 조회
         List<String> requiredCodes = reportAssembler.requiredCourseCodes(areaRules);
@@ -234,19 +258,18 @@ public class GraduationQueryService {
     }
 
     /**
-     * 미충족 사유와 전공별 달성률·PASS/FAIL에만 쓰는 표시용 규칙을 만든다.
+     * 복수전공 학과의 추가 요건만 제2전공의 사유·달성률·PASS/FAIL로 묶는다.
+     * 주전공 요건은 원래 이수구분을 유지하고, 이수구분 없는 졸업 요건은 요약에 표시한다.
      * 검사할 과목 및 학점·과목 카드의 분류는 원래 규칙을 사용해야 하므로 이 목록으로 평가하지 않는다.
      * 여러 역할이 선택되어 있어도 학생에게 실제 적용된 역할을 기준으로 표시한다.
      */
     private List<GraduationRuleView> buildStatusRules(List<ScopedRules> scopes) {
         return scopes.stream()
                 .flatMap(scope -> scope.rules().stream().map(rule -> {
-                    if (!MajorRoleRuleMatcher.supportsMajorRole(rule)) return rule;
-                    CourseType statusType = scope.context().getMajorRole().isPrimary()
-                            ? CourseType.FIRST_MAJOR
-                            : CourseType.SECOND_MAJOR;
+                    if (scope.context().getMajorRole().isPrimary() || !MajorRoleRuleMatcher.supportsMajorRole(rule))
+                        return rule;
                     return new GraduationRuleView(
-                            rule.id(), rule.typeName(), statusType, rule.ruleName(), rule.ruleConfig());
+                            rule.id(), rule.typeName(), CourseType.SECOND_MAJOR, rule.ruleName(), rule.ruleConfig());
                 }))
                 .toList();
     }
@@ -262,6 +285,14 @@ public class GraduationQueryService {
     private boolean hasDualMajor(TranscriptView transcript) {
         return transcript.dualMajor1Id() != null || transcript.dualMajor2Id() != null;
     }
+
+    private record ReportEvaluation(
+            TranscriptView transcript,
+            List<GraduationRuleView> rules,
+            List<GraduationRuleView> statusRules,
+            Map<Long, RuleResult> results,
+            EvaluationContext context,
+            boolean accuracyWarning) {}
 
     private record ScopedRules(List<GraduationRuleView> rules, EvaluationContext context) {}
 

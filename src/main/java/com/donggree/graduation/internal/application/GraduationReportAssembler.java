@@ -120,7 +120,7 @@ public class GraduationReportAssembler {
         boolean graduated =
                 !resultByRuleId.isEmpty() && resultByRuleId.values().stream().allMatch(RuleResult::satisfied);
 
-        // 역할별 사유는 제1·제2전공에 표시하고 총학점·평점 등 공통 사유만 요약에 남긴다.
+        // 주전공 요건 중 이수구분이 없는 사유는 요약에, 복수전공 추가 요건은 제2전공에 표시한다.
         List<String> unsatisfiedReasons = statusRules.stream()
                 .filter(r -> r.courseType() == null)
                 .filter(r -> {
@@ -168,7 +168,7 @@ public class GraduationReportAssembler {
         }
 
         return relevantCourseTypes.stream()
-                // 전공 카드는 해당 역할의 모든 요건을 반영한다. 교양·학문기초의 기존 이수 판정은 유지한다.
+                // 제1전공은 원래 전공 요건만, 제2전공은 복수전공 추가 요건을 반영한다.
                 .map(ct -> buildAreaOverview(
                         ct,
                         ct == CourseType.FIRST_MAJOR || ct == CourseType.SECOND_MAJOR

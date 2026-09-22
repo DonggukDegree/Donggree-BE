@@ -397,6 +397,74 @@ class TranscriptTest {
         assertThat(transcript.getGpa()).isEqualByComparingTo(new BigDecimal("4.13"));
     }
 
+    // --- 전공별 조회 평점 테스트 ---
+
+    @Test
+    void 전공과_복수1_평점은_각_이수구분만_학점_가중평균으로_계산한다() {
+        Transcript transcript = createTranscript(20L);
+        transcript.addCourseRecord("2023-1", "전공", "기초", "CSE1", "전공1", 3, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-2", "전필", "전문", "CSE2", "전공2", 1, Grade.B_ZERO, true);
+        transcript.addCourseRecord("2023-1", "복수1", "기초", "DUAL1", "복수1", 2, Grade.A_PLUS, false);
+        transcript.addCourseRecord("2023-2", "복수1", "전문", "DUAL2", "복수2", 1, Grade.B_PLUS, false);
+        for (String type : List.of("복수2", "공교", "학기", "일교", "자선")) {
+            transcript.addCourseRecord("2023-1", type, null, type, "제외과목", 3, Grade.F, false);
+        }
+        transcript.addCourseRecord("2023-1", null, null, "UNKNOWN", "미분류", 3, Grade.F, false);
+
+        assertThat(transcript.calculateMajorGpa()).isEqualByComparingTo("4.13");
+        assertThat(transcript.calculateDualMajor1Gpa()).isEqualByComparingTo("4.17");
+        assertThat(transcript.getGpa()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(transcript.getTotalCredits()).isZero();
+    }
+
+    @Test
+    void 전공별_평점은_F를_포함하고_P와_NP를_제외한다() {
+        Transcript transcript = createTranscript(20L);
+        for (String type : List.of("전공", "복수1")) {
+            transcript.addCourseRecord("2023-1", type, null, type + "1", "성적과목", 3, Grade.A_PLUS, false);
+            transcript.addCourseRecord("2023-1", type, null, type + "2", "실패과목", 3, Grade.F, false);
+            transcript.addCourseRecord("2023-1", type, null, type + "3", "패스과목", 3, Grade.P, false);
+            transcript.addCourseRecord("2023-1", type, null, type + "4", "논패스과목", 3, Grade.NP, false);
+        }
+
+        assertThat(transcript.calculateMajorGpa()).isEqualByComparingTo("2.25");
+        assertThat(transcript.calculateDualMajor1Gpa()).isEqualByComparingTo("2.25");
+    }
+
+    @Test
+    void 전공별_성적이_없거나_계산용_학점이_0이면_null을_반환한다() {
+        Transcript transcript = createTranscript(20L);
+        assertThat(transcript.calculateMajorGpa()).isNull();
+        assertThat(transcript.calculateDualMajor1Gpa()).isNull();
+
+        for (String type : List.of("전공", "복수1")) {
+            transcript.addCourseRecord("2023-1", type, null, type + "1", "패스과목", 3, Grade.P, false);
+            transcript.addCourseRecord("2023-1", type, null, type + "2", "논패스과목", 3, Grade.NP, false);
+            transcript.addCourseRecord("2023-1", type, null, type + "3", "0학점", 0, Grade.A_PLUS, false);
+        }
+
+        assertThat(transcript.calculateMajorGpa()).isNull();
+        assertThat(transcript.calculateDualMajor1Gpa()).isNull();
+    }
+
+    @Test
+    void 전공별_F만_있으면_null이_아닌_0점을_반환한다() {
+        Transcript transcript = createTranscript(20L);
+        transcript.addCourseRecord("2023-1", "전공", null, "CSE1", "주전공F", 3, Grade.F, false);
+        transcript.addCourseRecord("2023-1", "복수1", null, "DUAL1", "복수전공F", 3, Grade.F, false);
+
+        assertThat(transcript.calculateMajorGpa()).isEqualByComparingTo("0.00");
+        assertThat(transcript.calculateDualMajor1Gpa()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void 복수전공_미등록이면_복수1_과목이_있어도_복수전공평점은_null이다() {
+        Transcript transcript = createTranscript();
+        transcript.addCourseRecord("2023-1", "복수1", null, "DUAL1", "복수전공", 3, Grade.A_PLUS, false);
+
+        assertThat(transcript.calculateDualMajor1Gpa()).isNull();
+    }
+
     // --- 소프트 삭제 테스트 ---
 
     @Test
@@ -514,6 +582,10 @@ class TranscriptTest {
     // --- 헬퍼 메서드 ---
 
     private Transcript createTranscript() {
+        return createTranscript(null);
+    }
+
+    private Transcript createTranscript(Long dualMajor1Id) {
         return Transcript.create(new TranscriptCreateData(
                 1L,
                 "{\"pages\": []}",
@@ -523,7 +595,7 @@ class TranscriptTest {
                 null,
                 null,
                 null,
-                null,
+                dualMajor1Id,
                 null,
                 0,
                 BigDecimal.ZERO,

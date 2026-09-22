@@ -220,23 +220,44 @@ public class Transcript extends BaseEntity {
                 .mapToInt(CourseRecord::getCredits)
                 .sum();
 
-        // 평점 계산용 학점(GPA 분모): P·NP를 제외한 학점의 합 (F는 포함)
-        int gpaDenominator = courseRecords.stream()
+        BigDecimal calculatedGpa = calculateGpa(courseRecords);
+        this.gpa = calculatedGpa != null ? calculatedGpa : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /** 현재 수강 이력의 전공·전필 평점. 평가 가능한 학점이 없으면 0점과 구별하기 위해 null을 반환한다. */
+    public BigDecimal calculateMajorGpa() {
+        return calculateGpa(courseRecords.stream()
+                .filter(r -> "전공".equals(r.getCourseTypeName()) || "전필".equals(r.getCourseTypeName()))
+                .toList());
+    }
+
+    /** 복수1 평점만 계산한다. 복수전공 미등록 또는 평가 가능한 학점이 없으면 null을 반환한다. */
+    public BigDecimal calculateDualMajor1Gpa() {
+        if (dualMajor1Id == null) {
+            return null;
+        }
+        return calculateGpa(courseRecords.stream()
+                .filter(r -> "복수1".equals(r.getCourseTypeName()))
+                .toList());
+    }
+
+    // 전체·전공별 평점에 동일한 학점 가중평균과 반올림 기준 적용. PDF 원본 평점으로 대체하지 않는다.
+    private BigDecimal calculateGpa(List<CourseRecord> records) {
+        int gpaDenominator = records.stream()
                 .filter(r -> r.getGrade() != Grade.P && r.getGrade() != Grade.NP)
                 .mapToInt(CourseRecord::getCredits)
                 .sum();
 
         if (gpaDenominator == 0) {
-            this.gpa = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-            return;
+            return null;
         }
 
-        BigDecimal weightedSum = courseRecords.stream()
+        BigDecimal weightedSum = records.stream()
                 .filter(r -> r.getGrade() != Grade.P && r.getGrade() != Grade.NP)
                 .map(r -> r.getGrade().getGradePoint().multiply(BigDecimal.valueOf(r.getCredits())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        this.gpa = weightedSum.divide(BigDecimal.valueOf(gpaDenominator), 2, RoundingMode.HALF_UP);
+        return weightedSum.divide(BigDecimal.valueOf(gpaDenominator), 2, RoundingMode.HALF_UP);
     }
 
     /**

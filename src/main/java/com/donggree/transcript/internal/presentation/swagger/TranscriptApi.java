@@ -48,6 +48,7 @@ public interface TranscriptApi {
             summary = "사용자 학업 정보 조회",
             description = "로그인한 회원의 성적표 메타 정보와 수강 이력 전체를 조회한다. "
                     + "메타에는 단과대학명·학과·총취득학점·평점 평균·성적표 생성/수정 시각이 포함된다. "
+                    + "전공·복수1 평점은 현재 수강 이력으로 계산하며 계산 가능한 학점이 없으면 null이다. "
                     + "수강 이력은 학기 오름차순으로 그룹핑하여 반환한다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
