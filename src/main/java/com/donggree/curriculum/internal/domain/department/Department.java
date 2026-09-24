@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,13 @@ import lombok.NoArgsConstructor;
  * 소속 단과대(College)는 다른 애그리거트이므로 college_id로만 참조하고, 학과명을 관리한다.
  */
 @Entity
-@Table(name = "department", indexes = @Index(name = "idx_department_college_id", columnList = "college_id"))
+@Table(
+        name = "department",
+        indexes = @Index(name = "idx_department_college_id", columnList = "college_id"),
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_department_college_name",
+                        columnNames = {"college_id", "department_name"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Department {
@@ -28,7 +35,7 @@ public class Department {
     @Column(name = "college_id", nullable = false)
     private Long collegeId;
 
-    @Column(name = "department_name", nullable = false, unique = true, length = 100)
+    @Column(name = "department_name", nullable = false, length = 100)
     private String departmentName;
 
     private Department(Long collegeId, String departmentName) {

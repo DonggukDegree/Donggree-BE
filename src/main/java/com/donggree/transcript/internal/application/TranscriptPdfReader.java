@@ -53,7 +53,7 @@ public class TranscriptPdfReader {
         return new TranscriptCreateData(
                 memberId,
                 rawDataJson,
-                parseIntOrDefault(meta.get("교육과정 적용년도"), 0),
+                parsedData.admissionYear(),
                 meta.getOrDefault("학적상태", "재학"),
                 meta.get("과정"),
                 deptId,
@@ -65,7 +65,7 @@ public class TranscriptPdfReader {
                 parseBigDecimalOrDefault(meta.get("평점평균"), BigDecimal.ZERO),
                 parseIntOrDefault(meta.get("이수학기"), 0),
                 meta.get("레벨테스트(텝스)"),
-                isYes(meta.get("공학인증심화대상")),
+                parsedData.engineeringCertified(),
                 isPresent(meta.get("전적대")),
                 isYes(meta.get("선택적수료승인")),
                 isYes(meta.get("글로벌인재트랙여부")),

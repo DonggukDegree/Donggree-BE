@@ -121,18 +121,21 @@ public class TranscriptController implements TranscriptApi {
             }
             memberIdentityService.validatePdfOwner(memberId, pdfStudentId, pdfName);
 
-            Long deptId = resolveDepartmentId(meta.get("학과"));
+            Long deptId = curriculumLookupService
+                    .findDepartmentId(
+                            meta.get("학과"), parsed.admissionYear(), parsed.engineeringCertified(), meta.get("대학"))
+                    .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
             Long sub1Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("부전공1"))
+                    .findDepartmentId(meta.get("부전공1"), parsed.admissionYear(), false, null)
                     .orElse(null);
             Long sub2Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("부전공2"))
+                    .findDepartmentId(meta.get("부전공2"), parsed.admissionYear(), false, null)
                     .orElse(null);
             Long dual1Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("복수1"))
+                    .findDepartmentId(meta.get("복수1"), parsed.admissionYear(), false, null)
                     .orElse(null);
             Long dual2Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("복수2"))
+                    .findDepartmentId(meta.get("복수2"), parsed.admissionYear(), false, null)
                     .orElse(null);
 
             TranscriptCreateData createData = transcriptCommandService.buildCreateData(
@@ -192,13 +195,6 @@ public class TranscriptController implements TranscriptApi {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.OK,
                 new CourseRecordUpdateResponse(result.totalCredits(), result.gpa(), updatedCourses));
-    }
-
-    private Long resolveDepartmentId(String departmentName) {
-        if (departmentName == null || departmentName.isBlank()) return null;
-        return curriculumLookupService
-                .findDepartmentIdByName(departmentName)
-                .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
     }
 
     private String deptName(Map<Long, String> map, Long id) {

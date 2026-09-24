@@ -6,7 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
-    Optional<Department> findByDepartmentName(String departmentName);
+    Optional<Department> findByCollegeIdAndDepartmentName(Long collegeId, String departmentName);
+
+    /** 단과대 이동으로 같은 학과명이 여러 개일 수 있다. */
+    List<Department> findAllByDepartmentName(String departmentName);
 
     /** 단과대에 속한 학과를 조회한다(필터 해석용). */
     List<Department> findByCollegeId(Long collegeId);

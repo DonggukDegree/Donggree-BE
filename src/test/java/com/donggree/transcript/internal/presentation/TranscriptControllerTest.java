@@ -1,7 +1,6 @@
 package com.donggree.transcript.internal.presentation;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -254,9 +253,10 @@ class TranscriptControllerTest extends RestDocsSupport {
                 false);
 
         given(transcriptCommandService.parseTranscript(any(byte[].class))).willReturn(parseResult);
-        given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
-        given(curriculumLookupService.findDepartmentIdByName("전자전기공학부")).willReturn(Optional.of(20L));
-        given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
+        given(curriculumLookupService.findDepartmentId("컴퓨터·AI학부", 2023, false, null))
+                .willReturn(Optional.of(10L));
+        given(curriculumLookupService.findDepartmentId("전자전기공학부", 2023, false, null))
+                .willReturn(Optional.of(20L));
         given(transcriptCommandService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(createData);
         given(transcriptCommandService.createTranscript(any(), any(), any(), any()))

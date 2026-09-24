@@ -260,7 +260,7 @@ public class GraduationReportAssembler {
         List<RequiredRule> requiredRules = new ArrayList<>();
         for (GraduationRuleView rule : applicableRequiredRules(areaRules, studentEnglishLevel)) {
             List<String> codes = parseStringList(rule.ruleConfig(), "courseCodes");
-            // course_classification에 있으면 areaName을 직접 사용
+            // course_classification을 우선하되 PDF 원문과 동일한 표시명 정규화 적용
             String ruleArea = codes.stream()
                     .map(allCls::get)
                     .filter(Objects::nonNull)
@@ -273,10 +273,10 @@ public class GraduationReportAssembler {
                 ruleArea = allPassed.stream()
                         .filter(cr -> cr.courseCode() != null && codes.contains(cr.courseCode()))
                         .findFirst()
-                        .map(cr -> resolvePdfAreaName(cr.pdfAreaName(), courseType, null))
+                        .map(CourseRecordView::pdfAreaName)
                         .orElse(null);
             }
-            requiredRules.add(new RequiredRule(rule, codes, ruleArea));
+            requiredRules.add(new RequiredRule(rule, codes, resolveAreaName(ruleArea, courseType, null)));
         }
 
         // 단일 영역 목표학점만 섹션에 귀속시킨다.
@@ -288,7 +288,9 @@ public class GraduationReportAssembler {
             List<String> areaNames = parseStringList(rule.ruleConfig(), "areaNames");
             if (areaNames.size() == 1) {
                 targetCreditsByArea.merge(
-                        areaNames.get(0), parseIntField(rule.ruleConfig(), "minCredits", 0), Math::max);
+                        resolveAreaName(areaNames.get(0), courseType, fallbackArea),
+                        parseIntField(rule.ruleConfig(), "minCredits", 0),
+                        Math::max);
             }
         }
 
@@ -297,9 +299,9 @@ public class GraduationReportAssembler {
             CourseClassificationView cls = cr.courseCode() != null ? allCls.get(cr.courseCode()) : null;
             String area;
             if (cls != null && cls.areaName() != null) {
-                area = cls.areaName();
+                area = resolveAreaName(cls.areaName(), courseType, fallbackArea);
             } else {
-                area = resolvePdfAreaName(cr.pdfAreaName(), courseType, fallbackArea);
+                area = resolveAreaName(cr.pdfAreaName(), courseType, fallbackArea);
             }
             coursesByArea.computeIfAbsent(area, k -> new ArrayList<>()).add(cr);
         }
@@ -394,16 +396,17 @@ public class GraduationReportAssembler {
         return ruleName;
     }
 
-    private static String resolvePdfAreaName(String pdfAreaName, CourseType courseType, String fallback) {
-        if (pdfAreaName == null) return fallback;
+    /** 분류정보·PDF·규칙의 영역명을 표시 단계에서만 통일한다. 판정용 원문은 변경하지 않는다. */
+    private static String resolveAreaName(String areaName, CourseType courseType, String fallback) {
+        if (areaName == null) return fallback;
         if (courseType == CourseType.FIRST_MAJOR || courseType == CourseType.SECOND_MAJOR) {
-            return switch (pdfAreaName) {
+            return switch (areaName) {
                 case "기초" -> "전공기초";
                 case "전문" -> "전공전문";
-                default -> pdfAreaName;
+                default -> areaName;
             };
         }
-        return pdfAreaName;
+        return areaName;
     }
 
     /**

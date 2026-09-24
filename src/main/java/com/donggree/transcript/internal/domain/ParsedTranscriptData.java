@@ -19,4 +19,20 @@ import java.util.Map;
  * @param meta    메타 정보 키-값 맵. 값이 없는 항목은 null
  * @param courses 파싱된 교과목 목록
  */
-public record ParsedTranscriptData(Map<String, String> meta, List<ParsedCourse> courses) {}
+public record ParsedTranscriptData(Map<String, String> meta, List<ParsedCourse> courses) {
+    /** 학번이나 복수전공 신청 학기가 아닌 PDF 교육과정 적용년도를 사용한다. */
+    public int admissionYear() {
+        String value = meta.get("교육과정 적용년도");
+        if (value == null || value.isBlank()) return 0;
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    public boolean engineeringCertified() {
+        String value = meta.get("공학인증심화대상");
+        return value != null && !value.isBlank() && !"N".equals(value.trim());
+    }
+}

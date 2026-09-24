@@ -59,4 +59,38 @@ class TranscriptLookupServiceImplTest {
         given(repository.findWithCourseRecordsById(1L)).willReturn(Optional.of(transcript));
         return transcript;
     }
+
+    @Test
+    void 복수전공_ID가_없어도_원문의_복수전공_여부와_미지원_안내를_유지한다() {
+        Transcript transcript = givenTranscript("{\"meta\":{\"복수1\":\"컴퓨터공학전공\"}}");
+        given(transcript.getDualMajor1Id()).willReturn(null);
+
+        var view = service.findByMemberId(1L).orElseThrow();
+
+        assertThat(view.dualMajor1Id()).isNull();
+        assertThat(view.dualMajorDeclared()).isTrue();
+        assertThat(view.unresolvedAdditionalMajor()).isTrue();
+    }
+
+    @Test
+    void 학과가_정상_연결된_복수전공은_미해결_전공이_아니다() {
+        givenTranscript("{\"meta\":{\"복수1\":\"컴퓨터공학전공\"}}");
+
+        var view = service.findByMemberId(1L).orElseThrow();
+
+        assertThat(view.dualMajorDeclared()).isTrue();
+        assertThat(view.unresolvedAdditionalMajor()).isFalse();
+    }
+
+    @Test
+    void 미등록_부전공은_경고_대상이지만_복수전공자로_판단하지_않는다() {
+        Transcript transcript = givenTranscript("{\"meta\":{\"부전공1\":\"미등록학과\"}}");
+        given(transcript.getDualMajor1Id()).willReturn(null);
+        given(transcript.getSubMajor1Id()).willReturn(null);
+
+        var view = service.findByMemberId(1L).orElseThrow();
+
+        assertThat(view.dualMajorDeclared()).isFalse();
+        assertThat(view.unresolvedAdditionalMajor()).isTrue();
+    }
 }

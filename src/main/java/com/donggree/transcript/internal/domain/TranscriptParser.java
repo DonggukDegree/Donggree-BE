@@ -38,9 +38,13 @@ public class TranscriptParser {
     private static final Pattern COURSE_START =
             Pattern.compile("(" + SEMESTER_RE + ")\\s+(\\d)\\s+(" + CATEGORY_RE + ")\\s+(" + CODE_RE + ")\\s+");
 
-    /** 과목 행 꼬리 패턴: 학점 성적 [영역] [재수강] */
+    /**
+     * 과목 행 꼬리 패턴: 학점 성적 [영역] [재수강].
+     * PDFBox가 성적·영역을 D+기초처럼 붙여 추출할 수 있다. 영역 앞 공백은 선택이지만
+     * 영역 뒤 경계는 필수로 두어, 옆 열의 연도나 긴 단어 일부를 영역으로 읽지 않는다.
+     */
     private static final Pattern TAIL =
-            Pattern.compile("\\s+(\\d{1,2})\\s+(" + GRADE_RE + ")(?:\\s+(" + AREA_RE + "))?(?:\\s+(R))?");
+            Pattern.compile("\\s+(\\d{1,2})\\s+(" + GRADE_RE + ")(?:\\s*(" + AREA_RE + ")(?=\\s|$))?(?:\\s+(R))?");
 
     // ====== 메타 파싱용 키 목록 ======
 

@@ -154,7 +154,7 @@ class RequirementSetTest {
 
         assertThat(rule.getRuleTypeId()).isEqualTo(1L);
         assertThat(rule.getRuleName()).isEqualTo("전공 최소학점");
-        assertThat(rule.getRuleConfig()).isEqualTo("{\"minCredits\": 60}");
+        assertThat(rule.getRuleConfig()).isEqualTo("{\"minCredits\":60}");
         assertThat(rule.getDescription()).isEqualTo("전공 최소 60학점 이수");
     }
 

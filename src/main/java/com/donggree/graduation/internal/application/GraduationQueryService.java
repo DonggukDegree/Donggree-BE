@@ -110,6 +110,7 @@ public class GraduationQueryService {
                 || transcript.dualMajor2Id() != null
                 || transcript.subMajor1Id() != null
                 || transcript.subMajor2Id() != null
+                || transcript.unresolvedAdditionalMajor()
                 || transcript.transfer();
     }
 
@@ -283,7 +284,7 @@ public class GraduationQueryService {
     }
 
     private boolean hasDualMajor(TranscriptView transcript) {
-        return transcript.dualMajor1Id() != null || transcript.dualMajor2Id() != null;
+        return transcript.dualMajorDeclared() || transcript.dualMajor1Id() != null || transcript.dualMajor2Id() != null;
     }
 
     private record ReportEvaluation(

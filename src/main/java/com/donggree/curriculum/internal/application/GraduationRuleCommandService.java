@@ -4,6 +4,7 @@ import com.donggree.curriculum.internal.application.command.GraduationRuleComman
 import com.donggree.curriculum.internal.application.command.GraduationRuleUpsertCommand;
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
+import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleConfig;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleConfigValidator;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleType;
@@ -12,10 +13,14 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,19 +47,31 @@ public class GraduationRuleCommandService {
         Map<Long, RuleType> ruleTypes = findAndValidateRuleTypes(items);
         validateRuleConfigs(items, ruleTypes);
 
-        List<Long> ids = new ArrayList<>();
-        for (GraduationRuleUpsertCommand item : items) {
-            ids.add(item.id() == null ? create(item.data()) : update(item.id(), item.data()));
+        try {
+            List<Long> ids = new ArrayList<>();
+            for (GraduationRuleUpsertCommand item : items) {
+                ids.add(item.id() == null ? create(item.data()) : update(item.id(), item.data()));
+            }
+            // 동시 요청의 유니크 충돌도 커밋 전에 잡아 동일한 409 응답으로 반환한다.
+            graduationRuleRepository.flush();
+            return ids;
+        } catch (DataIntegrityViolationException ex) {
+            for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+                if (cause instanceof ConstraintViolationException violation
+                        && violation.getConstraintName() != null
+                        && violation
+                                .getConstraintName()
+                                .toLowerCase(Locale.ROOT)
+                                .contains(GraduationRule.UNIQUE_KEY_CONSTRAINT)) {
+                    throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE);
+                }
+            }
+            throw ex;
         }
-        return ids;
     }
 
     private Long create(GraduationRuleCommand command) {
-        graduationRuleRepository
-                .findByRuleTypeIdAndRuleName(command.ruleTypeId(), command.ruleName())
-                .ifPresent(existing -> {
-                    throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE);
-                });
+        validateNoExistingDuplicate(command, null);
 
         GraduationRule saved = graduationRuleRepository.save(GraduationRule.create(
                 command.ruleTypeId(), command.ruleName(), command.ruleConfig(), command.description()));
@@ -66,28 +83,50 @@ public class GraduationRuleCommandService {
                 .findById(id)
                 .orElseThrow(() -> new GeneralException(CurriculumErrorCode.GRADUATION_RULE_NOT_FOUND));
 
-        graduationRuleRepository
-                .findByRuleTypeIdAndRuleName(command.ruleTypeId(), command.ruleName())
-                .filter(other -> !other.getId().equals(id))
-                .ifPresent(other -> {
-                    throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE);
-                });
+        validateNoExistingDuplicate(command, id);
 
         rule.update(command.ruleTypeId(), command.ruleName(), command.ruleConfig(), command.description());
         return id;
     }
 
-    /** 한 배치 안에 (ruleTypeId, ruleName)가 중복된 항목이 있으면 예외를 던진다. */
+    private void validateNoExistingDuplicate(GraduationRuleCommand command, Long selfId) {
+        String config = normalizeConfig(command.ruleConfig());
+        boolean duplicate =
+                graduationRuleRepository
+                        .findAllByRuleTypeIdAndRuleName(command.ruleTypeId(), command.ruleName())
+                        .stream()
+                        .filter(other -> !Objects.equals(other.getId(), selfId))
+                        .anyMatch(other -> config.equals(GraduationRuleConfig.normalize(other.getRuleConfig())));
+        if (duplicate) {
+            throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE);
+        }
+    }
+
+    /** 설명은 식별에서 제외한다. 같은 ID를 두 번 수정하는 모호한 요청도 저장 전에 거절한다. */
     private void validateNoDuplicateKeysInBatch(List<GraduationRuleUpsertCommand> items) {
-        Set<String> keys = new HashSet<>();
+        Set<RuleKey> keys = new HashSet<>();
+        Set<Long> ids = new HashSet<>();
         for (GraduationRuleUpsertCommand item : items) {
+            if (item.id() != null && !ids.add(item.id())) {
+                throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE_ID);
+            }
             GraduationRuleCommand data = item.data();
-            String key = data.ruleTypeId() + "|" + data.ruleName();
+            RuleKey key = new RuleKey(data.ruleTypeId(), data.ruleName(), normalizeConfig(data.ruleConfig()));
             if (!keys.add(key)) {
                 throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE);
             }
         }
     }
+
+    private String normalizeConfig(String config) {
+        try {
+            return GraduationRuleConfig.normalize(config);
+        } catch (IllegalArgumentException ex) {
+            throw new GeneralException(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG);
+        }
+    }
+
+    private record RuleKey(Long ruleTypeId, String ruleName, String config) {}
 
     /** 배치에 등장하는 모든 ruleTypeId(중복 제외)가 실제로 존재하는지 한 번의 조회로 검증한다. */
     private Map<Long, RuleType> findAndValidateRuleTypes(List<GraduationRuleUpsertCommand> items) {

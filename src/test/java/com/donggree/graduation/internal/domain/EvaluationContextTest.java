@@ -31,6 +31,8 @@ class EvaluationContextTest {
                     false,
                     false,
                     false,
+                    false,
+                    false,
                     List.of()),
             Map.of());
 

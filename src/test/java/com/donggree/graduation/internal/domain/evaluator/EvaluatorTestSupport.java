@@ -33,6 +33,8 @@ class EvaluatorTestSupport {
                 false,
                 false,
                 false,
+                false,
+                false,
                 records);
     }
 
@@ -65,6 +67,8 @@ class EvaluatorTestSupport {
                 thesisStatus,
                 false,
                 false,
+                false,
+                false,
                 records);
     }
 
@@ -89,6 +93,8 @@ class EvaluatorTestSupport {
                 null,
                 primaryPassed,
                 secondaryPassed,
+                false,
+                false,
                 false,
                 records);
     }
