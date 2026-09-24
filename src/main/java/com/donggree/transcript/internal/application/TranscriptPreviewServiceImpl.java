@@ -31,22 +31,28 @@ public class TranscriptPreviewServiceImpl implements TranscriptPreviewService {
             }
         }
         Long departmentId = curriculumLookupService
-                .findDepartmentIdByName(meta.get("학과"))
+                .findDepartmentId(
+                        meta.get("학과"),
+                        parsed.parsedData().admissionYear(),
+                        parsed.parsedData().engineeringCertified(),
+                        meta.get("대학"))
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
         var data = pdfReader.buildCreateData(
                 null,
                 parsed.rawDataJson(),
                 parsed.parsedData(),
                 departmentId,
-                findDepartment(meta.get("부전공1")),
-                findDepartment(meta.get("부전공2")),
-                findDepartment(meta.get("복수1")),
-                findDepartment(meta.get("복수2")));
+                findDepartment(meta.get("부전공1"), parsed.parsedData().admissionYear()),
+                findDepartment(meta.get("부전공2"), parsed.parsedData().admissionYear()),
+                findDepartment(meta.get("복수1"), parsed.parsedData().admissionYear()),
+                findDepartment(meta.get("복수2"), parsed.parsedData().admissionYear()));
         return viewMapper.toPreview(data, parsed.parsedData().courses());
     }
 
-    private Long findDepartment(String name) {
+    private Long findDepartment(String name, int admissionYear) {
         if (name == null || name.isBlank()) return null;
-        return curriculumLookupService.findDepartmentIdByName(name).orElse(null);
+        return curriculumLookupService
+                .findDepartmentId(name, admissionYear, false, null)
+                .orElse(null);
     }
 }

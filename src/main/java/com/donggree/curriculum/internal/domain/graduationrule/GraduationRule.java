@@ -23,11 +23,13 @@ import org.hibernate.type.SqlTypes;
         name = "graduation_rule",
         uniqueConstraints =
                 @UniqueConstraint(
-                        name = "uk_graduation_rule_type_name",
-                        columnNames = {"rule_type_id", "rule_name"}))
+                        name = GraduationRule.UNIQUE_KEY_CONSTRAINT,
+                        columnNames = {"rule_type_id", "rule_name", "rule_config"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GraduationRule {
+
+    public static final String UNIQUE_KEY_CONSTRAINT = "uk_graduation_rule_type_name_config";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -71,9 +73,10 @@ public class GraduationRule {
         if (ruleConfig == null || ruleConfig.isBlank()) {
             throw new IllegalArgumentException("ruleConfig must not be null or blank");
         }
+        String normalizedConfig = GraduationRuleConfig.normalize(ruleConfig);
         this.ruleTypeId = ruleTypeId;
         this.ruleName = ruleName;
-        this.ruleConfig = ruleConfig;
+        this.ruleConfig = normalizedConfig;
         this.description = description;
     }
 }

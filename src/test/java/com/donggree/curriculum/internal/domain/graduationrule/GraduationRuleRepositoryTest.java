@@ -1,6 +1,7 @@
 package com.donggree.curriculum.internal.domain.graduationrule;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
@@ -114,10 +115,34 @@ class GraduationRuleRepositoryTest {
     }
 
     @Test
-    void 규칙종류와_이름으로_단건_조회한다() {
-        var found = graduationRuleRepository.findByRuleTypeIdAndRuleName(generalTypeId, "총학점");
+    void 규칙종류와_이름으로_옵션이_다른_규칙도_함께_조회한다() {
+        graduationRuleRepository.saveAndFlush(
+                GraduationRule.create(generalTypeId, "총학점", "{\"minCredits\":130}", null));
+        var found = graduationRuleRepository.findAllByRuleTypeIdAndRuleName(generalTypeId, "총학점");
 
-        assertThat(found).isPresent();
-        assertThat(found.get().getRuleConfig()).isEqualTo("{}");
+        assertThat(found).hasSize(2);
+        assertThat(found).extracting(GraduationRule::getId).doesNotHaveDuplicates();
+    }
+
+    @Test
+    void 종류_이름_옵션이_같으면_설명이_달라도_DB에서_거절한다() {
+        assertThatThrownBy(() -> graduationRuleRepository.saveAndFlush(
+                        GraduationRule.create(generalTypeId, "총학점", "{}", "다른 설명")))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void 역할_순서만_다른_규칙은_DB에서도_중복이다() {
+        graduationRuleRepository.saveAndFlush(GraduationRule.create(
+                majorTypeId,
+                "역할",
+                "{\"minCredits\":36,\"applicableMajorRoles\":[\"SINGLE_PRIMARY\",\"DUAL_PRIMARY\"]}",
+                null));
+        assertThatThrownBy(() -> graduationRuleRepository.saveAndFlush(GraduationRule.create(
+                        majorTypeId,
+                        "역할",
+                        "{\"applicableMajorRoles\":[\"DUAL_PRIMARY\",\"SINGLE_PRIMARY\"],\"minCredits\":36.0}",
+                        "다른 설명")))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 }

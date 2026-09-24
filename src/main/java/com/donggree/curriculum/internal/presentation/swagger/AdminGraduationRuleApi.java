@@ -39,13 +39,13 @@ public interface AdminGraduationRuleApi {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "업서트 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "400",
-                description = "입력값 오류 또는 존재하지 않는 규칙 종류"),
+                description = "입력값·규칙 옵션 오류, 요청 내 수정 ID 중복 또는 존재하지 않는 규칙 종류"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "404",
                 description = "존재하지 않는 졸업 규칙(id 지정)"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "409",
-                description = "동일 규칙종류·규칙이름 중복(요청 내 또는 기존과)")
+                description = "규칙종류·규칙이름·규칙옵션 전체 중복(요청 내 또는 기존과, 설명 제외)")
     })
     ApiResponse<List<Long>> upsertGraduationRules(GraduationRuleBatchRequest request);
 }

@@ -1,18 +1,22 @@
 package com.donggree.curriculum.internal.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.curriculum.internal.domain.areatype.AreaTypeRepository;
+import com.donggree.curriculum.internal.domain.college.College;
 import com.donggree.curriculum.internal.domain.college.CollegeRepository;
 import com.donggree.curriculum.internal.domain.courseclassification.CourseClassificationRepository;
+import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSet;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSetRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleTypeRepository;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -27,10 +31,12 @@ class CurriculumLookupServiceImplTest {
     private static final Long DEPARTMENT_ID = 100L;
 
     private final RequirementSetRepository requirementSetRepository = Mockito.mock(RequirementSetRepository.class);
+    private final DepartmentRepository departmentRepository = Mockito.mock(DepartmentRepository.class);
+    private final CollegeRepository collegeRepository = Mockito.mock(CollegeRepository.class);
 
     private final CurriculumLookupServiceImpl service = new CurriculumLookupServiceImpl(
-            Mockito.mock(DepartmentRepository.class),
-            Mockito.mock(CollegeRepository.class),
+            departmentRepository,
+            collegeRepository,
             requirementSetRepository,
             Mockito.mock(RuleTypeRepository.class),
             Mockito.mock(CourseClassificationRepository.class),
@@ -101,5 +107,75 @@ class CurriculumLookupServiceImplTest {
         givenActiveSets();
 
         assertThat(service.findActiveRequirementSet(DEPARTMENT_ID, 2023, false)).isEmpty();
+    }
+
+    private void givenNames(boolean duplicated) {
+        Department old = Department.create(1L, "컴퓨터공학전공");
+        ReflectionTestUtils.setField(old, "id", 10L);
+        Department moved = Department.create(2L, "컴퓨터공학전공");
+        ReflectionTestUtils.setField(moved, "id", 20L);
+        given(departmentRepository.findAllByDepartmentName("컴퓨터공학전공"))
+                .willReturn(duplicated ? List.of(old, moved) : List.of(old));
+    }
+
+    private RequirementSet departmentSet(Long dept, int start, int end, RequirementTrack track) {
+        return RequirementSet.create(dept, start, end, track, 1, null, null, true);
+    }
+
+    @Test
+    void 학과명이_유일하면_세트가_없어도_기존_업로드용_ID를_반환한다() {
+        givenNames(false);
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, false, null)).contains(10L);
+        Mockito.verifyNoInteractions(requirementSetRepository);
+    }
+
+    @Test
+    void 동명_학과는_교육과정_적용년도에_맞는_단과대의_학과를_선택한다() {
+        givenNames(true);
+        given(requirementSetRepository.findByDepartmentIdInAndActiveTrue(anyList()))
+                .willReturn(List.of(
+                        departmentSet(10L, 2021, 2023, RequirementTrack.ALL),
+                        departmentSet(20L, 2024, 2026, RequirementTrack.ALL)));
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, false, null)).contains(10L);
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2024, false, null)).contains(20L);
+        // PDF의 현재 단과대보다 해당 교육과정 적용년도를 우선한다.
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, false, "AI융합대학")).contains(10L);
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2020, false, null)).isEmpty();
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2027, false, null)).isEmpty();
+    }
+
+    @Test
+    void 년도가_같아도_일반과_심화_과정을_구분한다() {
+        givenNames(true);
+        given(requirementSetRepository.findByDepartmentIdInAndActiveTrue(anyList()))
+                .willReturn(List.of(
+                        departmentSet(10L, 2023, 2023, RequirementTrack.GENERAL),
+                        departmentSet(20L, 2023, 2023, RequirementTrack.ADVANCED)));
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, false, null)).contains(10L);
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, true, null)).contains(20L);
+    }
+
+    @Test
+    void 년도까지_겹치면_PDF_단과대로_구분하고_단과대가_없으면_임의_선택하지_않는다() {
+        givenNames(true);
+        given(requirementSetRepository.findByDepartmentIdInAndActiveTrue(anyList()))
+                .willReturn(List.of(
+                        departmentSet(10L, 2023, 2023, RequirementTrack.ALL),
+                        departmentSet(20L, 2023, 2023, RequirementTrack.ALL)));
+        College college = College.create("AI융합대학");
+        ReflectionTestUtils.setField(college, "id", 2L);
+        given(collegeRepository.findByCollegeName("AI융합대학")).willReturn(Optional.of(college));
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, false, "AI융합대학")).contains(20L);
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, false, null)).isEmpty();
+    }
+
+    @Test
+    void 활성세트가_없으면_복수전공_학과를_임의_선택하지_않는다() {
+        givenNames(true);
+        given(requirementSetRepository.findByDepartmentIdInAndActiveTrue(anyList()))
+                .willReturn(List.of());
+        assertThat(service.findDepartmentId("컴퓨터공학전공", 2023, false, null)).isEmpty();
+        assertThat(service.findDepartmentId("미등록학과", 2023, false, null)).isEmpty();
+        assertThat(service.findDepartmentId(null, 2023, false, null)).isEmpty();
     }
 }

@@ -149,20 +149,15 @@ public class RequirementSetCommandService {
     }
 
     /**
-     * 입력받은 학과명으로 기존 학과를 찾으면 재사용하고, 없으면 새 학과를 등록한다(find-or-create). 학과명은 유일 키다.
-     * 기존 학과가 입력 단과대와 다른 단과대 소속이면 정합성 보호를 위해 예외를 던진다(소속 단과대는 임의 변경하지 않는다).
+     * 같은 단과대·학과명은 재사용하고, 다른 단과대면 별도 학과를 등록한다.
+     * 학과 이동 전후의 졸업세트가 공존하도록 기존 학과의 소속·ID는 변경하지 않는다.
      * 앞뒤 공백으로 인한 중복 생성을 막기 위해 trim한 값으로 조회·저장한다.
      */
     private Long resolveOrCreateDepartment(String departmentName, Long collegeId) {
         String name = departmentName.trim();
         return departmentRepository
-                .findByDepartmentName(name)
-                .map(existing -> {
-                    if (!existing.getCollegeId().equals(collegeId)) {
-                        throw new GeneralException(CurriculumErrorCode.DEPARTMENT_COLLEGE_MISMATCH);
-                    }
-                    return existing.getId();
-                })
+                .findByCollegeIdAndDepartmentName(collegeId, name)
+                .map(Department::getId)
                 .orElseGet(() -> departmentRepository
                         .save(Department.create(collegeId, name))
                         .getId());

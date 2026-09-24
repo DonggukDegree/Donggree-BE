@@ -15,9 +15,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.GraduationRuleCommandService;
 import com.donggree.curriculum.internal.application.GraduationRuleQueryService;
+import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
 import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
 import com.donggree.curriculum.internal.application.projection.RuleTypeProjection;
 import com.donggree.curriculum.internal.presentation.dto.GraduationRuleBatchRequest;
+import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -37,6 +40,11 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
     @Override
     protected Object initController() {
         return new AdminGraduationRuleController(graduationRuleQueryService, graduationRuleCommandService);
+    }
+
+    @Override
+    protected Object[] controllerAdvices() {
+        return new Object[] {new GeneralExceptionAdvice()};
     }
 
     @Test
@@ -114,7 +122,7 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
                         requestFields(
                                 fieldWithPath("items[].id").optional().description("수정 대상 규칙 ID (null이면 신규 등록)"),
                                 fieldWithPath("items[].ruleTypeId").description("규칙 종류 ID"),
-                                fieldWithPath("items[].ruleName").description("규칙 이름"),
+                                fieldWithPath("items[].ruleName").description("규칙 이름(같은 종류·이름도 옵션이 다르면 허용)"),
                                 subsectionWithPath("items[].ruleConfig").description("규칙 설정 JSON 객체(종류별 스키마)"),
                                 fieldWithPath("items[].description").optional().description("설명 (선택)")),
                         responseFields(
@@ -122,5 +130,27 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
                                 fieldWithPath("result[]").description("각 항목의 결과 ID 목록(입력 순서)"))));
+    }
+
+    @Test
+    void 종류_이름_옵션이_모두_중복이면_409와_옵션_중복_안내를_반환한다() throws Exception {
+        GraduationRuleBatchRequest request = new GraduationRuleBatchRequest(List.of(
+                new GraduationRuleBatchRequest.Item(null, 10L, "전공 최소학점", objectMapper.readTree("{}"), "다른 설명")));
+        given(graduationRuleCommandService.upsert(Mockito.anyList()))
+                .willThrow(new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE));
+
+        mockMvc.perform(RestDocumentationRequestBuilders.put("/api/admin/graduation-rules")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CURRICULUM409_2"))
+                .andExpect(jsonPath("$.message").value(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE.getMessage()))
+                .andDo(document(
+                        "admin-graduation-rule-upsert-duplicate",
+                        responseFields(
+                                fieldWithPath("isSuccess").description("요청 실패"),
+                                fieldWithPath("code").description("CURRICULUM409_2"),
+                                fieldWithPath("message").description("종류·이름·옵션 전체 중복 안내(설명 제외)"),
+                                fieldWithPath("result").optional().description("결과 없음"))));
     }
 }

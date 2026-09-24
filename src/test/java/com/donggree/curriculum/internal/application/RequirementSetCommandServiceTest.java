@@ -89,7 +89,7 @@ class RequirementSetCommandServiceTest {
     @Test
     void 생성_시_기존_단과대_학과를_재사용하고_다음_버전을_자동_채번해_규칙을_연결한다() {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
-        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
+        given(departmentRepository.findByCollegeIdAndDepartmentName(1L, "컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
         // 같은 학과·적용년도 lineage에 version 2가 이미 있으면 다음은 3
         given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
@@ -118,7 +118,8 @@ class RequirementSetCommandServiceTest {
             ReflectionTestUtils.setField(saved, "id", 7L);
             return saved;
         });
-        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부")).willReturn(Optional.empty());
+        given(departmentRepository.findByCollegeIdAndDepartmentName(7L, "컴퓨터·AI학부"))
+                .willReturn(Optional.empty());
         given(departmentRepository.save(any(Department.class))).willAnswer(invocation -> {
             Department saved = invocation.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", 5L);
@@ -146,7 +147,7 @@ class RequirementSetCommandServiceTest {
     @Test
     void 심화과정_세트는_일반과정_세트와_겹침_검사를_하지_않아_같은_적용년도에_공존한다() {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
-        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
+        given(departmentRepository.findByCollegeIdAndDepartmentName(1L, "컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
         given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
                         1L, 2023, 2025, RequirementTrack.ADVANCED))
@@ -186,7 +187,7 @@ class RequirementSetCommandServiceTest {
     @Test
     void 활성으로_생성_시_적용년도가_겹치는_다른_활성_세트가_있으면_예외를_던진다() {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
-        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
+        given(departmentRepository.findByCollegeIdAndDepartmentName(1L, "컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
         // 기존 활성 세트가 신규 2023~2025 와 겹침 (DB exists가 true 반환)
         given(
@@ -204,7 +205,7 @@ class RequirementSetCommandServiceTest {
     @Test
     void 비활성으로_생성하면_적용년도가_겹쳐도_허용한다() {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
-        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
+        given(departmentRepository.findByCollegeIdAndDepartmentName(1L, "컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
         given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
                         1L, 2023, 2025, RequirementTrack.ALL))
@@ -227,7 +228,7 @@ class RequirementSetCommandServiceTest {
     @Test
     void 생성_시_존재하지_않는_규칙ID가_있으면_예외를_던진다() {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(1L, "첨단융합대학")));
-        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
+        given(departmentRepository.findByCollegeIdAndDepartmentName(1L, "컴퓨터·AI학부"))
                 .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
         given(requirementSetRepository.findTopByDepartmentIdAndYearStartAndYearEndAndTrackOrderByVersionDesc(
                         1L, 2023, 2025, RequirementTrack.ALL))
@@ -241,16 +242,25 @@ class RequirementSetCommandServiceTest {
     }
 
     @Test
-    void 생성_시_기존_학과가_다른_단과대_소속이면_예외를_던진다() {
-        // 입력 단과대는 id 2 "공과대학", 기존 학과는 단과대 id 1 소속 → 불일치
+    void 다른_단과대의_동명_학과는_소속_변경_없이_별도_등록한다() {
         given(collegeRepository.findByCollegeName("첨단융합대학")).willReturn(Optional.of(college(2L, "첨단융합대학")));
-        given(departmentRepository.findByDepartmentName("컴퓨터·AI학부"))
-                .willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
+        given(departmentRepository.findByCollegeIdAndDepartmentName(2L, "컴퓨터·AI학부"))
+                .willReturn(Optional.empty());
+        given(departmentRepository.save(any(Department.class))).willAnswer(invocation -> {
+            Department saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 20L);
+            return saved;
+        });
+        given(requirementSetRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
-        assertThatThrownBy(() -> service.create(command(true, List.of())))
-                .isInstanceOf(GeneralException.class)
-                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                        .isEqualTo(CurriculumErrorCode.DEPARTMENT_COLLEGE_MISMATCH));
+        service.create(command(true, List.of()));
+
+        ArgumentCaptor<Department> deptCaptor = ArgumentCaptor.forClass(Department.class);
+        Mockito.verify(departmentRepository).save(deptCaptor.capture());
+        assertThat(deptCaptor.getValue().getCollegeId()).isEqualTo(2L);
+        ArgumentCaptor<RequirementSet> setCaptor = ArgumentCaptor.forClass(RequirementSet.class);
+        Mockito.verify(requirementSetRepository).save(setCaptor.capture());
+        assertThat(setCaptor.getValue().getDepartmentId()).isEqualTo(20L);
     }
 
     @Test

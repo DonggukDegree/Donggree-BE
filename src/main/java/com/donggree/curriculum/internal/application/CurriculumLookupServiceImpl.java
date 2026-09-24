@@ -14,6 +14,7 @@ import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
+import com.donggree.curriculum.internal.domain.requirementset.RequirementSet;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSetRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleType;
 import com.donggree.curriculum.internal.domain.ruletype.RuleTypeRepository;
@@ -40,11 +41,38 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     private final AreaTypeRepository areaTypeRepository;
 
     @Override
-    public Optional<Long> findDepartmentIdByName(String departmentName) {
+    public Optional<Long> findDepartmentId(
+            String departmentName, int admissionYear, boolean engineeringCertified, String collegeName) {
         if (departmentName == null || departmentName.isBlank()) {
             return Optional.empty();
         }
-        return departmentRepository.findByDepartmentName(departmentName).map(Department::getId);
+        List<Department> candidates = departmentRepository.findAllByDepartmentName(departmentName.trim());
+        // 일반적인 단일 학과는 세트 등록 여부와 무관하게 기존 업로드 동작을 유지한다.
+        if (candidates.size() == 1) return Optional.of(candidates.getFirst().getId());
+        if (candidates.isEmpty()) return Optional.empty();
+
+        var matchingIds =
+                requirementSetRepository
+                        .findByDepartmentIdInAndActiveTrue(
+                                candidates.stream().map(Department::getId).toList())
+                        .stream()
+                        .filter(set -> set.appliesTo(admissionYear, RequirementTrack.ofStudent(engineeringCertified)))
+                        .map(RequirementSet::getDepartmentId)
+                        .collect(Collectors.toSet());
+        List<Department> matching = candidates.stream()
+                .filter(dept -> matchingIds.contains(dept.getId()))
+                .toList();
+        if (matching.size() == 1) return Optional.of(matching.getFirst().getId());
+
+        // 세트가 없어도 단과대로 학과를 특정할 수 있으면 저장 가능. 리포트는 기존 세트 부재 처리.
+        if (collegeName == null || collegeName.isBlank()) return Optional.empty();
+        var college = collegeRepository.findByCollegeName(collegeName.trim());
+        if (college.isEmpty()) return Optional.empty();
+        List<Department> narrowed = (matching.isEmpty() ? candidates : matching)
+                .stream()
+                        .filter(dept -> dept.getCollegeId().equals(college.get().getId()))
+                        .toList();
+        return narrowed.size() == 1 ? Optional.of(narrowed.getFirst().getId()) : Optional.empty();
     }
 
     @Override

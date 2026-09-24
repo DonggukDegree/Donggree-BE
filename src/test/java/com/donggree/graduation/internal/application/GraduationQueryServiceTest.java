@@ -403,6 +403,63 @@ class GraduationQueryServiceTest {
         assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
     }
 
+    @Test
+    void 복수전공_학과_ID를_못_찾아도_단일전공_규칙으로_바꾸지_않는다() {
+        TranscriptView transcript = new TranscriptView(
+                1L,
+                MEMBER_ID,
+                DEPARTMENT_ID,
+                null,
+                null,
+                null,
+                null,
+                ADMISSION_YEAR,
+                "단일",
+                false,
+                3,
+                BigDecimal.valueOf(4.0),
+                "S1",
+                false,
+                null,
+                null,
+                false,
+                false,
+                false,
+                true,
+                true,
+                List.of(passed("CSE1001", "주전공", 3, "전공", "전문")));
+        given(transcriptLookupService.findByMemberId(MEMBER_ID)).willReturn(Optional.of(transcript));
+        given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(REQUIREMENT_SET_ID, DEPARTMENT_ID, 2020, 2025)));
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
+                .willReturn(
+                        List.of(
+                                new GraduationRuleView(
+                                        1L,
+                                        "MIN_CREDITS",
+                                        CourseType.FIRST_MAJOR,
+                                        "단일전공 72학점",
+                                        "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":72,\"applicableMajorRoles\":[\"SINGLE_PRIMARY\"]}"),
+                                new GraduationRuleView(
+                                        2L,
+                                        "MIN_CREDITS",
+                                        CourseType.FIRST_MAJOR,
+                                        "복수전공자 주전공 3학점",
+                                        "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":3,\"applicableMajorRoles\":[\"DUAL_PRIMARY\"]}")));
+        givenNoClassification();
+
+        var report = service.getReport(MEMBER_ID);
+
+        assertThat(report.hasUnsupportedMajor()).isTrue();
+        assertThat(report.summary().achievementRate()).isEqualTo(100);
+        assertThat(report.areaOverviews()).singleElement().satisfies(area -> {
+            assertThat(area.courseType()).isEqualTo("FIRST_MAJOR");
+            assertThat(area.satisfied()).isTrue();
+        });
+        // 저장 성적표와 일회성 미리보기에 동일한 역할·경고 적용
+        assertThat(service.preview(transcript).report()).isEqualTo(report);
+    }
+
     @ParameterizedTest
     @CsvSource({"true,false", "false,true", "true,true", "false,false"})
     void 주전공과_복수전공_시험을_독립_판정하고_총학점은_주전공에서만_검사한다(boolean primaryPassed, boolean secondaryPassed) {
@@ -701,6 +758,8 @@ class GraduationQueryServiceTest {
                 true,
                 null,
                 null,
+                false,
+                false,
                 false,
                 false,
                 false,
@@ -1008,6 +1067,8 @@ class GraduationQueryServiceTest {
                 primaryThesisPassed,
                 secondaryThesisPassed,
                 transfer,
+                false,
+                false,
                 List.of(records));
         given(transcriptLookupService.findByMemberId(MEMBER_ID)).willReturn(Optional.of(transcript));
     }
