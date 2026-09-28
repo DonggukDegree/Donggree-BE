@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -107,6 +108,99 @@ class GraduationQueryServiceTest {
     }
 
     // --- 필수 과목을 다른 이수구분으로 충족한 경우 ---
+
+    @ParameterizedTest
+    @CsvSource({"false,PHY2,true", "false,BIO2,false", "true,PHY2,true", "true,BIO2,false"})
+    void 필수과목_세트는_완성_여부를_학문기초에_표시하고_미리보기에도_동일하게_반영한다(boolean dualMajor, String secondCode, boolean expected) {
+        givenTranscriptWithMajors(
+                dualMajor ? 200L : null,
+                null,
+                null,
+                null,
+                passed("PHY1", "물리1", 3, "학기", "과학"),
+                passed(secondCode, "두번째실험", 3, "학기", "과학"));
+        var rule = new GraduationRuleView(
+                1L,
+                "REQUIRED_COURSE",
+                CourseType.ACADEMIC_FOUNDATION,
+                "같은 분야 실험 1·2를 모두 이수해야 합니다.",
+                """
+                {"requiredCourseSets":[[["PHY1","OLD_PHY1"],["PHY2"]],[["BIO1"],["BIO2"]]],
+                 "applicableMajorRoles":["SINGLE_PRIMARY","DUAL_PRIMARY","SECONDARY"]}
+                """);
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of(rule));
+        if (dualMajor) {
+            given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                    .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+            given(curriculumLookupService.findGraduationRules(20L)).willReturn(List.of(rule));
+        }
+        var classification = new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", null);
+        given(curriculumLookupService.findCourseClassifications(anyList(), eq(ADMISSION_YEAR)))
+                .willReturn(Map.of(
+                        "PHY1",
+                        classification,
+                        "OLD_PHY1",
+                        classification,
+                        "PHY2",
+                        classification,
+                        "BIO1",
+                        classification,
+                        "BIO2",
+                        classification));
+
+        var report = service.getReport(MEMBER_ID);
+        var detail = service.getAreaDetail(MEMBER_ID, CourseType.ACADEMIC_FOUNDATION);
+        assertThat(report.summary().graduated()).isEqualTo(expected);
+        assertThat(report.summary().achievementRate()).isEqualTo(expected ? 100 : 0);
+        assertThat(report.summary().unsatisfiedReasons()).isEmpty();
+        assertThat(detail.unsatisfiedReasons())
+                .containsExactlyElementsOf(expected ? List.of() : List.of(rule.ruleName()));
+        assertThat(detail.areaDetails()).singleElement().satisfies(area -> {
+            assertThat(area.areaName()).isEqualTo("과학");
+            assertThat(area.satisfied()).isEqualTo(expected);
+            assertThat(area.earnedCredits()).isEqualTo(6);
+            assertThat(area.targetCredits()).isZero();
+        });
+        assertThat(items(detail))
+                .filteredOn(item -> item.title().equals("물리1"))
+                .singleElement()
+                .satisfies(item -> assertThat(item.status()).isEqualTo("SATISFIED"));
+        if (expected) {
+            assertThat(items(detail)).noneMatch(item -> "UNSATISFIED".equals(item.status()));
+        } else {
+            assertThat(items(detail)).anySatisfy(item -> {
+                assertThat(item.title()).isEqualTo(rule.ruleName());
+                assertThat(item.status()).isEqualTo("UNSATISFIED");
+            });
+        }
+        assertThat(service.getAreaDetail(MEMBER_ID, CourseType.SECOND_MAJOR).unsatisfiedReasons())
+                .isEmpty();
+        var preview = service.preview(
+                transcriptLookupService.findByMemberId(MEMBER_ID).orElseThrow());
+        assertThat(preview.report()).isEqualTo(report);
+        assertThat(preview.details().get(CourseType.ACADEMIC_FOUNDATION)).isEqualTo(detail);
+    }
+
+    @Test
+    void 미수강_과목_세트도_등록된_과목_영역에서_미충족으로_표시한다() {
+        givenTranscript();
+        var rule = new GraduationRuleView(
+                1L,
+                "REQUIRED_COURSE",
+                CourseType.ACADEMIC_FOUNDATION,
+                "실험 세트 이수",
+                "{\"requiredCourseSets\":[[[\"PHY1\"],[\"PHY2\"]]]}");
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of(rule));
+        givenClassification("PHY1", CourseType.ACADEMIC_FOUNDATION, "과학");
+
+        var detail = service.getAreaDetail(MEMBER_ID, CourseType.ACADEMIC_FOUNDATION);
+        verify(curriculumLookupService).findCourseClassifications(List.of("PHY1", "PHY2"), ADMISSION_YEAR);
+        assertThat(detail.areaDetails()).singleElement().satisfies(area -> {
+            assertThat(area.areaName()).isEqualTo("과학");
+            assertThat(area.satisfied()).isFalse();
+            assertThat(area.earnedCredits()).isZero();
+        });
+    }
 
     /**
      * 제1전공 필수 규칙(CSE3001)을 학생이 공통교양 "운영체제특론"으로 이수한 상황.
@@ -473,7 +567,7 @@ class GraduationQueryServiceTest {
                         new GraduationRuleView(2L, "TOTAL_CREDITS", null, "총학점 3 이상", "{\"minCredits\":3}")));
         given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
                 .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
-        // 같은 이름·ID라도 두 전공의 판정과 각 탭의 사유가 덮어써지지 않아야 한다.
+        // 같은 이름·ID여도 두 전공을 독립 판정하고, 요약의 동일한 문구만 한 번 표시한다.
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(
                         new GraduationRuleView(
@@ -485,17 +579,17 @@ class GraduationQueryServiceTest {
         var report = service.getReport(MEMBER_ID);
 
         assertThat(report.summary().graduated()).isEqualTo(primaryPassed && secondaryPassed);
+        assertThat(report.summary().achievementRate())
+                .isEqualTo((1 + (primaryPassed ? 1 : 0) + (secondaryPassed ? 1 : 0)) * 100 / 3);
         assertThat(report.summary().targetCredits()).isEqualTo(3);
         assertThat(report.summary().unsatisfiedReasons())
-                .containsExactlyElementsOf(primaryPassed ? List.of() : List.of("졸업시험 합격"));
+                .containsExactlyElementsOf(primaryPassed && secondaryPassed ? List.of() : List.of("졸업시험 합격"));
         var primary = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
         var secondary = service.getAreaDetail(MEMBER_ID, CourseType.SECOND_MAJOR);
         assertThat(primary.unsatisfiedReasons()).isEmpty();
-        assertThat(secondary.unsatisfiedReasons())
-                .containsExactlyElementsOf(secondaryPassed ? List.of() : List.of("[복수전공] 졸업시험 합격"));
-        // 주전공 시험은 요약에 표시하고, 복수전공 추가 요건은 과목이 없어도 제2전공에 표시한다.
-        assertThat(report.areaOverviews()).extracting(area -> area.courseType()).containsExactly("SECOND_MAJOR");
-        assertMajorStatus(CourseType.SECOND_MAJOR, secondaryPassed, secondaryPassed ? 100 : 0);
+        assertThat(secondary.unsatisfiedReasons()).isEmpty();
+        // 이수구분 없는 두 시험은 요약에만 표시하고, 빈 전공 탭을 생성하지 않는다.
+        assertThat(report.areaOverviews()).isEmpty();
         assertThat(primary.areaDetails()).isEmpty();
         assertThat(secondary.areaDetails()).isEmpty();
         assertThat(secondary.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(0, 0, 0));
@@ -512,7 +606,7 @@ class GraduationQueryServiceTest {
 
     @ParameterizedTest
     @CsvSource({"true", "false"})
-    void 주전공_학문기초_사유는_학문기초에_복수전공_추가_사유만_제2전공에_표시한다(boolean foundationPassed) {
+    void 두_학과의_학문기초_사유는_학문기초에_중복_없이_표시한다(boolean foundationPassed) {
         givenTranscriptWithMajors(
                 200L,
                 null,
@@ -570,12 +664,9 @@ class GraduationQueryServiceTest {
         assertThat(detail.unsatisfiedReasons())
                 .containsExactlyElementsOf(foundationPassed ? List.of() : List.of("학문기초 3학점", "미적분학은 필수"));
         assertThat(primary.unsatisfiedReasons()).isEmpty();
-        assertThat(secondary.unsatisfiedReasons())
-                .containsExactlyElementsOf(
-                        foundationPassed ? List.of() : List.of("[복수전공] 학문기초 3학점", "[복수전공] 미적분학은 필수"));
-        assertThat(report.areaOverviews()).extracting(area -> area.courseType()).doesNotContain("FIRST_MAJOR");
+        assertThat(secondary.unsatisfiedReasons()).isEmpty();
+        assertThat(report.areaOverviews()).extracting(area -> area.courseType()).containsExactly("ACADEMIC_FOUNDATION");
         assertMajorStatus(CourseType.ACADEMIC_FOUNDATION, foundationPassed, foundationPassed ? 100 : 0);
-        assertMajorStatus(CourseType.SECOND_MAJOR, foundationPassed, foundationPassed ? 100 : 0);
         assertThat(detail.creditStatus())
                 .isEqualTo(
                         new AreaDetailProjection.CreditStatus(foundationPassed ? 3 : 0, 3, foundationPassed ? 0 : 3));
@@ -630,8 +721,79 @@ class GraduationQueryServiceTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"false,true", "false,false", "true,true", "true,false"})
+    void 공통교양_필수과목은_두_세트의_적용_대상에_따라_독립_판정한다(boolean appliesToDualPrimary, boolean writingPassed) {
+        givenTranscriptWithMajors(
+                200L,
+                null,
+                null,
+                null,
+                writingPassed
+                        ? new CourseRecordView[] {passed("RGC1001", "글쓰기", 3, "공교", "글")}
+                        : new CourseRecordView[0]);
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
+                .willReturn(List.of(new GraduationRuleView(
+                        1L,
+                        "REQUIRED_COURSE",
+                        CourseType.COMMON_GENERAL,
+                        "글쓰기는 필수",
+                        "{\"courseCodes\":[\"RGC1001\"],\"applicableMajorRoles\":"
+                                + (appliesToDualPrimary
+                                        ? "[\"SINGLE_PRIMARY\",\"DUAL_PRIMARY\"]"
+                                        : "[\"SINGLE_PRIMARY\"]")
+                                + "}")));
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+        given(curriculumLookupService.findGraduationRules(20L))
+                .willReturn(
+                        List.of(
+                                new GraduationRuleView(
+                                        2L,
+                                        "REQUIRED_COURSE",
+                                        CourseType.COMMON_GENERAL,
+                                        "글쓰기는 필수",
+                                        "{\"courseCodes\":[\"RGC1001\"],\"applicableMajorRoles\":[\"SINGLE_PRIMARY\",\"DUAL_PRIMARY\",\"SECONDARY\"]}")));
+        givenNoClassification();
+
+        var report = service.getReport(MEMBER_ID);
+        var common = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+        var secondary = service.getAreaDetail(MEMBER_ID, CourseType.SECOND_MAJOR);
+
+        assertThat(report.summary().graduated()).isEqualTo(writingPassed);
+        assertThat(report.summary().achievementRate()).isEqualTo(writingPassed ? 100 : 0);
+        assertThat(report.summary().unsatisfiedReasons()).isEmpty();
+        assertThat(common.unsatisfiedReasons())
+                .containsExactlyElementsOf(writingPassed ? List.of() : List.of("글쓰기는 필수"));
+        assertThat(secondary.unsatisfiedReasons()).isEmpty();
+        assertMajorStatus(CourseType.COMMON_GENERAL, writingPassed, writingPassed ? 100 : 0);
+        assertThat(report.areaOverviews()).extracting(area -> area.courseType()).containsExactly("COMMON_GENERAL");
+        assertThat(common.creditStatus().earnedCredits()).isEqualTo(writingPassed ? 3 : 0);
+        assertThat(secondary.creditStatus().earnedCredits()).isZero();
+        assertThat(items(secondary)).isEmpty();
+        if (writingPassed) {
+            assertThat(items(common)).singleElement().satisfies(item -> {
+                assertThat(item.title()).isEqualTo("글쓰기");
+                assertThat(item.credit()).isEqualTo(3);
+                assertThat(item.status()).isEqualTo("SATISFIED");
+            });
+        } else {
+            assertThat(items(common)).isNotEmpty().allSatisfy(item -> {
+                assertThat(item.title()).isEqualTo("글쓰기");
+                assertThat(item.credit()).isZero();
+                assertThat(item.status()).isEqualTo("UNSATISFIED");
+            });
+        }
+
+        var transcript = transcriptLookupService.findByMemberId(MEMBER_ID).orElseThrow();
+        var preview = service.preview(transcript);
+        assertThat(preview.report()).isEqualTo(report);
+        assertThat(preview.details().get(CourseType.COMMON_GENERAL)).isEqualTo(common);
+        assertThat(preview.details()).doesNotContainKey(CourseType.SECOND_MAJOR);
+    }
+
+    @ParameterizedTest
     @CsvSource({"6,3", "3,6"})
-    void 두_학과의_학문기초_사유는_각각_표시하고_동일_영역_목표는_더_큰_기준을_유지한다(int primaryMin, int secondaryMin) {
+    void 두_학과의_학문기초_사유는_같은_탭에_표시하고_동일_영역_목표는_더_큰_기준을_유지한다(int primaryMin, int secondaryMin) {
         givenTranscriptWithMajors(200L, null, null, null, passed("MAT1001", "미적분학", 3, "학기", null));
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
                 .willReturn(List.of(new GraduationRuleView(
@@ -657,18 +819,120 @@ class GraduationQueryServiceTest {
 
         assertThat(detail.creditStatus().targetCredits()).isEqualTo(6);
         assertThat(detail.creditStatus().remainingCredits()).isEqualTo(3);
-        assertThat(detail.unsatisfiedReasons())
-                .containsExactlyElementsOf(primaryMin > 3 ? List.of("수학 6학점") : List.of());
+        assertThat(detail.unsatisfiedReasons()).containsExactly("수학 6학점");
         assertThat(service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR).unsatisfiedReasons())
                 .isEmpty();
         assertThat(service.getAreaDetail(MEMBER_ID, CourseType.SECOND_MAJOR).unsatisfiedReasons())
-                .containsExactlyElementsOf(secondaryMin > 3 ? List.of("[복수전공] 수학 6학점") : List.of());
+                .isEmpty();
         assertMajorStatus(CourseType.ACADEMIC_FOUNDATION, false, 50);
-        assertMajorStatus(CourseType.SECOND_MAJOR, secondaryMin <= 3, secondaryMin <= 3 ? 100 : 0);
+        assertThat(service.getReport(MEMBER_ID).areaOverviews())
+                .extracting(area -> area.courseType())
+                .containsExactly("ACADEMIC_FOUNDATION");
         assertThat(detail.areaDetails()).singleElement().satisfies(area -> {
             assertThat(area.targetCredits()).isEqualTo(6);
             assertThat(area.satisfied()).isFalse();
         });
+    }
+
+    @ParameterizedTest
+    @EnumSource(CourseType.class)
+    void 복수전공_학과에만_있는_필수요건도_원래_이수구분에_표시한다(CourseType ruleCourseType) {
+        givenTranscriptWithMajors(200L, null, null, null);
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+        given(curriculumLookupService.findGraduationRules(20L))
+                .willReturn(List.of(new GraduationRuleView(
+                        1L,
+                        "REQUIRED_COURSE",
+                        ruleCourseType,
+                        "지정과목은 필수",
+                        "{\"courseCodes\":[\"MISSING\"],\"applicableMajorRoles\":[\"SECONDARY\"]}")));
+        givenNoClassification();
+
+        CourseType displayedType = ruleCourseType == CourseType.FIRST_MAJOR ? CourseType.SECOND_MAJOR : ruleCourseType;
+        var report = service.getReport(MEMBER_ID);
+        assertThat(report.summary().unsatisfiedReasons()).isEmpty();
+        assertThat(report.summary().graduated()).isFalse();
+        assertThat(report.areaOverviews()).extracting(area -> area.courseType()).containsExactly(displayedType.name());
+        assertMajorStatus(displayedType, false, 0);
+        for (CourseType type : CourseType.values()) {
+            assertThat(service.getAreaDetail(MEMBER_ID, type).unsatisfiedReasons())
+                    .containsExactlyElementsOf(type == displayedType ? List.of("지정과목은 필수") : List.of());
+        }
+        var transcript = transcriptLookupService.findByMemberId(MEMBER_ID).orElseThrow();
+        var preview = service.preview(transcript);
+        assertThat(preview.report()).isEqualTo(report);
+        assertThat(preview.details()).containsOnlyKeys(displayedType);
+        assertThat(preview.details().get(displayedType)).isEqualTo(service.getAreaDetail(MEMBER_ID, displayedType));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void 주전공_MS와_복수전공_MSC_목표를_합쳐도_각_규칙은_독립_판정한다(boolean primaryPassed) {
+        // 전체 학문기초 학점은 같아도 전산학만 많이 이수하면 주전공의 수학·과학 요건은 미충족이다.
+        givenTranscriptWithMajors(
+                200L,
+                null,
+                null,
+                null,
+                passed("M", "수학과목", primaryPassed ? 12 : 3, "학기", "수학"),
+                passed("S", "과학과목", primaryPassed ? 9 : 3, "학기", "과학"),
+                passed("C", "전산학과목", primaryPassed ? 9 : 24, "학기", "전산학"),
+                passed("B", "기본소양과목", 6, "학기", "기본소양"));
+        given(curriculumLookupService.findCourseClassifications(anyList(), eq(ADMISSION_YEAR)))
+                .willReturn(Map.of(
+                        "M", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "수학", null, null),
+                        "S", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "과학", null, null),
+                        "C", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "전산학", null, null),
+                        "B", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "기본소양", null, null)));
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
+                .willReturn(
+                        List.of(
+                                new GraduationRuleView(
+                                        1L,
+                                        "MIN_CREDITS",
+                                        CourseType.ACADEMIC_FOUNDATION,
+                                        "수학과학 21학점",
+                                        "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"수학\",\"과학\"],\"minCredits\":21,\"applicableMajorRoles\":[\"DUAL_PRIMARY\"]}"),
+                                new GraduationRuleView(
+                                        2L,
+                                        "MIN_CREDITS",
+                                        CourseType.ACADEMIC_FOUNDATION,
+                                        "기본소양 6학점",
+                                        "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"기본소양\"],\"minCredits\":6,\"applicableMajorRoles\":[\"DUAL_PRIMARY\"]}")));
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+        given(curriculumLookupService.findGraduationRules(20L))
+                .willReturn(
+                        List.of(
+                                new GraduationRuleView(
+                                        1L,
+                                        "MIN_CREDITS",
+                                        CourseType.ACADEMIC_FOUNDATION,
+                                        "수학과학전산학 30학점",
+                                        "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"수학\",\"과학\",\"전산학\"],\"minCredits\":30,\"applicableMajorRoles\":[\"SECONDARY\"]}")));
+
+        var report = service.getReport(MEMBER_ID);
+        var detail = service.getAreaDetail(MEMBER_ID, CourseType.ACADEMIC_FOUNDATION);
+        assertThat(detail.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(36, 36, 0));
+        assertThat(detail.unsatisfiedReasons())
+                .containsExactlyElementsOf(primaryPassed ? List.of() : List.of("수학과학 21학점"));
+        assertThat(report.summary().graduated()).isEqualTo(primaryPassed);
+        assertThat(report.summary().achievementRate()).isEqualTo(primaryPassed ? 100 : 66);
+        assertThat(report.areaOverviews()).singleElement().satisfies(area -> {
+            assertThat(area.courseType()).isEqualTo("ACADEMIC_FOUNDATION");
+            assertThat(area.remainingCredits()).isZero();
+            assertThat(area.satisfied()).isEqualTo(primaryPassed);
+        });
+        assertThat(detail.areaDetails())
+                .allSatisfy(area -> assertThat(area.targetCredits()).isEqualTo("기본소양".equals(area.areaName()) ? 6 : 0));
+        var preview = service.preview(
+                transcriptLookupService.findByMemberId(MEMBER_ID).orElseThrow());
+        assertThat(preview.report()).isEqualTo(report);
+        assertThat(preview.details())
+                .containsOnlyKeys(CourseType.ACADEMIC_FOUNDATION)
+                .containsEntry(CourseType.ACADEMIC_FOUNDATION, detail);
     }
 
     @Test
@@ -734,8 +998,11 @@ class GraduationQueryServiceTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"true,true", "true,false", "false,true", "false,false"})
-    void 두_학과의_영어강의를_역할별로_독립_판정하고_선택하지_않은_B학과_규칙은_제외한다(boolean primaryPassed, boolean secondaryPassed) {
+    @CsvSource({
+        "true,true,false", "true,false,false", "false,true,false", "false,false,false",
+        "true,true,true", "true,false,true", "false,true,true", "false,false,true"
+    })
+    void 두_학과의_영어강의는_독립_판정하고_규칙의_이수구분에_따라_표시한다(boolean primaryPassed, boolean secondaryPassed, boolean majorRule) {
         var records = List.of(
                 new CourseRecordView("2023-1", "P1", "전공", null, "<영어>주전공1", 3, primaryPassed, false),
                 new CourseRecordView("2023-1", "P2", "전필", null, "<영어>주전공2", 3, primaryPassed, false),
@@ -773,7 +1040,7 @@ class GraduationQueryServiceTest {
                         new GraduationRuleView(
                                 1L,
                                 "ENGLISH_COURSE",
-                                null,
+                                majorRule ? CourseType.FIRST_MAJOR : null,
                                 "전공 영어강의 2과목",
                                 "{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2}"),
                         new GraduationRuleView(
@@ -789,7 +1056,7 @@ class GraduationQueryServiceTest {
                         new GraduationRuleView(
                                 1L,
                                 "ENGLISH_COURSE",
-                                null,
+                                majorRule ? CourseType.FIRST_MAJOR : null,
                                 "전공 영어강의 2과목",
                                 "{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2,\"applicableMajorRoles\":[\"SECONDARY\"]}"),
                         new GraduationRuleView(3L, "ENGLISH_COURSE", null, "B학과 옵션 없는 영어강의", "{\"minCount\":99}"),
@@ -799,19 +1066,107 @@ class GraduationQueryServiceTest {
         var report = service.getReport(MEMBER_ID);
 
         assertThat(report.summary().graduated()).isEqualTo(primaryPassed && secondaryPassed);
+        assertThat(report.summary().achievementRate())
+                .isEqualTo(((primaryPassed ? 1 : 0) + (secondaryPassed ? 1 : 0)) * 50);
         assertThat(report.summary().unsatisfiedReasons())
-                .containsExactlyElementsOf(primaryPassed ? List.of() : List.of("전공 영어강의 2과목"));
+                .containsExactlyElementsOf(
+                        !majorRule && !(primaryPassed && secondaryPassed) ? List.of("전공 영어강의 2과목") : List.of());
         assertThat(service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR).unsatisfiedReasons())
-                .isEmpty();
+                .containsExactlyElementsOf(majorRule && !primaryPassed ? List.of("전공 영어강의 2과목") : List.of());
         assertThat(service.getAreaDetail(MEMBER_ID, CourseType.SECOND_MAJOR).unsatisfiedReasons())
-                .containsExactlyElementsOf(secondaryPassed ? List.of() : List.of("[복수전공] 전공 영어강의 2과목"));
-        if (primaryPassed) assertMajorStatus(CourseType.FIRST_MAJOR, true, 100);
-        else
-            assertThat(report.areaOverviews())
-                    .extracting(area -> area.courseType())
-                    .doesNotContain("FIRST_MAJOR");
-        assertMajorStatus(CourseType.SECOND_MAJOR, secondaryPassed, secondaryPassed ? 100 : 0);
+                .containsExactlyElementsOf(majorRule && !secondaryPassed ? List.of("전공 영어강의 2과목") : List.of());
+        if (majorRule) {
+            assertMajorStatus(CourseType.FIRST_MAJOR, primaryPassed, primaryPassed ? 100 : 0);
+            assertMajorStatus(CourseType.SECOND_MAJOR, secondaryPassed, secondaryPassed ? 100 : 0);
+        } else {
+            if (primaryPassed) assertMajorStatus(CourseType.FIRST_MAJOR, true, 100);
+            else
+                assertThat(report.areaOverviews())
+                        .extracting(area -> area.courseType())
+                        .doesNotContain("FIRST_MAJOR");
+            if (secondaryPassed) assertMajorStatus(CourseType.SECOND_MAJOR, true, 100);
+            else
+                assertThat(report.areaOverviews())
+                        .extracting(area -> area.courseType())
+                        .doesNotContain("SECOND_MAJOR");
+        }
         assertThat(report.hasUnsupportedMajor()).isFalse();
+        var preview = service.preview(transcript);
+        assertThat(preview.report()).isEqualTo(report);
+        preview.details()
+                .forEach((type, detail) -> assertThat(detail).isEqualTo(service.getAreaDetail(MEMBER_ID, type)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,false", "3,false", "3,true", "4,false", "4,true"})
+    void 전체_영어강의_요건은_두_세트에서_평가해도_요약에_한_번만_표시한다(int courseCount, boolean completedEnglishResult) {
+        var records = java.util.stream.IntStream.range(0, courseCount)
+                .mapToObj(index -> passed("ENG" + index, "<영어>과목" + index, 3, index % 2 == 0 ? "전공" : "복수1", null))
+                .toList();
+        var transcript = new TranscriptView(
+                1L,
+                MEMBER_ID,
+                DEPARTMENT_ID,
+                200L,
+                null,
+                null,
+                null,
+                ADMISSION_YEAR,
+                "학사과정",
+                false,
+                courseCount * 3,
+                BigDecimal.valueOf(4.0),
+                "S1",
+                true,
+                completedEnglishResult,
+                null,
+                false,
+                false,
+                false,
+                false,
+                false,
+                records);
+        given(transcriptLookupService.findByMemberId(MEMBER_ID)).willReturn(Optional.of(transcript));
+        given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(REQUIREMENT_SET_ID, DEPARTMENT_ID, 2020, 2025)));
+        given(curriculumLookupService.findActiveRequirementSet(200L, ADMISSION_YEAR, false))
+                .willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)));
+        String reason = "영어강의를 총 4개 과목 이상 수강해야 합니다.";
+        // 서로 다른 규칙 ID여도 문구는 한 번만 표시하며, PDF 충족 표시는 주전공에만 적용한다.
+        given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
+                .willReturn(List.of(new GraduationRuleView(
+                        1L,
+                        "ENGLISH_COURSE",
+                        null,
+                        reason,
+                        "{\"minCount\":4,\"applicableMajorRoles\":[\"DUAL_PRIMARY\"]}")));
+        given(curriculumLookupService.findGraduationRules(20L))
+                .willReturn(List.of(new GraduationRuleView(
+                        2L,
+                        "ENGLISH_COURSE",
+                        null,
+                        reason,
+                        "{\"minCount\":4,\"applicableMajorRoles\":[\"SECONDARY\"]}")));
+        givenNoClassification();
+
+        var report = service.getReport(MEMBER_ID);
+        boolean allPassed = courseCount >= 4;
+        assertThat(report.summary().graduated()).isEqualTo(allPassed);
+        assertThat(report.summary().achievementRate()).isEqualTo(allPassed ? 100 : completedEnglishResult ? 50 : 0);
+        assertThat(report.summary().unsatisfiedReasons())
+                .containsExactlyElementsOf(allPassed ? List.of() : List.of(reason));
+        for (CourseType type : CourseType.values()) {
+            assertThat(service.getAreaDetail(MEMBER_ID, type).unsatisfiedReasons())
+                    .isEmpty();
+        }
+        assertThat(report.areaOverviews()).allSatisfy(area -> {
+            assertThat(area.satisfied()).isTrue();
+            assertThat(area.achievementRate()).isEqualTo(100);
+        });
+        var preview = service.preview(transcript);
+        assertThat(preview.report()).isEqualTo(report);
+        preview.details()
+                .forEach((type, detail) -> assertThat(detail).isEqualTo(service.getAreaDetail(MEMBER_ID, type)));
     }
 
     @ParameterizedTest
@@ -868,7 +1223,7 @@ class GraduationQueryServiceTest {
     }
 
     @Test
-    void 주전공_표시만_원래_분류로_복원해도_복수전공_추가_요건과_전체_졸업률을_유지한다() {
+    void 두_전공의_사유를_이수구분별로_표시해도_추가_요건과_전체_졸업률을_유지한다() {
         givenTranscriptWithMajors(
                 200L,
                 null,
@@ -916,9 +1271,9 @@ class GraduationQueryServiceTest {
         assertThat(report.summary().achievementRate()).isEqualTo(50);
         assertThat(report.summary().unsatisfiedReasons()).containsExactly("졸업시험 합격");
         assertMajorStatus(CourseType.FIRST_MAJOR, true, 100);
-        assertMajorStatus(CourseType.SECOND_MAJOR, false, 33);
+        assertMajorStatus(CourseType.SECOND_MAJOR, false, 0);
         assertThat(primary.unsatisfiedReasons()).isEmpty();
-        assertThat(secondary.unsatisfiedReasons()).containsExactly("[복수전공] 졸업시험 합격", "전공 6학점");
+        assertThat(secondary.unsatisfiedReasons()).containsExactly("전공 6학점");
         assertThat(academic.unsatisfiedReasons()).isEmpty();
         assertThat(primary.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(3, 3, 0));
         assertThat(secondary.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(3, 6, 3));

@@ -23,7 +23,7 @@ public enum CurriculumErrorCode implements BaseErrorCode {
 
     DUPLICATE_GRADUATION_RULE(HttpStatus.CONFLICT, "CURRICULUM409_2", "규칙 종류, 규칙 이름, 규칙 옵션이 모두 동일한 졸업 규칙이 이미 존재합니다."),
 
-    INVALID_GRADUATION_RULE_CONFIG(HttpStatus.BAD_REQUEST, "CURRICULUM400_5", "규칙 옵션은 올바른 JSON 객체여야 합니다."),
+    INVALID_GRADUATION_RULE_CONFIG(HttpStatus.BAD_REQUEST, "CURRICULUM400_5", "졸업 규칙 옵션의 형식이나 값이 올바르지 않습니다."),
 
     DUPLICATE_GRADUATION_RULE_ID(HttpStatus.BAD_REQUEST, "CURRICULUM400_6", "한 번의 요청에서 같은 졸업 규칙을 두 번 수정할 수 없습니다."),
 

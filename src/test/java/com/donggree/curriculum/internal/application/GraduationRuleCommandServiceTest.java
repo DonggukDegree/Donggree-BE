@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -155,6 +157,43 @@ class GraduationRuleCommandServiceTest {
         });
 
         assertThat(service.upsert(List.of(item(null, data)))).containsExactly(100L);
+    }
+
+    @Test
+    void 필수과목을_세트로_수정해도_역할과_영어레벨을_보존한다() {
+        var existing = rule(1L, 10L, "실험 세트");
+        given(ruleTypeRepository.findAllById(Set.of(10L)))
+                .willReturn(List.of(ruleType(10L, "REQUIRED_COURSE", CourseType.ACADEMIC_FOUNDATION)));
+        given(graduationRuleRepository.findById(1L)).willReturn(Optional.of(existing));
+        given(graduationRuleRepository.findAllByRuleTypeIdAndRuleName(10L, "실험 세트"))
+                .willReturn(List.of(existing));
+        String config =
+                """
+                {"requiredCourseSets":[[["PHY1","OLD_PHY1"],["PHY2"]],[["BIO1"],["BIO2"]]],
+                 "applicableMajorRoles":["SINGLE_PRIMARY","DUAL_PRIMARY","SECONDARY"],"exemptEnglishLevels":["S0"]}
+                """;
+
+        assertThat(service.upsert(List.of(item(1L, new GraduationRuleCommand(10L, "실험 세트", config, null)))))
+                .containsExactly(1L);
+        assertThat(existing.getRuleConfig()).isEqualTo(GraduationRuleConfig.normalize(config));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[]", "[[]]", "[[[]]]", "[[[null]]]", "[[\"PHY1\",\"PHY2\"]]"})
+    void 잘못된_필수과목_세트는_저장_전에_거절한다(String sets) {
+        given(ruleTypeRepository.findAllById(Set.of(10L)))
+                .willReturn(List.of(ruleType(10L, "REQUIRED_COURSE", CourseType.ACADEMIC_FOUNDATION)));
+        var data = new GraduationRuleCommand(
+                10L,
+                "실험 세트",
+                "{\"requiredCourseSets\":" + sets + ",\"applicableMajorRoles\":[\"SINGLE_PRIMARY\"]}",
+                null);
+
+        assertThatThrownBy(() -> service.upsert(List.of(item(null, data))))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG));
+        Mockito.verifyNoInteractions(graduationRuleRepository);
     }
 
     @Test

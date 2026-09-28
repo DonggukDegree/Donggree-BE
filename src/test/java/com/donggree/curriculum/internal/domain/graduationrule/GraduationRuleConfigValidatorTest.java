@@ -10,6 +10,41 @@ class GraduationRuleConfigValidatorTest {
     @ParameterizedTest
     @ValueSource(
             strings = {
+                "{\"courseCodes\":[\"A\",\"A_OLD\"]}",
+                "{\"requiredCourseSets\":[[[\"PHY1\",\"OLD_PHY1\"],[\"PHY2\"]],[[\"BIO1\"],[\"BIO2\"]]]}",
+                "{\"requiredCourseSets\":[[[\"DAI*\"]]]}"
+            })
+    void 필수과목은_기존_OR_목록이나_과목_세트를_저장할_수_있다(String config) {
+        assertThat(GraduationRuleConfigValidator.hasValidRequiredCourses("REQUIRED_COURSE", config))
+                .isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{}",
+                "null",
+                "[]",
+                "{\"courseCodes\":[]}",
+                "{\"courseCodes\":[null]}",
+                "{\"requiredCourseSets\":[]}",
+                "{\"requiredCourseSets\":[[]]}",
+                "{\"requiredCourseSets\":[[[]]]}",
+                "{\"requiredCourseSets\":[[[\" \"]]]}",
+                "{\"requiredCourseSets\":[[[null]]]}",
+                "{\"requiredCourseSets\":[[[1]]]}",
+                "{\"requiredCourseSets\":[[\"A\",\"B\"]]}",
+                "{\"requiredCourseSets\":[[[\"A\"]],[]]}",
+                "{\"requiredCourseSets\":[[[\"A\"]]],\"courseCodes\":[\"B\"]}"
+            })
+    void 필수과목의_빈_세트와_잘못된_구조와_두_방식의_혼용은_거절한다(String config) {
+        assertThat(GraduationRuleConfigValidator.hasValidRequiredCourses("REQUIRED_COURSE", config))
+                .isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
                 "{}",
                 "{\"applicableMajorRoles\":null}",
                 "{\"applicableMajorRoles\":[]}",

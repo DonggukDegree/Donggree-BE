@@ -12,6 +12,10 @@ import org.springframework.stereotype.Component;
  * 필수 과목 이수 규칙 평가기. 수학필수·전공필수·공통교양필수 등에 공통으로 사용한다.
  * ruleConfig: {"courseCodes": ["PRI4001"]}
  *   단일 코드면 1개짜리 배열, 동일유사 교과목이면 여러 코드 배열 — 하나라도 이수하면 충족.
+ * requiredCourseSets: THESIS와 동일한 세트 OR → 그룹 AND → 대체 학수번호 OR 구조.
+ *   ex. [[["PHY1","OLD_PHY1"],["PHY2"]],[["BIO1"],["BIO2"]]]
+ *   한 세트의 모든 그룹을 이수하면 충족이며, 추가 과목이나 수강 순서는 제한하지 않는다.
+ *   courseCodes와 requiredCourseSets 중 한 방식만 사용한다.
  * exemptEnglishLevels: 해당 영어 레벨 학생은 규칙 면제(자동 충족). ex. EAS 규칙에서 S0 면제.
  * requiredEnglishLevels: 해당 영어 레벨 학생에게만 규칙 적용. 목록에 없으면 자동 충족. ex. BasicEAS는 S4 전용.
  * applicableMajorRoles: SINGLE_PRIMARY·DUAL_PRIMARY·SECONDARY 중 이 규칙을 적용할 전공 역할.
@@ -47,12 +51,30 @@ public class RequiredCourseEvaluator implements RuleEvaluator {
             }
         }
 
-        boolean satisfied = context.getPassedCoursesForRule(rule.courseType()).stream()
-                .anyMatch(record -> context.codeMatchesAny(record.courseCode(), config.courseCodes()));
+        var passed = context.getPassedCoursesForRequiredCourse(rule.courseType());
+        boolean satisfied;
+        if (config.requiredCourseSets() != null) {
+            // 빈 세트의 allMatch가 true가 되어 자동 통과하지 않도록 방어한다.
+            satisfied = config.requiredCourseSets().stream()
+                    .anyMatch(set -> set != null
+                            && !set.isEmpty()
+                            && set.stream()
+                                    .allMatch(codes -> codes != null
+                                            && !codes.isEmpty()
+                                            && passed.stream()
+                                                    .anyMatch(record ->
+                                                            context.codeMatchesAny(record.courseCode(), codes))));
+        } else {
+            satisfied = passed.stream()
+                    .anyMatch(record -> context.codeMatchesAny(record.courseCode(), config.courseCodes()));
+        }
         return new RuleResult(rule.ruleName(), satisfied);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record Config(
-            List<String> courseCodes, List<String> exemptEnglishLevels, List<String> requiredEnglishLevels) {}
+            List<String> courseCodes,
+            List<List<List<String>>> requiredCourseSets,
+            List<String> exemptEnglishLevels,
+            List<String> requiredEnglishLevels) {}
 }

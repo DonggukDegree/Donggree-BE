@@ -118,6 +118,18 @@ public class EvaluationContext {
         if (majorRole != MajorRole.SECONDARY || ruleCourseType != CourseType.ACADEMIC_FOUNDATION) {
             return getPassedCourses();
         }
+        return getSharedPassedCourses();
+    }
+
+    /** 공통교양 필수과목도 공통 이수 내역에서 찾되, 최소학점 규칙의 범위는 변경하지 않는다. */
+    public List<CourseRecordView> getPassedCoursesForRequiredCourse(CourseType ruleCourseType) {
+        if (majorRole == MajorRole.SECONDARY && ruleCourseType == CourseType.COMMON_GENERAL) {
+            return getSharedPassedCourses();
+        }
+        return getPassedCoursesForRule(ruleCourseType);
+    }
+
+    private List<CourseRecordView> getSharedPassedCourses() {
         return transcript.courseRecords().stream()
                 .filter(CourseRecordView::passed)
                 .filter(record -> !"복수2".equals(record.courseTypeName()))

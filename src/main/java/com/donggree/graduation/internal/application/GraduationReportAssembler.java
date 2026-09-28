@@ -71,6 +71,7 @@ public class GraduationReportAssembler {
                     return result != null && !result.satisfied();
                 })
                 .map(GraduationRuleView::ruleName)
+                // 학과별 판정은 유지하고, 이 탭의 미충족 문구만 한 번 표시한다.
                 .distinct()
                 .toList();
 
@@ -79,7 +80,7 @@ public class GraduationReportAssembler {
         return new AreaDetailProjection(areaDetails, unsatisfiedReasons, creditStatus);
     }
 
-    /** REQUIRED_COURSE 규칙들의 courseCodes를 모은다 (미이수 필수 과목 영역 조회용). */
+    /** REQUIRED_COURSE의 목록·세트에 등장하는 학수번호를 모은다 (미이수 필수 과목 영역 조회용). */
     public List<String> requiredCourseCodes(List<GraduationRuleView> rules) {
         return extractRequiredCodes(rules);
     }
@@ -92,9 +93,11 @@ public class GraduationReportAssembler {
                 // 복수전공 규칙은 GraduationQueryService에서 음수 스코프 ID를 부여한다.
                 // 역할이 다른 같은 학수번호가 상세 화면에서 잘못 충족 표시되는 것을 막는다.
                 .filter(rule -> secondaryArea == (rule.id() < 0)
-                        // 복수전공 학문기초 필수는 공통 이수 내역에서도 충족 가능하다.
-                        || (rule.id() < 0 && rule.courseType() == CourseType.ACADEMIC_FOUNDATION))
-                .flatMap(r -> parseStringList(r.ruleConfig(), "courseCodes").stream())
+                        // 복수전공 학문기초·공통교양 필수는 공통 이수 내역에서도 충족 가능하다.
+                        || (rule.id() < 0
+                                && (rule.courseType() == CourseType.ACADEMIC_FOUNDATION
+                                        || rule.courseType() == CourseType.COMMON_GENERAL)))
+                .flatMap(r -> requiredCodes(r).stream())
                 .distinct()
                 .toList();
     }
@@ -120,7 +123,7 @@ public class GraduationReportAssembler {
         boolean graduated =
                 !resultByRuleId.isEmpty() && resultByRuleId.values().stream().allMatch(RuleResult::satisfied);
 
-        // 주전공 요건 중 이수구분이 없는 사유는 요약에, 복수전공 추가 요건은 제2전공에 표시한다.
+        // 학과에 관계없이 이수구분 없는 일반 요건은 요약에 표시한다.
         List<String> unsatisfiedReasons = statusRules.stream()
                 .filter(r -> r.courseType() == null)
                 .filter(r -> {
@@ -128,6 +131,7 @@ public class GraduationReportAssembler {
                     return result != null && !result.satisfied();
                 })
                 .map(GraduationRuleView::ruleName)
+                // 둘 중 하나라도 미충족이면 사유를 남기되, 동일한 문구는 한 번만 표시한다.
                 .distinct()
                 .toList();
 
@@ -168,7 +172,7 @@ public class GraduationReportAssembler {
         }
 
         return relevantCourseTypes.stream()
-                // 제1전공은 원래 전공 요건만, 제2전공은 복수전공 추가 요건을 반영한다.
+                // 두 전공 카드 모두 해당 전공으로 분류된 요건만 반영한다.
                 .map(ct -> buildAreaOverview(
                         ct,
                         ct == CourseType.FIRST_MAJOR || ct == CourseType.SECOND_MAJOR
@@ -205,7 +209,7 @@ public class GraduationReportAssembler {
                 });
 
         int earnedCredits = context.getTotalPassedCreditsByType(courseType);
-        int remainingCredits = Math.max(0, resolveTypeTargetCredits(minAreaRules) - earnedCredits);
+        int remainingCredits = Math.max(0, resolveTypeTargetCredits(courseType, minAreaRules) - earnedCredits);
 
         return new AreaOverview(
                 courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
@@ -215,9 +219,30 @@ public class GraduationReportAssembler {
         List<String> codes = new ArrayList<>();
         for (GraduationRuleView rule : rules) {
             if (!"REQUIRED_COURSE".equals(rule.typeName())) continue;
-            codes.addAll(parseStringList(rule.ruleConfig(), "courseCodes"));
+            codes.addAll(requiredCodes(rule));
         }
         return codes;
+    }
+
+    /** 표시할 후보만 펼친다. 세트 전체 충족 여부는 평가기의 결과를 사용한다. */
+    private List<String> requiredCodes(GraduationRuleView rule) {
+        try {
+            JsonNode config = MAPPER.readTree(rule.ruleConfig());
+            if (!config.hasNonNull("requiredCourseSets")) {
+                return parseStringList(rule.ruleConfig(), "courseCodes");
+            }
+            List<String> codes = new ArrayList<>();
+            for (JsonNode set : config.path("requiredCourseSets")) {
+                for (JsonNode group : set) {
+                    for (JsonNode code : group) {
+                        if (code.isTextual()) codes.add(code.asText());
+                    }
+                }
+            }
+            return codes.stream().distinct().toList();
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            return List.of();
+        }
     }
 
     /**
@@ -259,7 +284,7 @@ public class GraduationReportAssembler {
         record RequiredRule(GraduationRuleView rule, List<String> codes, String areaName) {}
         List<RequiredRule> requiredRules = new ArrayList<>();
         for (GraduationRuleView rule : applicableRequiredRules(areaRules, studentEnglishLevel)) {
-            List<String> codes = parseStringList(rule.ruleConfig(), "courseCodes");
+            List<String> codes = requiredCodes(rule);
             // course_classification을 우선하되 PDF 원문과 동일한 표시명 정규화 적용
             String ruleArea = codes.stream()
                     .map(allCls::get)
@@ -271,7 +296,7 @@ public class GraduationReportAssembler {
             // 미등록 과목이지만 사용자가 이수했다면 pdfAreaName에서 area를 추론
             if (ruleArea == null) {
                 ruleArea = allPassed.stream()
-                        .filter(cr -> cr.courseCode() != null && codes.contains(cr.courseCode()))
+                        .filter(cr -> context.codeMatchesAny(cr.courseCode(), codes))
                         .findFirst()
                         .map(CourseRecordView::pdfAreaName)
                         .orElse(null);
@@ -282,15 +307,21 @@ public class GraduationReportAssembler {
         // 단일 영역 목표학점만 섹션에 귀속시킨다.
         // 여러 영역을 합산하는 규칙은 어느 한 영역의 목표로 볼 수 없으므로 섹션 targetCredits는 0으로 두고,
         // 미충족 시 unsatisfiedReasons에 규칙명으로 노출된다.
-        Map<String, Integer> targetCreditsByArea = new HashMap<>();
-        for (GraduationRuleView rule : areaRules) {
-            if (!isCreditTargetRule(rule)) continue;
-            List<String> areaNames = parseStringList(rule.ruleConfig(), "areaNames");
-            if (areaNames.size() == 1) {
-                targetCreditsByArea.merge(
-                        resolveAreaName(areaNames.get(0), courseType, fallbackArea),
-                        parseIntField(rule.ruleConfig(), "minCredits", 0),
-                        Math::max);
+        Map<String, Integer> targetCreditsByArea;
+        if (courseType == CourseType.ACADEMIC_FOUNDATION) {
+            // 영역명뿐 아니라 학수번호·소분류 등 실제 대상 범위의 포함 관계까지 반영한다.
+            targetCreditsByArea = AcademicFoundationCreditTargets.byArea(areaRules);
+        } else {
+            targetCreditsByArea = new HashMap<>();
+            for (GraduationRuleView rule : areaRules) {
+                if (!isCreditTargetRule(rule)) continue;
+                List<String> areaNames = parseStringList(rule.ruleConfig(), "areaNames");
+                if (areaNames.size() == 1) {
+                    targetCreditsByArea.merge(
+                            resolveAreaName(areaNames.get(0), courseType, fallbackArea),
+                            parseIntField(rule.ruleConfig(), "minCredits", 0),
+                            Math::max);
+                }
             }
         }
 
@@ -375,6 +406,18 @@ public class GraduationReportAssembler {
             if (targetCredits > 0) {
                 areaSatisfied = areaSatisfied && earnedCredits >= targetCredits;
             }
+            if (courseType == CourseType.ACADEMIC_FOUNDATION) {
+                // 영역 총학점을 채워도 특정 과목·소분류의 최소학점이 부족할 수 있다.
+                // 다중 영역 요건은 해당 개별 카드에 귀속하지 않는다.
+                areaSatisfied = areaSatisfied
+                        && areaRules.stream()
+                                .filter(this::isCreditTargetRule)
+                                .filter(rule -> parseStringList(rule.ruleConfig(), "areaNames").stream()
+                                        .distinct()
+                                        .toList()
+                                        .equals(List.of(areaName)))
+                                .allMatch(rule -> isRuleSatisfied(rule, resultByRuleId));
+            }
 
             sections.add(
                     new AreaDetailProjection.AreaSection(areaName, earnedCredits, targetCredits, areaSatisfied, items));
@@ -427,16 +470,20 @@ public class GraduationReportAssembler {
     private AreaDetailProjection.CreditStatus buildTypeCredits(
             CourseType courseType, List<GraduationRuleView> areaRules, EvaluationContext context) {
         int earned = context.getTotalPassedCreditsByType(courseType);
-        int target = resolveTypeTargetCredits(areaRules);
+        int target = resolveTypeTargetCredits(courseType, areaRules);
         return new AreaDetailProjection.CreditStatus(earned, target, Math.max(0, target - earned));
     }
 
     /**
      * 이수 구분 전체의 목표학점을 구한다.
-     * 영역 제한이 없는 규칙이 있으면 그중 최대값을 쓰고(ex. 공통교양 17학점),
+     * 학문기초는 전체 선택자의 포함 관계와 내부 요건 합계를 반영한다.
+     * 다른 이수구분은 기존처럼 영역 제한이 없는 규칙이 있으면 그중 최대값을 쓰고(ex. 공통교양 17학점),
      * 없으면 영역별 목표학점을 합산한다(ex. 학문기초 기본소양 6 + MSC 21 = 27).
      */
-    private int resolveTypeTargetCredits(List<GraduationRuleView> rules) {
+    private int resolveTypeTargetCredits(CourseType courseType, List<GraduationRuleView> rules) {
+        if (courseType == CourseType.ACADEMIC_FOUNDATION) {
+            return AcademicFoundationCreditTargets.total(rules);
+        }
         OptionalInt wholeType = rules.stream()
                 .filter(this::isCreditTargetRule)
                 .filter(r -> parseStringList(r.ruleConfig(), "areaNames").isEmpty())

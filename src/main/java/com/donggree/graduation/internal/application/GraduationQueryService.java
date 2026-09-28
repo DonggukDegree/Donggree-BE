@@ -89,7 +89,8 @@ public class GraduationQueryService {
         return new ReportEvaluation(
                 transcript,
                 rules,
-                buildStatusRules(scopes),
+                // 사유·탭 상태도 규칙의 이수구분을 사용한다. 전공만 역할별 제1·제2전공으로 구분한다.
+                rules,
                 evaluateScopes(scopes),
                 EvaluationContext.report(transcript, classifications),
                 requiresAccuracyWarning(transcript, resolved.dualMajor1Evaluated()));
@@ -249,30 +250,9 @@ public class GraduationQueryService {
                 rule.courseType() == CourseType.FIRST_MAJOR ? CourseType.SECOND_MAJOR : rule.courseType();
         // 주전공 규칙과 ID가 겹치지 않도록 리포트 조립에만 쓰이는 음수 스코프 ID를 부여한다.
         long scopedRuleId = -(1_000_000_000L + rule.id());
-        // 학문기초 과목 카드처럼 두 학과의 요건을 함께 표시하는 곳에서도 출처를 구별한다.
-        String ruleName = "THESIS".equals(rule.typeName())
-                        || "ENGLISH_COURSE".equals(rule.typeName())
-                        || rule.courseType() == CourseType.ACADEMIC_FOUNDATION
-                ? "[복수전공] " + rule.ruleName()
-                : rule.ruleName();
-        return new GraduationRuleView(scopedRuleId, rule.typeName(), displayType, ruleName, rule.ruleConfig());
-    }
-
-    /**
-     * 복수전공 학과의 추가 요건만 제2전공의 사유·달성률·PASS/FAIL로 묶는다.
-     * 주전공 요건은 원래 이수구분을 유지하고, 이수구분 없는 졸업 요건은 요약에 표시한다.
-     * 검사할 과목 및 학점·과목 카드의 분류는 원래 규칙을 사용해야 하므로 이 목록으로 평가하지 않는다.
-     * 여러 역할이 선택되어 있어도 학생에게 실제 적용된 역할을 기준으로 표시한다.
-     */
-    private List<GraduationRuleView> buildStatusRules(List<ScopedRules> scopes) {
-        return scopes.stream()
-                .flatMap(scope -> scope.rules().stream().map(rule -> {
-                    if (scope.context().getMajorRole().isPrimary() || !MajorRoleRuleMatcher.supportsMajorRole(rule))
-                        return rule;
-                    return new GraduationRuleView(
-                            rule.id(), rule.typeName(), CourseType.SECOND_MAJOR, rule.ruleName(), rule.ruleConfig());
-                }))
-                .toList();
+        // 학문기초·교양은 원래 탭, 이수구분 없는 일반 요건은 요약에 표시한다.
+        // 역할 접두어 없이 규칙명을 유지해 같은 위치의 미충족 문구만 중복 제거한다.
+        return new GraduationRuleView(scopedRuleId, rule.typeName(), displayType, rule.ruleName(), rule.ruleConfig());
     }
 
     private Map<Long, RuleResult> evaluateScopes(List<ScopedRules> scopes) {
