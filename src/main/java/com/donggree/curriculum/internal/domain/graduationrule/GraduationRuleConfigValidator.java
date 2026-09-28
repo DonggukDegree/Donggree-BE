@@ -14,6 +14,37 @@ public final class GraduationRuleConfigValidator {
 
     private GraduationRuleConfigValidator() {}
 
+    /** 필수과목의 기존 OR 목록 또는 세트 OR / 그룹 AND / 코드 OR 중 한 방식만 허용한다. */
+    public static boolean hasValidRequiredCourses(String typeName, String ruleConfig) {
+        if (!"REQUIRED_COURSE".equals(typeName)) return true;
+        try {
+            JsonNode config = MAPPER.readTree(ruleConfig);
+            if (!config.hasNonNull("requiredCourseSets")) {
+                return hasValidCodes(config.path("courseCodes"));
+            }
+            if (config.hasNonNull("courseCodes")) return false;
+            JsonNode sets = config.path("requiredCourseSets");
+            if (!sets.isArray() || sets.isEmpty()) return false;
+            for (JsonNode set : sets) {
+                if (!set.isArray() || set.isEmpty()) return false;
+                for (JsonNode group : set) {
+                    if (!hasValidCodes(group)) return false;
+                }
+            }
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static boolean hasValidCodes(JsonNode codes) {
+        if (!codes.isArray() || codes.isEmpty()) return false;
+        for (JsonNode code : codes) {
+            if (!code.isTextual() || code.asText().isBlank()) return false;
+        }
+        return true;
+    }
+
     public static boolean hasValidMajorRoles(String typeName, String ruleConfig) {
         if (!ROLE_AWARE_TYPES.contains(typeName)) return true;
         try {

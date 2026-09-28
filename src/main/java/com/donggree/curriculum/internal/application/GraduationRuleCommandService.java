@@ -150,6 +150,9 @@ public class GraduationRuleCommandService {
             if (!GraduationRuleConfigValidator.hasValidMajorRoles(ruleType.getTypeName(), data.ruleConfig())) {
                 throw new GeneralException(CurriculumErrorCode.INVALID_MAJOR_ROLE_CONFIG);
             }
+            if (!GraduationRuleConfigValidator.hasValidRequiredCourses(ruleType.getTypeName(), data.ruleConfig())) {
+                throw new GeneralException(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG);
+            }
         }
     }
 }
