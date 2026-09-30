@@ -6,6 +6,7 @@ import com.donggree.transcript.internal.application.projection.TranscriptReportP
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawMeta;
 import com.donggree.transcript.internal.domain.Transcript;
 import com.donggree.transcript.internal.domain.TranscriptRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TranscriptQueryService {
 
     private final TranscriptRepository transcriptRepository;
+    private final TranscriptViewMapper viewMapper;
 
     /**
      * 로그인한 회원의 성적표 데이터를 전체 조회한다.
@@ -32,6 +34,7 @@ public class TranscriptQueryService {
         Transcript transcript = transcriptRepository
                 .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.TRANSCRIPT_NOT_FOUND));
+        JsonNode pdfMeta = viewMapper.readMeta(transcript.getId(), transcript.getRawData());
 
         RawMeta meta = new RawMeta(
                 transcript.getAdmissionYear(),
@@ -40,6 +43,8 @@ public class TranscriptQueryService {
                 transcript.getSubMajor2Id(),
                 transcript.getDualMajor1Id(),
                 transcript.getDualMajor2Id(),
+                pdfName(pdfMeta, "학과"),
+                pdfName(pdfMeta, "대학"),
                 transcript.getAcademicStatus(),
                 transcript.getTotalCredits(),
                 transcript.getGpa(),
@@ -50,5 +55,10 @@ public class TranscriptQueryService {
                 transcript.getUpdatedAt());
 
         return new TranscriptReportProjection(meta, TranscriptRecordGrouper.groupBySemester(transcript));
+    }
+
+    private String pdfName(JsonNode meta, String key) {
+        JsonNode value = meta.path(key);
+        return value.isTextual() && !value.asText().isBlank() ? value.asText().trim() : null;
     }
 }

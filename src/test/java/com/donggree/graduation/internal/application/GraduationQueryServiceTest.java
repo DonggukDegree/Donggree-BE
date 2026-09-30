@@ -970,6 +970,43 @@ class GraduationQueryServiceTest {
     // --- 과정(일반/심화)별 요건 세트 선택 ---
 
     @Test
+    void 주전공_학과_미식별은_요약과_상세_모두_미지원으로_반환한다() {
+        // 복수전공 ID가 있어도 주전공을 대신하여 그 세트를 사용하지 않는다.
+        TranscriptView transcript = new TranscriptView(
+                1L,
+                MEMBER_ID,
+                null,
+                200L,
+                null,
+                null,
+                null,
+                ADMISSION_YEAR,
+                "학사과정",
+                false,
+                3,
+                new BigDecimal("4.50"),
+                null,
+                false,
+                null,
+                null,
+                false,
+                false,
+                false,
+                true,
+                false,
+                List.of(passed("CSE1", "과목", 3, "전공", "기초")));
+        given(transcriptLookupService.findByMemberId(MEMBER_ID)).willReturn(Optional.of(transcript));
+
+        assertThatThrownBy(() -> service.getReport(MEMBER_ID))
+                .isInstanceOfSatisfying(GeneralException.class, error -> assertThat(error.getCode())
+                        .isEqualTo(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
+        assertThatThrownBy(() -> service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR))
+                .isInstanceOfSatisfying(GeneralException.class, error -> assertThat(error.getCode())
+                        .isEqualTo(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
+        verifyNoInteractions(curriculumLookupService);
+    }
+
+    @Test
     void 심화과정_학생은_공학인증심화대상_여부를_넘겨_세트를_조회한다() {
         givenTranscriptOf(true, null, null, null, null);
         given(curriculumLookupService.findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, true))

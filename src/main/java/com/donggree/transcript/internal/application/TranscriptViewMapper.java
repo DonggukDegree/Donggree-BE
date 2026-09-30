@@ -58,7 +58,8 @@ public class TranscriptViewMapper {
                 && "합격".equals(meta.path("복수1졸업논문심사").asText("").trim());
     }
 
-    private JsonNode readMeta(Long transcriptId, String rawData) {
+    // 학업정보 조회에서도 동일한 원문 파싱과 개인정보 비노출 정책을 사용한다.
+    JsonNode readMeta(Long transcriptId, String rawData) {
         if (rawData == null || rawData.isBlank()) return MissingNode.getInstance();
         try {
             return objectMapper.readTree(rawData).path("meta");
