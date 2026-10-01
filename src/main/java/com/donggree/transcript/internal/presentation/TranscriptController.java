@@ -162,7 +162,7 @@ public class TranscriptController implements TranscriptApi {
                     new TranscriptCreateResponse(result.totalCredits(), result.recordedCredits(), result.creditGap()));
 
         } catch (IOException e) {
-            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);
+            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE, e, "pdf_upload_read");
         }
     }
 
@@ -183,7 +183,7 @@ public class TranscriptController implements TranscriptApi {
                                 Grade.fromValue(item.grade()),
                                 item.retake());
                     } catch (IllegalArgumentException e) {
-                        throw new GeneralException(TranscriptErrorCode.INVALID_COURSE_DATA);
+                        throw new GeneralException(TranscriptErrorCode.INVALID_COURSE_DATA, e, "course_validation");
                     }
                 })
                 .toList();

@@ -44,7 +44,7 @@ public final class MajorRoleRuleMatcher {
             return MAPPER.convertValue(
                     roles, MAPPER.getTypeFactory().constructCollectionType(List.class, String.class));
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("rule_config 파싱 실패: " + ruleConfig, e);
+            throw new IllegalStateException("rule_config 파싱 실패", e);
         }
     }
 }

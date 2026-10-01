@@ -63,7 +63,7 @@ public class GraduationRuleCommandService {
                                 .getConstraintName()
                                 .toLowerCase(Locale.ROOT)
                                 .contains(GraduationRule.UNIQUE_KEY_CONSTRAINT)) {
-                    throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE);
+                    throw new GeneralException(CurriculumErrorCode.DUPLICATE_GRADUATION_RULE, ex, "rule_save");
                 }
             }
             throw ex;
@@ -122,7 +122,7 @@ public class GraduationRuleCommandService {
         try {
             return GraduationRuleConfig.normalize(config);
         } catch (IllegalArgumentException ex) {
-            throw new GeneralException(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG);
+            throw new GeneralException(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG, ex, "rule_validation");
         }
     }
 
@@ -151,7 +151,7 @@ public class GraduationRuleCommandService {
                 throw new GeneralException(CurriculumErrorCode.INVALID_MAJOR_ROLE_CONFIG);
             }
             if (!GraduationRuleConfigValidator.hasValidRequiredCourses(ruleType.getTypeName(), data.ruleConfig())) {
-                throw new GeneralException(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG);
+                throw new GeneralException(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG, null, "rule_validation");
             }
         }
     }

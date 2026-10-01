@@ -190,6 +190,47 @@ class SecurityConfigTest {
         }
     }
 
+    @Test
+    void 실제_보안실패_로그는_요청ID와_원인코드를_포함한다() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(com.donggree.global.logging.RequestDiagnostics.class);
+        var appender = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>() {
+            @Override
+            protected void append(ch.qos.logback.classic.spi.ILoggingEvent event) {
+                event.prepareForDeferredProcessing();
+                super.append(event);
+            }
+        };
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            var result = mockMvc.perform(get("/api/protected").header("Authorization", "Bearer TOKEN_SECRET"))
+                    .andExpect(status().isUnauthorized())
+                    .andReturn();
+            org.assertj.core.api.Assertions.assertThat(appender.list).hasSize(1);
+            var event = appender.list.getFirst();
+            org.assertj.core.api.Assertions.assertThat(event.getMDCPropertyMap())
+                    .containsEntry("request_id", result.getResponse().getHeader("X-Request-ID"));
+            var fields = event.getKeyValuePairs().stream()
+                    .collect(java.util.stream.Collectors.toMap(k -> k.key, k -> k.value));
+            org.assertj.core.api.Assertions.assertThat(fields)
+                    .containsEntry("code", "AUTH401_1")
+                    .containsEntry("auth_reason", "TOKEN_INVALID");
+            appender.list.clear();
+            mockMvc.perform(get("/api/admin/ping").header("Authorization", bearer("STUDENT")))
+                    .andExpect(status().isForbidden());
+            org.assertj.core.api.Assertions.assertThat(appender.list).hasSize(1);
+            var denied = appender.list.getFirst().getKeyValuePairs().stream()
+                    .collect(java.util.stream.Collectors.toMap(k -> k.key, k -> k.value));
+            org.assertj.core.api.Assertions.assertThat(denied)
+                    .containsEntry("code", "AUTH403_1")
+                    .containsEntry("stage", "authorization");
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
     private String bearer(String role) {
         return "Bearer " + jwtTokenProvider.generateAccessToken(1L, role);
     }

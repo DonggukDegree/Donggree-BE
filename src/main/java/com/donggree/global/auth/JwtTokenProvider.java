@@ -1,5 +1,6 @@
 package com.donggree.global.auth;
 
+import com.donggree.global.logging.RequestDiagnostics;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -67,6 +68,7 @@ public class JwtTokenProvider {
             parseToken(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            RequestDiagnostics.authenticationFailure(e);
             return false;
         }
     }
@@ -86,6 +88,7 @@ public class JwtTokenProvider {
             return Optional.of(
                     new AccessTokenClaims(claims.get("memberId", Long.class), claims.get("role", String.class)));
         } catch (JwtException | IllegalArgumentException e) {
+            RequestDiagnostics.authenticationFailure(e);
             return Optional.empty();
         }
     }

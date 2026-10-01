@@ -1,6 +1,7 @@
 package com.donggree.graduation.internal.application;
 
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.global.logging.RequestDiagnostics;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,7 +65,8 @@ final class AcademicFoundationCreditTargets {
                     selectors.add(values);
                 }
                 targets.merge(new Scope(List.copyOf(selectors)), credits, Math::max);
-            } catch (JsonProcessingException ignored) {
+            } catch (JsonProcessingException ex) {
+                RequestDiagnostics.fallback("academic_foundation_target", ex);
                 // 기존 표시용 파서와 동일하게 해석 불가능한 설정은 목표 계산에서 제외한다.
                 // 실제 설정 오류 검증은 규칙 판정기가 수행한다.
             }

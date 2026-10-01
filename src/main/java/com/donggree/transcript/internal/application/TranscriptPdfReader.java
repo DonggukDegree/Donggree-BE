@@ -2,6 +2,7 @@ package com.donggree.transcript.internal.application;
 
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.global.logging.RequestDiagnostics;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
@@ -82,7 +83,7 @@ public class TranscriptPdfReader {
         try {
             return pdfTextExtractor.extract(pdfBytes);
         } catch (IOException e) {
-            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);
+            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE, e, "pdf_read");
         }
     }
 
@@ -94,7 +95,7 @@ public class TranscriptPdfReader {
             rawDataMap.put("courses", parsedData.courses());
             return objectMapper.writeValueAsString(rawDataMap);
         } catch (JsonProcessingException e) {
-            throw new GeneralException(GeneralErrorCode.INTERNAL_SERVER_ERROR);
+            throw new GeneralException(GeneralErrorCode.INTERNAL_SERVER_ERROR, e, "pdf_json_encode");
         }
     }
 
@@ -103,6 +104,7 @@ public class TranscriptPdfReader {
         try {
             return Integer.parseInt(value.trim());
         } catch (NumberFormatException e) {
+            RequestDiagnostics.fallback("pdf_numeric_meta", e);
             return defaultValue;
         }
     }
@@ -112,6 +114,7 @@ public class TranscriptPdfReader {
         try {
             return Integer.parseInt(value.trim());
         } catch (NumberFormatException e) {
+            RequestDiagnostics.fallback("pdf_optional_numeric_meta", e);
             return null;
         }
     }
@@ -121,6 +124,7 @@ public class TranscriptPdfReader {
         try {
             return new BigDecimal(value.trim());
         } catch (NumberFormatException e) {
+            RequestDiagnostics.fallback("pdf_numeric_meta", e);
             return defaultValue;
         }
     }
