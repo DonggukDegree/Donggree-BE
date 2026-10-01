@@ -1,6 +1,7 @@
 package com.donggree.user.internal.infrastructure;
 
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.global.metrics.OperationMetricsFilter;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -65,5 +66,9 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
                 .toUriString();
 
         response.sendRedirect(redirectUrl);
+        request.setAttribute(OperationMetricsFilter.CODE, "LOGIN_SUCCESS");
+        request.setAttribute(OperationMetricsFilter.OUTCOME, "success");
+        request.setAttribute(
+                OperationMetricsFilter.ACTOR, member.getRole().name().equals("STUDENT") ? "student" : "admin");
     }
 }

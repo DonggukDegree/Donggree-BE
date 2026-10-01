@@ -18,6 +18,8 @@ import com.donggree.user.MemberIdentityService;
 import com.donggree.user.internal.application.AuthService;
 import com.donggree.user.internal.application.UserCommandService;
 import com.donggree.user.internal.application.UserQueryService;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -41,6 +43,37 @@ import org.springframework.web.bind.annotation.RestController;
 @WebMvcTest
 @Import({SecurityConfig.class, SecurityConfigTest.TestConfig.class})
 class SecurityConfigTest {
+    @Autowired
+    private MeterRegistry meterRegistry;
+
+    @Test
+    void 요약_API_실제_보안_필터에서도_학생과_관리자_운영_지표를_구분한다() throws Exception {
+        meterRegistry.clear();
+        for (String role : new String[] {"STUDENT", "ADMIN", "SUPER_ADMIN"}) {
+            mockMvc.perform(get("/api/reports/summary")
+                            .header("Authorization", "Bearer " + jwtTokenProvider.generateAccessToken(999L, role)))
+                    .andExpect(status().isOk());
+        }
+        org.assertj.core.api.Assertions.assertThat(meterRegistry
+                        .get("donggree.operation")
+                        .tags("operation", "report_summary", "actor", "student", "code", "COMMON200_1")
+                        .timer()
+                        .count())
+                .isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(meterRegistry
+                        .get("donggree.operation")
+                        .tags("operation", "report_summary", "actor", "admin")
+                        .timer()
+                        .count())
+                .isEqualTo(2);
+        mockMvc.perform(get("/api/reports/summary")).andExpect(status().isUnauthorized());
+        org.assertj.core.api.Assertions.assertThat(meterRegistry
+                        .get("donggree.operation")
+                        .tags("http_status", "401", "outcome", "failure", "actor", "unknown")
+                        .timer()
+                        .count())
+                .isEqualTo(1);
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -106,6 +139,10 @@ class SecurityConfigTest {
 
     @TestConfiguration
     static class TestConfig {
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
 
         @Bean
         JwtTokenProvider jwtTokenProvider() {

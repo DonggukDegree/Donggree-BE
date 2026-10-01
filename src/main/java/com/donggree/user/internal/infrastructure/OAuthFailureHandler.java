@@ -1,5 +1,6 @@
 package com.donggree.user.internal.infrastructure;
 
+import com.donggree.global.metrics.OperationMetricsFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -37,5 +38,7 @@ public class OAuthFailureHandler implements AuthenticationFailureHandler {
                 .toUriString();
 
         response.sendRedirect(redirectUrl);
+        request.setAttribute(OperationMetricsFilter.CODE, "LOGIN_FAILURE");
+        request.setAttribute(OperationMetricsFilter.OUTCOME, "failure");
     }
 }
