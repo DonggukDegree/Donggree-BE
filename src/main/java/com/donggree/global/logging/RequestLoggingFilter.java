@@ -10,13 +10,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.MDC;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** 보안 필터 밖에서 요청 ID를 발급하고, 응답 완료 시 실패를 한 번만 기록한다. 관리자 오류도 포함한다. */
-@Component
-@Order(-102)
 public class RequestLoggingFilter extends OncePerRequestFilter {
     public static final String REQUEST_ID = RequestLoggingFilter.class.getName() + ".requestId";
 

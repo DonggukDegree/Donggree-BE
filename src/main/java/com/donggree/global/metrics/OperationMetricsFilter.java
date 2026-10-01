@@ -9,13 +9,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** 사용자 수가 아닌 서버 처리 횟수·시간. 보안 필터와 트랜잭션 완료까지 포함한다. */
-@Component
-@Order(-101)
 @RequiredArgsConstructor
 public class OperationMetricsFilter extends OncePerRequestFilter {
     public static final String CODE = OperationMetricsFilter.class.getName() + ".code";
