@@ -42,7 +42,7 @@ public class AdminReportPreviewController {
                     .cacheControl(CacheControl.noStore())
                     .body(ApiResponse.onSuccess(GeneralSuccessCode.OK, AdminReportPreviewResponse.from(result)));
         } catch (IOException e) {
-            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST, e, "pdf_preview_read");
         }
     }
 }

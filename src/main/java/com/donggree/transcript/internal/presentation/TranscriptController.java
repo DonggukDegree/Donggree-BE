@@ -70,12 +70,13 @@ public class TranscriptController implements TranscriptApi {
         Map<Long, String> deptNameMap = curriculumLookupService.findDepartmentNamesByIds(deptIds);
         String collegeName = curriculumLookupService
                 .findCollegeNameByDepartmentId(raw.meta().departmentId())
-                .orElse(null);
+                .orElse(raw.meta().pdfCollegeName());
+        String departmentName = deptName(deptNameMap, raw.meta().departmentId());
 
         Meta meta = new Meta(
                 raw.meta().admissionYear(),
                 collegeName,
-                deptName(deptNameMap, raw.meta().departmentId()),
+                departmentName != null ? departmentName : raw.meta().pdfDepartment(),
                 deptName(deptNameMap, raw.meta().subMajor1Id()),
                 deptName(deptNameMap, raw.meta().subMajor2Id()),
                 deptName(deptNameMap, raw.meta().dualMajor1Id()),
@@ -121,10 +122,11 @@ public class TranscriptController implements TranscriptApi {
             }
             memberIdentityService.validatePdfOwner(memberId, pdfStudentId, pdfName);
 
+            // 학과 연결 실패는 졸업 판정만 제한한다. 본인 확인을 마친 성적표와 원문은 보존한다.
             Long deptId = curriculumLookupService
                     .findDepartmentId(
                             meta.get("학과"), parsed.admissionYear(), parsed.engineeringCertified(), meta.get("대학"))
-                    .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
+                    .orElse(null);
             Long sub1Id = curriculumLookupService
                     .findDepartmentId(meta.get("부전공1"), parsed.admissionYear(), false, null)
                     .orElse(null);
@@ -160,7 +162,7 @@ public class TranscriptController implements TranscriptApi {
                     new TranscriptCreateResponse(result.totalCredits(), result.recordedCredits(), result.creditGap()));
 
         } catch (IOException e) {
-            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);
+            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE, e, "pdf_upload_read");
         }
     }
 
@@ -181,7 +183,7 @@ public class TranscriptController implements TranscriptApi {
                                 Grade.fromValue(item.grade()),
                                 item.retake());
                     } catch (IllegalArgumentException e) {
-                        throw new GeneralException(TranscriptErrorCode.INVALID_COURSE_DATA);
+                        throw new GeneralException(TranscriptErrorCode.INVALID_COURSE_DATA, e, "course_validation");
                     }
                 })
                 .toList();

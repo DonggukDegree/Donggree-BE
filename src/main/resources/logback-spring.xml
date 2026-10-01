@@ -16,7 +16,7 @@
         %m / %wEx      메시지 / 정돈된 예외 스택
     -->
     <property name="CONSOLE_PATTERN"
-              value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p) %clr(%-35.35logger{34}){cyan} %clr(:){faint} %m%n%wEx"/>
+              value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5p) %clr(%-35.35logger{34}){cyan} %clr(:){faint} %m %kvp request_id=%X{request_id}%n%wEx"/>
 
     <springProfile name="!prod">
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

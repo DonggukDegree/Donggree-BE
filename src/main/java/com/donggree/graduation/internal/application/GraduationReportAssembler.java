@@ -3,6 +3,7 @@ package com.donggree.graduation.internal.application;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.global.logging.RequestDiagnostics;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
@@ -241,6 +242,7 @@ public class GraduationReportAssembler {
             }
             return codes.stream().distinct().toList();
         } catch (JsonProcessingException | IllegalArgumentException e) {
+            RequestDiagnostics.fallback("report_required_courses", e);
             return List.of();
         }
     }
@@ -527,6 +529,7 @@ public class GraduationReportAssembler {
             arr.forEach(n -> result.add(n.asText()));
             return result;
         } catch (JsonProcessingException e) {
+            RequestDiagnostics.fallback("report_rule_list", e);
             return List.of();
         }
     }
@@ -537,6 +540,7 @@ public class GraduationReportAssembler {
         try {
             return MAPPER.readTree(ruleConfig).path(fieldName).isNumber();
         } catch (JsonProcessingException e) {
+            RequestDiagnostics.fallback("report_rule_number", e);
             return false;
         }
     }
@@ -548,6 +552,7 @@ public class GraduationReportAssembler {
             JsonNode field = node.path(fieldName);
             return field.isMissingNode() ? defaultValue : field.asInt(defaultValue);
         } catch (JsonProcessingException e) {
+            RequestDiagnostics.fallback("report_rule_integer", e);
             return defaultValue;
         }
     }

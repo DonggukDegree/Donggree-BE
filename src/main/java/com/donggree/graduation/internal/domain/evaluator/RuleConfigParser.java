@@ -19,7 +19,7 @@ final class RuleConfigParser {
         try {
             return MAPPER.readValue(json, configType);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("rule_config 파싱 실패: " + json, e);
+            throw new IllegalStateException("rule_config 파싱 실패", e);
         }
     }
 }

@@ -4,6 +4,7 @@ import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.auth.JwtAuthFilter;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.global.logging.RequestDiagnostics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -96,10 +97,16 @@ public class SecurityConfig {
                 })
                 // 인증/인가 실패도 일반 API와 동일한 ApiResponse 봉투(JSON)로 응답한다.
                 // (이전에는 sendError로 Spring 기본 에러 JSON이 나가 프론트가 code로 분기할 수 없었다.)
-                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) ->
-                                writeErrorResponse(response, GeneralErrorCode.UNAUTHORIZED, objectMapper))
-                        .accessDeniedHandler((request, response, accessDeniedException) ->
-                                writeErrorResponse(response, GeneralErrorCode.FORBIDDEN, objectMapper)))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
+                            RequestDiagnostics.failure(
+                                    request, "AUTH401_1", "authentication", "인증 정보 부재 또는 유효하지 않은 토큰", authException);
+                            writeErrorResponse(response, GeneralErrorCode.UNAUTHORIZED, objectMapper);
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            RequestDiagnostics.failure(
+                                    request, "AUTH403_1", "authorization", "요청 권한 부족", accessDeniedException);
+                            writeErrorResponse(response, GeneralErrorCode.FORBIDDEN, objectMapper);
+                        }))
                 .oauth2Login(oauth -> oauth.redirectionEndpoint(endpoint -> endpoint.baseUri("/oauth/callback/*"))
                         .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
                         .successHandler(oAuthSuccessHandler)
@@ -141,6 +148,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("X-Request-ID"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -18,6 +18,8 @@ import com.donggree.user.MemberIdentityService;
 import com.donggree.user.internal.application.AuthService;
 import com.donggree.user.internal.application.UserCommandService;
 import com.donggree.user.internal.application.UserQueryService;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -41,6 +43,37 @@ import org.springframework.web.bind.annotation.RestController;
 @WebMvcTest
 @Import({SecurityConfig.class, SecurityConfigTest.TestConfig.class})
 class SecurityConfigTest {
+    @Autowired
+    private MeterRegistry meterRegistry;
+
+    @Test
+    void 요약_API_실제_보안_필터에서도_학생과_관리자_운영_지표를_구분한다() throws Exception {
+        meterRegistry.clear();
+        for (String role : new String[] {"STUDENT", "ADMIN", "SUPER_ADMIN"}) {
+            mockMvc.perform(get("/api/reports/summary")
+                            .header("Authorization", "Bearer " + jwtTokenProvider.generateAccessToken(999L, role)))
+                    .andExpect(status().isOk());
+        }
+        org.assertj.core.api.Assertions.assertThat(meterRegistry
+                        .get("donggree.operation")
+                        .tags("operation", "report_summary", "actor", "student", "code", "COMMON200_1")
+                        .timer()
+                        .count())
+                .isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(meterRegistry
+                        .get("donggree.operation")
+                        .tags("operation", "report_summary", "actor", "admin")
+                        .timer()
+                        .count())
+                .isEqualTo(2);
+        mockMvc.perform(get("/api/reports/summary")).andExpect(status().isUnauthorized());
+        org.assertj.core.api.Assertions.assertThat(meterRegistry
+                        .get("donggree.operation")
+                        .tags("http_status", "401", "outcome", "failure", "actor", "unknown")
+                        .timer()
+                        .count())
+                .isEqualTo(1);
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -106,6 +139,10 @@ class SecurityConfigTest {
 
     @TestConfiguration
     static class TestConfig {
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
 
         @Bean
         JwtTokenProvider jwtTokenProvider() {
@@ -150,6 +187,47 @@ class SecurityConfigTest {
             String adminPing() {
                 return "admin";
             }
+        }
+    }
+
+    @Test
+    void 실제_보안실패_로그는_요청ID와_원인코드를_포함한다() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(com.donggree.global.logging.RequestDiagnostics.class);
+        var appender = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>() {
+            @Override
+            protected void append(ch.qos.logback.classic.spi.ILoggingEvent event) {
+                event.prepareForDeferredProcessing();
+                super.append(event);
+            }
+        };
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            var result = mockMvc.perform(get("/api/protected").header("Authorization", "Bearer TOKEN_SECRET"))
+                    .andExpect(status().isUnauthorized())
+                    .andReturn();
+            org.assertj.core.api.Assertions.assertThat(appender.list).hasSize(1);
+            var event = appender.list.getFirst();
+            org.assertj.core.api.Assertions.assertThat(event.getMDCPropertyMap())
+                    .containsEntry("request_id", result.getResponse().getHeader("X-Request-ID"));
+            var fields = event.getKeyValuePairs().stream()
+                    .collect(java.util.stream.Collectors.toMap(k -> k.key, k -> k.value));
+            org.assertj.core.api.Assertions.assertThat(fields)
+                    .containsEntry("code", "AUTH401_1")
+                    .containsEntry("auth_reason", "TOKEN_INVALID");
+            appender.list.clear();
+            mockMvc.perform(get("/api/admin/ping").header("Authorization", bearer("STUDENT")))
+                    .andExpect(status().isForbidden());
+            org.assertj.core.api.Assertions.assertThat(appender.list).hasSize(1);
+            var denied = appender.list.getFirst().getKeyValuePairs().stream()
+                    .collect(java.util.stream.Collectors.toMap(k -> k.key, k -> k.value));
+            org.assertj.core.api.Assertions.assertThat(denied)
+                    .containsEntry("code", "AUTH403_1")
+                    .containsEntry("stage", "authorization");
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
         }
     }
 

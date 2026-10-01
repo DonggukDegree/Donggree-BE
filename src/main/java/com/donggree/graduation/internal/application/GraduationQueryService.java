@@ -81,6 +81,10 @@ public class GraduationQueryService {
 
     /** 한 번의 미리보기에서는 세트 선택과 판정을 한 번만 수행해 요약·상세에 같은 결과를 사용한다. */
     private ReportEvaluation evaluateTranscript(TranscriptView transcript) {
+        // 미식별 학과 성적표는 조회·관리만 허용하고 다른 학과의 세트로 대신 판정하지 않는다.
+        if (transcript.departmentId() == null) {
+            throw new GeneralException(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND);
+        }
         Map<String, CourseClassificationView> classifications = buildClassifications(transcript);
         ResolvedRules resolved = resolveScopedRules(transcript, classifications);
         List<ScopedRules> scopes = resolved.scopes();

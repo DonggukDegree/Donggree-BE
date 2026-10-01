@@ -1,5 +1,6 @@
 package com.donggree.transcript.internal.application;
 
+import com.donggree.global.logging.RequestDiagnostics;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
 import com.donggree.transcript.internal.domain.CourseRecord;
@@ -13,12 +14,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /** 저장 성적표와 임시 파싱 결과를 동일한 판정 입력으로 변환한다. 개인정보는 판정 뷰에 포함하지 않는다. */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class TranscriptViewMapper {
     private final ObjectMapper objectMapper;
@@ -58,13 +57,14 @@ public class TranscriptViewMapper {
                 && "합격".equals(meta.path("복수1졸업논문심사").asText("").trim());
     }
 
-    private JsonNode readMeta(Long transcriptId, String rawData) {
+    // 학업정보 조회에서도 동일한 원문 파싱과 개인정보 비노출 정책을 사용한다.
+    JsonNode readMeta(Long transcriptId, String rawData) {
         if (rawData == null || rawData.isBlank()) return MissingNode.getInstance();
         try {
             return objectMapper.readTree(rawData).path("meta");
         } catch (JsonProcessingException e) {
             // 성적표 원문에는 개인정보가 있으므로 예외 메시지나 JSON 원문은 로그에 남기지 않는다.
-            log.warn("성적표 {}의 판정 메타 파싱 실패", transcriptId);
+            RequestDiagnostics.fallback("transcript_meta_parse", e);
             return MissingNode.getInstance();
         }
     }
