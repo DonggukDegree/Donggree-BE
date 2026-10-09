@@ -82,6 +82,7 @@ public class RequirementSetQueryService {
                 set.getTrack(),
                 set.getVersion(),
                 set.getDescription(),
+                set.getStudentNotice(),
                 set.getSheetImageUrl(),
                 set.isActive(),
                 ruleIds);

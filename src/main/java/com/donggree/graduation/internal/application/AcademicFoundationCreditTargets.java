@@ -2,6 +2,8 @@ package com.donggree.graduation.internal.application;
 
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.global.logging.RequestDiagnostics;
+import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
+import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,14 +24,14 @@ final class AcademicFoundationCreditTargets {
 
     private AcademicFoundationCreditTargets() {}
 
-    static int total(List<GraduationRuleView> rules) {
-        return rollUp(readTargets(rules));
+    static int total(List<GraduationRuleView> rules, EvaluationContext context) {
+        return rollUp(readTargets(rules, context));
     }
 
     /** 단일 영역에 직접 지정된 목표만 카드에 귀속한다. 다중 영역·전체 목표는 임의 배분하지 않는다. */
-    static Map<String, Integer> byArea(List<GraduationRuleView> rules) {
+    static Map<String, Integer> byArea(List<GraduationRuleView> rules, EvaluationContext context) {
         Map<String, Map<Scope, Integer>> targetsByArea = new LinkedHashMap<>();
-        readTargets(rules).forEach((scope, credits) -> {
+        readTargets(rules, context).forEach((scope, credits) -> {
             List<String> areas = scope.selectors().get(AREA_NAMES);
             if (areas.size() == 1) {
                 targetsByArea
@@ -42,14 +44,15 @@ final class AcademicFoundationCreditTargets {
         return result;
     }
 
-    private static Map<Scope, Integer> readTargets(List<GraduationRuleView> rules) {
+    private static Map<Scope, Integer> readTargets(List<GraduationRuleView> rules, EvaluationContext context) {
         Map<Scope, Integer> targets = new LinkedHashMap<>();
         for (GraduationRuleView rule : rules) {
             if (!"MIN_CREDITS".equals(rule.typeName()) || rule.ruleConfig() == null) continue;
             try {
                 JsonNode config = MAPPER.readTree(rule.ruleConfig());
                 if (config == null || !config.path("minCredits").isNumber()) continue;
-                int credits = config.path("minCredits").asInt();
+                int credits = CreditAdjustmentCalculator.adjustedTarget(
+                        rule, context, config.path("minCredits").asInt());
                 if (credits <= 0) continue;
                 List<List<String>> selectors = new ArrayList<>();
                 for (String field : SELECTORS) {

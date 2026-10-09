@@ -3,6 +3,7 @@ package com.donggree.graduation.internal.domain.evaluator;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
@@ -70,7 +71,10 @@ public class MinCreditsEvaluator implements RuleEvaluator {
 
         int earnedCredits =
                 selected.stream().mapToInt(CourseRecordView::credits).sum();
-        boolean satisfied = (config.minCredits() == null || earnedCredits >= config.minCredits())
+        int targetCredits = config.minCredits() == null
+                ? 0
+                : CreditAdjustmentCalculator.adjustedTarget(rule, context, config.minCredits());
+        boolean satisfied = (config.minCredits() == null || earnedCredits >= targetCredits)
                 && (config.minCount() == null || selected.size() >= config.minCount());
 
         return new RuleResult(rule.ruleName(), satisfied);

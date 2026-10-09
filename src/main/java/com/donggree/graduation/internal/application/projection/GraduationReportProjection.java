@@ -11,7 +11,25 @@ import java.util.List;
  * hasUnsupportedMajor: 복수전공 판정 누락·복수전공 2·부전공·편입 등으로 정확도 경고가 필요한지 여부.
  */
 public record GraduationReportProjection(
-        Summary summary, List<AreaOverview> areaOverviews, boolean hasUnsupportedMajor, Boolean englishPassed) {
+        Summary summary,
+        List<AreaOverview> areaOverviews,
+        boolean hasUnsupportedMajor,
+        Boolean englishPassed,
+        List<AdditionalNotice> additionalNotices) {
+
+    public GraduationReportProjection(
+            Summary summary, List<AreaOverview> areaOverviews, boolean hasUnsupportedMajor, Boolean englishPassed) {
+        this(summary, areaOverviews, hasUnsupportedMajor, englishPassed, List.of());
+    }
+
+    public record AdditionalNotice(
+            Long requirementSetId,
+            String collegeName,
+            String departmentName,
+            String track,
+            int yearStart,
+            int yearEnd,
+            String content) {}
 
     /**
      * 졸업 요건 전체 요약.

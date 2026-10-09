@@ -54,6 +54,7 @@ public class RequirementSetCommandService {
                 command.track(),
                 version,
                 command.description(),
+                command.studentNotice(),
                 command.sheetImageUrl(),
                 command.active());
         set.replaceRules(rules);
@@ -84,6 +85,7 @@ public class RequirementSetCommandService {
                 command.track(),
                 version,
                 command.description(),
+                command.studentNotice(),
                 command.sheetImageUrl(),
                 command.active());
         set.replaceRules(rules);

@@ -21,6 +21,7 @@ import com.donggree.graduation.internal.application.projection.AreaDetailProject
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CourseItem;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CreditStatus;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
+import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AdditionalNotice;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary;
 import java.math.BigDecimal;
@@ -71,48 +72,64 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
         given(graduationQueryService.getReport(memberId))
-                .willReturn(new GraduationReportProjection(summary, areaOverviews, false, true));
+                .willReturn(new GraduationReportProjection(
+                        summary,
+                        areaOverviews,
+                        false,
+                        true,
+                        List.of(new AdditionalNotice(10L, "첨단융합대학", "컴퓨터·AI학부", "ADVANCED", 2023, 2025, "추가 안내 문구"))));
 
         mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
-                .andDo(
-                        document(
-                                "graduation-get-report",
-                                responseFields(
-                                        fieldWithPath("isSuccess").description("요청 성공 여부"),
-                                        fieldWithPath("code").description("응답 코드"),
-                                        fieldWithPath("message").description("응답 메시지"),
-                                        fieldWithPath("result.summary.achievementRate")
-                                                .description("전체 졸업 달성률 (0~100)"),
-                                        fieldWithPath("result.summary.earnedCredits")
-                                                .description("현재 이수 학점"),
-                                        fieldWithPath("result.summary.targetCredits")
-                                                .description("목표 이수 학점"),
-                                        fieldWithPath("result.summary.remainingCredits")
-                                                .description("잔여 학점"),
-                                        fieldWithPath("result.summary.gpa")
-                                                .type(JsonFieldType.NUMBER)
-                                                .description("총 평점 평균"),
-                                        fieldWithPath("result.summary.graduated")
-                                                .description("졸업 판정 여부"),
-                                        fieldWithPath("result.summary.unsatisfiedReasons")
-                                                .description("졸업요건 부문 미충족 사유 목록"),
-                                        fieldWithPath("result.areaOverviews[].courseType")
-                                                .description("이수 구분 코드 (COMMON_GENERAL, ACADEMIC_FOUNDATION 등)"),
-                                        fieldWithPath("result.areaOverviews[].courseTypeName")
-                                                .description("이수 구분 한국어 명칭"),
-                                        fieldWithPath("result.areaOverviews[].achievementRate")
-                                                .description("해당 영역의 학점 달성률 (0~100)"),
-                                        fieldWithPath("result.areaOverviews[].remainingCredits")
-                                                .description("해당 영역의 잔여 학점"),
-                                        fieldWithPath("result.areaOverviews[].satisfied")
-                                                .description("해당 영역의 요건 충족 여부"),
-                                        fieldWithPath("result.hasUnsupportedMajor")
-                                                .description("복수전공 판정 누락·복수전공 2·부전공·편입으로 정확도 경고가 필요한지 여부"),
-                                        fieldWithPath("result.englishPassed")
-                                                .description(
-                                                        "영어패스제 결과 (PASS=true / FAIL=false / 미기재=null). 졸업 규칙으로 판정하지 않아 충족 여부에 영향이 없고, false일 때만 리포트 유의사항 문구를 띄운다."))));
+                .andDo(document(
+                        "graduation-get-report",
+                        responseFields(
+                                fieldWithPath("isSuccess").description("요청 성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("result.summary.achievementRate").description("전체 졸업 달성률 (0~100)"),
+                                fieldWithPath("result.summary.earnedCredits").description("현재 이수 학점"),
+                                fieldWithPath("result.summary.targetCredits").description("목표 이수 학점"),
+                                fieldWithPath("result.summary.remainingCredits").description("잔여 학점"),
+                                fieldWithPath("result.summary.gpa")
+                                        .type(JsonFieldType.NUMBER)
+                                        .description("총 평점 평균"),
+                                fieldWithPath("result.summary.graduated").description("졸업 판정 여부"),
+                                fieldWithPath("result.summary.unsatisfiedReasons")
+                                        .description("졸업요건 부문 미충족 사유 목록"),
+                                fieldWithPath("result.areaOverviews[].courseType")
+                                        .description("이수 구분 코드 (COMMON_GENERAL, ACADEMIC_FOUNDATION 등)"),
+                                fieldWithPath("result.areaOverviews[].courseTypeName")
+                                        .description("이수 구분 한국어 명칭"),
+                                fieldWithPath("result.areaOverviews[].achievementRate")
+                                        .description("해당 영역의 학점 달성률 (0~100)"),
+                                fieldWithPath("result.areaOverviews[].remainingCredits")
+                                        .description("해당 영역의 잔여 학점"),
+                                fieldWithPath("result.areaOverviews[].satisfied")
+                                        .description("해당 영역의 요건 충족 여부"),
+                                fieldWithPath("result.hasUnsupportedMajor")
+                                        .description("복수전공 판정 누락·복수전공 2·부전공·편입으로 정확도 경고가 필요한지 여부"),
+                                fieldWithPath("result.englishPassed")
+                                        .description(
+                                                "영어패스제 결과 (PASS=true / FAIL=false / 미기재=null). 졸업 규칙으로 판정하지 않아 충족 여부에 영향이 없고, false일 때만 리포트 유의사항 문구를 띄운다."),
+                                fieldWithPath("result.additionalNotices[].requirementSetId")
+                                        .description("추가 확인사항이 설정된 졸업 요건 세트 ID"),
+                                fieldWithPath("result.additionalNotices[].collegeName")
+                                        .optional()
+                                        .description("단과대명"),
+                                fieldWithPath("result.additionalNotices[].departmentName")
+                                        .optional()
+                                        .description("학과명"),
+                                fieldWithPath("result.additionalNotices[].track")
+                                        .optional()
+                                        .description("적용 과정 (ALL, GENERAL, ADVANCED)"),
+                                fieldWithPath("result.additionalNotices[].yearStart")
+                                        .description("적용 시작 연도"),
+                                fieldWithPath("result.additionalNotices[].yearEnd")
+                                        .description("적용 종료 연도"),
+                                fieldWithPath("result.additionalNotices[].content")
+                                        .description("학생에게 표시할 추가 확인사항"))));
     }
 
     @Test

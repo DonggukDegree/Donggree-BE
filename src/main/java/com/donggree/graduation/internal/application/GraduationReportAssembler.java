@@ -8,6 +8,7 @@ import com.donggree.graduation.internal.application.projection.AreaDetailProject
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary;
+import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.transcript.CourseRecordView;
@@ -46,11 +47,23 @@ public class GraduationReportAssembler {
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
             boolean hasUnsupportedMajor) {
+        return assembleReport(transcript, rules, statusRules, resultByRuleId, context, hasUnsupportedMajor, List.of());
+    }
+
+    public GraduationReportProjection assembleReport(
+            TranscriptView transcript,
+            List<GraduationRuleView> rules,
+            List<GraduationRuleView> statusRules,
+            Map<Long, RuleResult> resultByRuleId,
+            EvaluationContext context,
+            boolean hasUnsupportedMajor,
+            List<GraduationReportProjection.AdditionalNotice> additionalNotices) {
         return new GraduationReportProjection(
                 buildSummary(transcript, rules, statusRules, resultByRuleId),
                 buildAreaOverviews(rules, statusRules, resultByRuleId, context),
                 hasUnsupportedMajor,
-                transcript.englishPassResult());
+                transcript.englishPassResult(),
+                additionalNotices);
     }
 
     /** areaRules는 과목·학점용, statusRules는 사유 표시용이며 각각 해당 탭의 규칙만 넘긴다. */
@@ -210,7 +223,7 @@ public class GraduationReportAssembler {
                 });
 
         int earnedCredits = context.getTotalPassedCreditsByType(courseType);
-        int remainingCredits = Math.max(0, resolveTypeTargetCredits(courseType, minAreaRules) - earnedCredits);
+        int remainingCredits = Math.max(0, resolveTypeTargetCredits(courseType, minAreaRules, context) - earnedCredits);
 
         return new AreaOverview(
                 courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
@@ -312,7 +325,7 @@ public class GraduationReportAssembler {
         Map<String, Integer> targetCreditsByArea;
         if (courseType == CourseType.ACADEMIC_FOUNDATION) {
             // 영역명뿐 아니라 학수번호·소분류 등 실제 대상 범위의 포함 관계까지 반영한다.
-            targetCreditsByArea = AcademicFoundationCreditTargets.byArea(areaRules);
+            targetCreditsByArea = AcademicFoundationCreditTargets.byArea(areaRules, context);
         } else {
             targetCreditsByArea = new HashMap<>();
             for (GraduationRuleView rule : areaRules) {
@@ -321,7 +334,8 @@ public class GraduationReportAssembler {
                 if (areaNames.size() == 1) {
                     targetCreditsByArea.merge(
                             resolveAreaName(areaNames.get(0), courseType, fallbackArea),
-                            parseIntField(rule.ruleConfig(), "minCredits", 0),
+                            CreditAdjustmentCalculator.adjustedTarget(
+                                    rule, context, parseIntField(rule.ruleConfig(), "minCredits", 0)),
                             Math::max);
                 }
             }
@@ -472,7 +486,7 @@ public class GraduationReportAssembler {
     private AreaDetailProjection.CreditStatus buildTypeCredits(
             CourseType courseType, List<GraduationRuleView> areaRules, EvaluationContext context) {
         int earned = context.getTotalPassedCreditsByType(courseType);
-        int target = resolveTypeTargetCredits(courseType, areaRules);
+        int target = resolveTypeTargetCredits(courseType, areaRules, context);
         return new AreaDetailProjection.CreditStatus(earned, target, Math.max(0, target - earned));
     }
 
@@ -482,14 +496,16 @@ public class GraduationReportAssembler {
      * 다른 이수구분은 기존처럼 영역 제한이 없는 규칙이 있으면 그중 최대값을 쓰고(ex. 공통교양 17학점),
      * 없으면 영역별 목표학점을 합산한다(ex. 학문기초 기본소양 6 + MSC 21 = 27).
      */
-    private int resolveTypeTargetCredits(CourseType courseType, List<GraduationRuleView> rules) {
+    private int resolveTypeTargetCredits(
+            CourseType courseType, List<GraduationRuleView> rules, EvaluationContext context) {
         if (courseType == CourseType.ACADEMIC_FOUNDATION) {
-            return AcademicFoundationCreditTargets.total(rules);
+            return AcademicFoundationCreditTargets.total(rules, context);
         }
         OptionalInt wholeType = rules.stream()
                 .filter(this::isCreditTargetRule)
                 .filter(r -> parseStringList(r.ruleConfig(), "areaNames").isEmpty())
-                .mapToInt(r -> parseIntField(r.ruleConfig(), "minCredits", 0))
+                .mapToInt(r -> CreditAdjustmentCalculator.adjustedTarget(
+                        r, context, parseIntField(r.ruleConfig(), "minCredits", 0)))
                 .max();
         if (wholeType.isPresent()) return wholeType.getAsInt();
 
@@ -503,7 +519,8 @@ public class GraduationReportAssembler {
                                 .distinct()
                                 .sorted()
                                 .toList(),
-                        r -> parseIntField(r.ruleConfig(), "minCredits", 0),
+                        r -> CreditAdjustmentCalculator.adjustedTarget(
+                                r, context, parseIntField(r.ruleConfig(), "minCredits", 0)),
                         Math::max))
                 .values()
                 .stream()

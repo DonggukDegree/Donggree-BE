@@ -16,6 +16,7 @@ public record RequirementSetResponse(
         RequirementTrack track,
         int version,
         String description,
+        String studentNotice,
         String sheetImageUrl,
         boolean active,
         List<Long> graduationRuleIds) {
@@ -29,6 +30,7 @@ public record RequirementSetResponse(
                 p.track(),
                 p.version(),
                 p.description(),
+                p.studentNotice(),
                 p.sheetImageUrl(),
                 p.active(),
                 p.graduationRuleIds());
