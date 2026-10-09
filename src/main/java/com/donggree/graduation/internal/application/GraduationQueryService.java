@@ -9,6 +9,7 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
+import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AdditionalNotice;
 import com.donggree.graduation.internal.application.projection.ReportPreviewProjection;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
@@ -97,7 +98,8 @@ public class GraduationQueryService {
                 rules,
                 evaluateScopes(scopes),
                 EvaluationContext.report(transcript, classifications),
-                requiresAccuracyWarning(transcript, resolved.dualMajor1Evaluated()));
+                requiresAccuracyWarning(transcript, resolved.dualMajor1Evaluated()),
+                resolved.additionalNotices());
     }
 
     private GraduationReportProjection assembleReport(ReportEvaluation evaluation) {
@@ -107,7 +109,8 @@ public class GraduationQueryService {
                 evaluation.statusRules(),
                 evaluation.results(),
                 evaluation.context(),
-                evaluation.accuracyWarning());
+                evaluation.accuracyWarning(),
+                evaluation.additionalNotices());
     }
 
     private boolean requiresAccuracyWarning(TranscriptView transcript, boolean dualMajor1Evaluated) {
@@ -205,21 +208,24 @@ public class GraduationQueryService {
     private ResolvedRules resolveScopedRules(
             TranscriptView transcript, Map<String, CourseClassificationView> classifications) {
         List<ScopedRules> scopes = new java.util.ArrayList<>();
+        List<AdditionalNotice> notices = new java.util.ArrayList<>();
         MajorRole primaryRole = hasDualMajor(transcript) ? MajorRole.DUAL_PRIMARY : MajorRole.SINGLE_PRIMARY;
 
         RequirementSetView primarySet = findRequirementSet(
                 transcript.departmentId(), transcript.admissionYear(), transcript.engineeringCertified());
+        addNotice(notices, primarySet);
         List<GraduationRuleView> primaryRules = filterRules(primarySet.id(), primaryRole);
         scopes.add(new ScopedRules(primaryRules, EvaluationContext.primary(transcript, classifications, primaryRole)));
 
-        boolean dualMajor1Evaluated = addSecondaryScope(scopes, transcript, classifications);
-        return new ResolvedRules(scopes, dualMajor1Evaluated);
+        boolean dualMajor1Evaluated = addSecondaryScope(scopes, transcript, classifications, notices);
+        return new ResolvedRules(scopes, dualMajor1Evaluated, List.copyOf(notices));
     }
 
     private boolean addSecondaryScope(
             List<ScopedRules> scopes,
             TranscriptView transcript,
-            Map<String, CourseClassificationView> classifications) {
+            Map<String, CourseClassificationView> classifications,
+            List<AdditionalNotice> notices) {
         if (transcript.dualMajor1Id() == null) return true;
 
         // 복수전공은 주전공의 공학인증 심화과정이 아니므로 대상 학과의 일반과정 세트를 사용한다.
@@ -233,8 +239,21 @@ public class GraduationQueryService {
                 .toList();
         if (secondaryRules.isEmpty()) return false;
 
+        addNotice(notices, secondarySet);
         scopes.add(new ScopedRules(secondaryRules, EvaluationContext.secondary(transcript, classifications, "복수1")));
         return true;
+    }
+
+    private void addNotice(List<AdditionalNotice> notices, RequirementSetView set) {
+        if (set.studentNotice() == null || set.studentNotice().isBlank()) return;
+        notices.add(new AdditionalNotice(
+                set.id(),
+                set.collegeName(),
+                set.departmentName(),
+                set.track() == null ? null : set.track().name(),
+                set.yearStart(),
+                set.yearEnd(),
+                set.studentNotice()));
     }
 
     private RequirementSetView findRequirementSet(Long departmentId, int admissionYear, boolean engineeringCertified) {
@@ -277,9 +296,11 @@ public class GraduationQueryService {
             List<GraduationRuleView> statusRules,
             Map<Long, RuleResult> results,
             EvaluationContext context,
-            boolean accuracyWarning) {}
+            boolean accuracyWarning,
+            List<AdditionalNotice> additionalNotices) {}
 
     private record ScopedRules(List<GraduationRuleView> rules, EvaluationContext context) {}
 
-    private record ResolvedRules(List<ScopedRules> scopes, boolean dualMajor1Evaluated) {}
+    private record ResolvedRules(
+            List<ScopedRules> scopes, boolean dualMajor1Evaluated, List<AdditionalNotice> additionalNotices) {}
 }

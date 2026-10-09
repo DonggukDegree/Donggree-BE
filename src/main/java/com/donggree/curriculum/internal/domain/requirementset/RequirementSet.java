@@ -62,6 +62,9 @@ public class RequirementSet extends BaseEntity {
     @Column(length = 255)
     private String description;
 
+    @Column(name = "student_notice", columnDefinition = "TEXT")
+    private String studentNotice;
+
     @Column(name = "sheet_image_url", length = 512)
     private String sheetImageUrl;
 
@@ -86,9 +89,24 @@ public class RequirementSet extends BaseEntity {
             RequirementTrack track,
             int version,
             String description,
+            String studentNotice,
             String sheetImageUrl,
             boolean active) {
-        assignValidated(departmentId, yearStart, yearEnd, track, version, description, sheetImageUrl, active);
+        assignValidated(departmentId, yearStart, yearEnd, track, version, description, studentNotice, sheetImageUrl, active);
+    }
+
+    public static RequirementSet create(
+            Long departmentId,
+            int yearStart,
+            int yearEnd,
+            RequirementTrack track,
+            int version,
+            String description,
+            String studentNotice,
+            String sheetImageUrl,
+            boolean active) {
+        return new RequirementSet(
+                departmentId, yearStart, yearEnd, track, version, description, studentNotice, sheetImageUrl, active);
     }
 
     public static RequirementSet create(
@@ -100,7 +118,7 @@ public class RequirementSet extends BaseEntity {
             String description,
             String sheetImageUrl,
             boolean active) {
-        return new RequirementSet(departmentId, yearStart, yearEnd, track, version, description, sheetImageUrl, active);
+        return create(departmentId, yearStart, yearEnd, track, version, description, null, sheetImageUrl, active);
     }
 
     /**
@@ -114,9 +132,22 @@ public class RequirementSet extends BaseEntity {
             RequirementTrack track,
             int version,
             String description,
+            String studentNotice,
             String sheetImageUrl,
             boolean active) {
-        assignValidated(departmentId, yearStart, yearEnd, track, version, description, sheetImageUrl, active);
+        assignValidated(departmentId, yearStart, yearEnd, track, version, description, studentNotice, sheetImageUrl, active);
+    }
+
+    public void update(
+            Long departmentId,
+            int yearStart,
+            int yearEnd,
+            RequirementTrack track,
+            int version,
+            String description,
+            String sheetImageUrl,
+            boolean active) {
+        update(departmentId, yearStart, yearEnd, track, version, description, null, sheetImageUrl, active);
     }
 
     /** 연결된 졸업 규칙 목록을 통째로 교체한다. 규칙 선택/해제(체크 토글)를 반영하는 데 사용한다. */
@@ -132,6 +163,7 @@ public class RequirementSet extends BaseEntity {
             RequirementTrack track,
             int version,
             String description,
+            String studentNotice,
             String sheetImageUrl,
             boolean active) {
         if (departmentId == null) {
@@ -152,6 +184,7 @@ public class RequirementSet extends BaseEntity {
         this.track = track;
         this.version = version;
         this.description = description;
+        this.studentNotice = studentNotice == null || studentNotice.isBlank() ? null : studentNotice.trim();
         this.sheetImageUrl = sheetImageUrl;
         this.active = active;
     }

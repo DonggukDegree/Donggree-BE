@@ -22,9 +22,22 @@ public record RequirementSetUpdateRequest(
         @Schema(example = "ALL", description = "적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정). 미지정 시 ALL")
                 RequirementTrack track,
         @Size(max = 255, message = "설명은 255자 이하여야 합니다.") @Schema(example = "컴퓨터·AI학부 23~25학번 졸업 요건") String description,
+        @Schema(example = "졸업 요건과 별도로 이수해야 할 안내입니다.", description = "사용자 리포트 상단 안내 팝업 본문. 비우면 팝업을 표시하지 않음")
+                String studentNotice,
         @Size(max = 512, message = "이미지 URL은 512자 이하여야 합니다.") String sheetImageUrl,
         @Schema(example = "true", description = "활성 여부(미지정 시 true)") Boolean active,
         @Schema(example = "[1, 2, 3]", description = "연결할 졸업 규칙 ID 목록") List<Long> graduationRuleIds) {
+
+    public RequirementSetUpdateRequest(
+            int yearStart,
+            int yearEnd,
+            RequirementTrack track,
+            String description,
+            String sheetImageUrl,
+            Boolean active,
+            List<Long> graduationRuleIds) {
+        this(yearStart, yearEnd, track, description, null, sheetImageUrl, active, graduationRuleIds);
+    }
 
     @JsonIgnore
     @AssertTrue(message = "적용 시작년도는 종료년도보다 클 수 없습니다.")
@@ -39,6 +52,7 @@ public record RequirementSetUpdateRequest(
                 yearEnd,
                 track == null ? RequirementTrack.ALL : track,
                 description,
+                studentNotice,
                 sheetImageUrl,
                 active == null || active,
                 graduationRuleIds == null ? List.of() : graduationRuleIds);

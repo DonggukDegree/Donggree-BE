@@ -16,6 +16,23 @@ public record RequirementSetProjection(
         RequirementTrack track,
         int version,
         String description,
+        String studentNotice,
         String sheetImageUrl,
         boolean active,
-        List<Long> graduationRuleIds) {}
+        List<Long> graduationRuleIds) {
+
+    public RequirementSetProjection(
+            Long id,
+            Long departmentId,
+            String departmentName,
+            int yearStart,
+            int yearEnd,
+            RequirementTrack track,
+            int version,
+            String description,
+            String sheetImageUrl,
+            boolean active,
+            List<Long> graduationRuleIds) {
+        this(id, departmentId, departmentName, yearStart, yearEnd, track, version, description, null, sheetImageUrl, active, graduationRuleIds);
+    }
+}

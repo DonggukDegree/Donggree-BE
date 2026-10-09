@@ -17,6 +17,21 @@ public record RequirementSetCommand(
         int yearEnd,
         RequirementTrack track,
         String description,
+        String studentNotice,
         String sheetImageUrl,
         boolean active,
-        List<Long> graduationRuleIds) {}
+        List<Long> graduationRuleIds) {
+
+    public RequirementSetCommand(
+            String collegeName,
+            String departmentName,
+            int yearStart,
+            int yearEnd,
+            RequirementTrack track,
+            String description,
+            String sheetImageUrl,
+            boolean active,
+            List<Long> graduationRuleIds) {
+        this(collegeName, departmentName, yearStart, yearEnd, track, description, null, sheetImageUrl, active, graduationRuleIds);
+    }
+}

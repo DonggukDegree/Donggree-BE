@@ -21,6 +21,7 @@ import com.donggree.graduation.internal.application.projection.AreaDetailProject
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CourseItem;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CreditStatus;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
+import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AdditionalNotice;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary;
 import java.math.BigDecimal;
@@ -71,7 +72,13 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
         given(graduationQueryService.getReport(memberId))
-                .willReturn(new GraduationReportProjection(summary, areaOverviews, false, true));
+                .willReturn(new GraduationReportProjection(
+                        summary,
+                        areaOverviews,
+                        false,
+                        true,
+                        List.of(new AdditionalNotice(
+                                10L, "첨단융합대학", "컴퓨터·AI학부", "ADVANCED", 2023, 2025, "추가 안내 문구"))));
 
         mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isOk())
@@ -112,7 +119,24 @@ class GraduationReportControllerTest extends RestDocsSupport {
                                                 .description("복수전공 판정 누락·복수전공 2·부전공·편입으로 정확도 경고가 필요한지 여부"),
                                         fieldWithPath("result.englishPassed")
                                                 .description(
-                                                        "영어패스제 결과 (PASS=true / FAIL=false / 미기재=null). 졸업 규칙으로 판정하지 않아 충족 여부에 영향이 없고, false일 때만 리포트 유의사항 문구를 띄운다."))));
+                                                        "영어패스제 결과 (PASS=true / FAIL=false / 미기재=null). 졸업 규칙으로 판정하지 않아 충족 여부에 영향이 없고, false일 때만 리포트 유의사항 문구를 띄운다."),
+                                        fieldWithPath("result.additionalNotices[].requirementSetId")
+                                                .description("추가 확인사항이 설정된 졸업 요건 세트 ID"),
+                                        fieldWithPath("result.additionalNotices[].collegeName")
+                                                .optional()
+                                                .description("단과대명"),
+                                        fieldWithPath("result.additionalNotices[].departmentName")
+                                                .optional()
+                                                .description("학과명"),
+                                        fieldWithPath("result.additionalNotices[].track")
+                                                .optional()
+                                                .description("적용 과정 (ALL, GENERAL, ADVANCED)"),
+                                        fieldWithPath("result.additionalNotices[].yearStart")
+                                                .description("적용 시작 연도"),
+                                        fieldWithPath("result.additionalNotices[].yearEnd")
+                                                .description("적용 종료 연도"),
+                                        fieldWithPath("result.additionalNotices[].content")
+                                                .description("학생에게 표시할 추가 확인사항"))));
     }
 
     @Test
