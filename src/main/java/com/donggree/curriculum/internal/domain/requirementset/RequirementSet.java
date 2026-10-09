@@ -92,7 +92,8 @@ public class RequirementSet extends BaseEntity {
             String studentNotice,
             String sheetImageUrl,
             boolean active) {
-        assignValidated(departmentId, yearStart, yearEnd, track, version, description, studentNotice, sheetImageUrl, active);
+        assignValidated(
+                departmentId, yearStart, yearEnd, track, version, description, studentNotice, sheetImageUrl, active);
     }
 
     public static RequirementSet create(
@@ -135,7 +136,8 @@ public class RequirementSet extends BaseEntity {
             String studentNotice,
             String sheetImageUrl,
             boolean active) {
-        assignValidated(departmentId, yearStart, yearEnd, track, version, description, studentNotice, sheetImageUrl, active);
+        assignValidated(
+                departmentId, yearStart, yearEnd, track, version, description, studentNotice, sheetImageUrl, active);
     }
 
     public void update(

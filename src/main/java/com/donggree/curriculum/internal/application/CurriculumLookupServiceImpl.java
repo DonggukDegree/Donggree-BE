@@ -104,11 +104,13 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
                 .filter(rs -> rs.appliesTo(admissionYear, studentTrack))
                 .findFirst()
                 .map(rs -> {
-                    Department department = departmentRepository.findById(rs.getDepartmentId()).orElse(null);
+                    Department department =
+                            departmentRepository.findById(rs.getDepartmentId()).orElse(null);
                     String departmentName = department == null ? null : department.getDepartmentName();
                     String collegeName = department == null
                             ? null
-                            : collegeRepository.findById(department.getCollegeId())
+                            : collegeRepository
+                                    .findById(department.getCollegeId())
                                     .map(College::getCollegeName)
                                     .orElse(null);
                     return new RequirementSetView(

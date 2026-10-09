@@ -32,6 +32,16 @@ public record RequirementSetCommand(
             String sheetImageUrl,
             boolean active,
             List<Long> graduationRuleIds) {
-        this(collegeName, departmentName, yearStart, yearEnd, track, description, null, sheetImageUrl, active, graduationRuleIds);
+        this(
+                collegeName,
+                departmentName,
+                yearStart,
+                yearEnd,
+                track,
+                description,
+                null,
+                sheetImageUrl,
+                active,
+                graduationRuleIds);
     }
 }

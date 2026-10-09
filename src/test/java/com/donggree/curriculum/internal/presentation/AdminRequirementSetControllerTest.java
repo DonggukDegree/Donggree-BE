@@ -172,9 +172,7 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                         .optional()
                                         .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정). 미지정 시 ALL"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
-                                fieldWithPath("studentNotice")
-                                        .optional()
-                                        .description("학생 리포트에 표시할 추가 확인사항 (선택)"),
+                                fieldWithPath("studentNotice").optional().description("학생 리포트에 표시할 추가 확인사항 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),
                                 fieldWithPath("graduationRuleIds").optional().description("연결할 졸업 규칙 ID 목록")),
@@ -205,9 +203,7 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                         .optional()
                                         .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정). 미지정 시 ALL"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
-                                fieldWithPath("studentNotice")
-                                        .optional()
-                                        .description("학생 리포트에 표시할 추가 확인사항 (선택)"),
+                                fieldWithPath("studentNotice").optional().description("학생 리포트에 표시할 추가 확인사항 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),
                                 fieldWithPath("graduationRuleIds").optional().description("연결할 졸업 규칙 ID 목록")),

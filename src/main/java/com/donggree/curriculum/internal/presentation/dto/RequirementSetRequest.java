@@ -49,7 +49,17 @@ public record RequirementSetRequest(
             String sheetImageUrl,
             Boolean active,
             List<Long> graduationRuleIds) {
-        this(collegeName, departmentName, yearStart, yearEnd, track, description, null, sheetImageUrl, active, graduationRuleIds);
+        this(
+                collegeName,
+                departmentName,
+                yearStart,
+                yearEnd,
+                track,
+                description,
+                null,
+                sheetImageUrl,
+                active,
+                graduationRuleIds);
     }
 
     @JsonIgnore

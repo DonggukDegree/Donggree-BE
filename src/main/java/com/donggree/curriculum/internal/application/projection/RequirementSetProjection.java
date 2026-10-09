@@ -33,6 +33,18 @@ public record RequirementSetProjection(
             String sheetImageUrl,
             boolean active,
             List<Long> graduationRuleIds) {
-        this(id, departmentId, departmentName, yearStart, yearEnd, track, version, description, null, sheetImageUrl, active, graduationRuleIds);
+        this(
+                id,
+                departmentId,
+                departmentName,
+                yearStart,
+                yearEnd,
+                track,
+                version,
+                description,
+                null,
+                sheetImageUrl,
+                active,
+                graduationRuleIds);
     }
 }

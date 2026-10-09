@@ -161,9 +161,7 @@ public class TranscriptViewMapper {
             denominator += course.credits();
             weightedSum = weightedSum.add(grade.getGradePoint().multiply(BigDecimal.valueOf(course.credits())));
         }
-        return denominator == 0
-                ? null
-                : weightedSum.divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
+        return denominator == 0 ? null : weightedSum.divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
     }
 
     private boolean isPassed(Grade grade) {
