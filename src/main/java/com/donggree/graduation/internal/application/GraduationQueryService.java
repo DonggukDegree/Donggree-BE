@@ -250,7 +250,7 @@ public class GraduationQueryService {
                 set.id(),
                 set.collegeName(),
                 set.departmentName(),
-                set.track() == null ? null : set.track().name(),
+                set.track(),
                 set.yearStart(),
                 set.yearEnd(),
                 set.studentNotice()));
