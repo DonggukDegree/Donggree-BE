@@ -175,6 +175,12 @@ public class EvaluationContext {
                 .anyMatch(cr -> cr.courseCode() != null && matchesAny(cr.courseCode(), patterns));
     }
 
+    /** 규칙의 이수구분에 따른 공통 이수 범위를 반영해 학수번호 이수 여부를 확인한다. */
+    public boolean hasPassedAnyCourseByCodeForRule(CourseType ruleCourseType, List<String> patterns) {
+        return getPassedCoursesForRequiredCourse(ruleCourseType).stream()
+                .anyMatch(cr -> cr.courseCode() != null && matchesAny(cr.courseCode(), patterns));
+    }
+
     /**
      * 주어진 학수번호가 코드 패턴 목록 중 하나와 매칭되는지 확인한다.
      * 충족 판정({@link #hasPassedAnyCourseByCode})과 동일한 prefix 매칭 규칙을 사용하므로,

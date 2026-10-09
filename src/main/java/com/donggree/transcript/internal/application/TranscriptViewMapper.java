@@ -12,6 +12,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,7 +50,9 @@ public class TranscriptViewMapper {
                 t.isTransfer(),
                 hasName(meta, "복수1") || hasName(meta, "복수2"),
                 unresolved(meta, t.getDualMajor1Id(), t.getDualMajor2Id(), t.getSubMajor1Id(), t.getSubMajor2Id()),
-                records);
+                records,
+                t.calculateMajorGpa(),
+                t.getTeachingAptitudeCount());
     }
 
     /** 이미 보존한 원문 메타를 활용한다. 누락·미판정은 주전공 결과로 대체하거나 합격 처리하지 않는다. */
@@ -131,7 +135,35 @@ public class TranscriptViewMapper {
                 data.transfer(),
                 hasName(meta, "복수1") || hasName(meta, "복수2"),
                 unresolved(meta, data.dualMajor1Id(), data.dualMajor2Id(), data.subMajor1Id(), data.subMajor2Id()),
-                records);
+                records,
+                calculateMajorGpa(courses),
+                parseTeachingAptitudeCount(meta));
+    }
+
+    private Integer parseTeachingAptitudeCount(JsonNode meta) {
+        String value = meta.path("교직인적성합격횟수").asText(null);
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Integer.valueOf(value.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    /** 미저장 미리보기도 저장 성적표와 같은 전공·전필 평점 산식을 사용한다. */
+    private BigDecimal calculateMajorGpa(List<ParsedCourse> courses) {
+        int denominator = 0;
+        BigDecimal weightedSum = BigDecimal.ZERO;
+        for (ParsedCourse course : courses) {
+            if (!("전공".equals(course.category()) || "전필".equals(course.category()))) continue;
+            Grade grade = Grade.fromValue(course.grade());
+            if (grade == Grade.P || grade == Grade.NP) continue;
+            denominator += course.credits();
+            weightedSum = weightedSum.add(grade.getGradePoint().multiply(BigDecimal.valueOf(course.credits())));
+        }
+        return denominator == 0
+                ? null
+                : weightedSum.divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
     }
 
     private boolean isPassed(Grade grade) {
