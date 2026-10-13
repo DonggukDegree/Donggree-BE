@@ -46,7 +46,14 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
         if (departmentName == null || departmentName.isBlank()) {
             return Optional.empty();
         }
-        List<Department> candidates = departmentRepository.findAllByDepartmentName(departmentName.trim());
+        String trimmedName = departmentName.trim();
+        List<Department> candidates = departmentRepository.findAllByDepartmentName(trimmedName);
+        if (candidates.isEmpty()) {
+            String normalizedName = stripTrailingParentheticalSuffix(trimmedName);
+            if (!normalizedName.equals(trimmedName)) {
+                candidates = departmentRepository.findAllByDepartmentName(normalizedName);
+            }
+        }
         // 일반적인 단일 학과는 세트 등록 여부와 무관하게 기존 업로드 동작을 유지한다.
         if (candidates.size() == 1) return Optional.of(candidates.getFirst().getId());
         if (candidates.isEmpty()) return Optional.empty();
@@ -73,6 +80,16 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
                         .filter(dept -> dept.getCollegeId().equals(college.get().getId()))
                         .toList();
         return narrowed.size() == 1 ? Optional.of(narrowed.getFirst().getId()) : Optional.empty();
+    }
+
+    private String stripTrailingParentheticalSuffix(String departmentName) {
+        String normalizedName = departmentName;
+        while (true) {
+            String withoutSuffix =
+                    normalizedName.replaceFirst("\\s*[（(][^()（）]*[)）]\\s*$", "").trim();
+            if (withoutSuffix.equals(normalizedName)) return normalizedName;
+            normalizedName = withoutSuffix;
+        }
     }
 
     @Override

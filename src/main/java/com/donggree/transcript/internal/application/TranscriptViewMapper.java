@@ -52,7 +52,9 @@ public class TranscriptViewMapper {
                 unresolved(meta, t.getDualMajor1Id(), t.getDualMajor2Id(), t.getSubMajor1Id(), t.getSubMajor2Id()),
                 records,
                 t.calculateMajorGpa(),
-                t.getTeachingAptitudeCount());
+                t.getTeachingAptitudeCount(),
+                parseInteger(meta, "교직총학점"),
+                parseDecimal(meta, "교직평점"));
     }
 
     /** 이미 보존한 원문 메타를 활용한다. 누락·미판정은 주전공 결과로 대체하거나 합격 처리하지 않는다. */
@@ -137,7 +139,29 @@ public class TranscriptViewMapper {
                 unresolved(meta, data.dualMajor1Id(), data.dualMajor2Id(), data.subMajor1Id(), data.subMajor2Id()),
                 records,
                 calculateMajorGpa(courses),
-                parseTeachingAptitudeCount(meta));
+                parseTeachingAptitudeCount(meta),
+                parseInteger(meta, "교직총학점"),
+                parseDecimal(meta, "교직평점"));
+    }
+
+    private Integer parseInteger(JsonNode meta, String key) {
+        String value = meta.path(key).asText(null);
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Integer.valueOf(value.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private BigDecimal parseDecimal(JsonNode meta, String key) {
+        String value = meta.path(key).asText(null);
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new BigDecimal(value.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private Integer parseTeachingAptitudeCount(JsonNode meta) {

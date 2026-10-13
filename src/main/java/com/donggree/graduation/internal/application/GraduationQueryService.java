@@ -172,9 +172,14 @@ public class GraduationQueryService {
         Map<String, CourseClassificationView> classificationByCourseCode = new HashMap<>(explicit);
         transcript.courseRecords().stream()
                 .filter(cr -> cr.courseCode() != null)
-                .filter(cr -> !explicit.containsKey(cr.courseCode()))
-                .forEach(cr ->
-                        classificationByCourseCode.put(cr.courseCode(), inferClassification(cr.courseTypeName())));
+                .forEach(cr -> {
+                    if (isTeachingCourseType(cr.courseTypeName())) {
+                        // PDF에서 직선·직필로 분류된 과목은 제1전공 리포트와 기준에 포함한다.
+                        classificationByCourseCode.put(cr.courseCode(), inferClassification(cr.courseTypeName()));
+                    } else if (!explicit.containsKey(cr.courseCode())) {
+                        classificationByCourseCode.put(cr.courseCode(), inferClassification(cr.courseTypeName()));
+                    }
+                });
 
         return classificationByCourseCode;
     }
@@ -187,11 +192,17 @@ public class GraduationQueryService {
             case "공교" -> new CourseClassificationView(CourseType.COMMON_GENERAL, null, null, null);
             case "학기" -> new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, null, null, null);
             case "전공", "전필" -> new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null);
+            case "직선" -> new CourseClassificationView(CourseType.FIRST_MAJOR, "교직선택", null, null);
+            case "직필" -> new CourseClassificationView(CourseType.FIRST_MAJOR, "교직필수", null, null);
             case "복수1", "복수2" -> new CourseClassificationView(CourseType.SECOND_MAJOR, null, null, null);
             case "일교" -> new CourseClassificationView(CourseType.LIBERAL_ARTS, "일반교양", null, null);
             case "자선" -> new CourseClassificationView(CourseType.LIBERAL_ARTS, "자유선택", null, null);
             default -> new CourseClassificationView(null, null, null, null);
         };
+    }
+
+    private static boolean isTeachingCourseType(String courseTypeName) {
+        return "직선".equals(courseTypeName) || "직필".equals(courseTypeName);
     }
 
     private Map<Long, RuleResult> evaluateRules(List<GraduationRuleView> rules, EvaluationContext context) {

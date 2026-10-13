@@ -88,6 +88,14 @@ class GraduationQueryServiceTest {
     }
 
     @Test
+    void 교직선택과_교직필수는_제1전공의_별도_영역으로_추론된다() {
+        assertThat(GraduationQueryService.inferClassification("직선"))
+                .isEqualTo(new CourseClassificationView(CourseType.FIRST_MAJOR, "교직선택", null, null));
+        assertThat(GraduationQueryService.inferClassification("직필"))
+                .isEqualTo(new CourseClassificationView(CourseType.FIRST_MAJOR, "교직필수", null, null));
+    }
+
+    @Test
     void 이수구분_복수는_제2전공으로_추론된다() {
         assertThat(GraduationQueryService.inferClassification("복수1").courseType())
                 .isEqualTo(CourseType.SECOND_MAJOR);
@@ -252,6 +260,17 @@ class GraduationQueryServiceTest {
             assertThat(item.status()).isEqualTo("UNSATISFIED");
             assertThat(item.credit()).isEqualTo(0);
         });
+    }
+
+    @Test
+    void 필수과목_표시명은_을_이수_표현을_제거한다() {
+        givenTranscript(passed("CSE9999", "자료구조", 3, "전공", "전문"));
+        givenRequiredRule("CSE3001", "통치구조론을 이수하거나 헌법 졸업시험을 응시해야 합니다.");
+        givenNoClassification();
+
+        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
+
+        assertThat(items(response)).anySatisfy(item -> assertThat(item.title()).isEqualTo("통치구조론"));
     }
 
     // --- 최소 이수량 규칙(MIN_CREDITS)의 목표학점 표시 ---

@@ -41,6 +41,21 @@ class GpaEvaluatorTest extends EvaluatorTestSupport {
         assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
     }
 
+    @Test
+    void 교직_평점은_PDF에서_파싱한_교직평점으로_판정한다() {
+        var transcript = withTeachingSummary(transcript(0, 4.5, List.of()), 17, 2.75);
+        EvaluationContext ctx = context(transcript, Map.of());
+
+        assertThat(evaluator
+                        .evaluate(rule("{\"minGpa\":2.75,\"gpaScope\":\"TEACHING\"}"), ctx)
+                        .satisfied())
+                .isTrue();
+        assertThat(evaluator
+                        .evaluate(rule("{\"minGpa\":2.76,\"gpaScope\":\"TEACHING\"}"), ctx)
+                        .satisfied())
+                .isFalse();
+    }
+
     private GraduationRuleView rule(String config) {
         return new GraduationRuleView(1L, "GPA", null, "총 평점평균이 2.0 이상이어야 합니다.", config);
     }

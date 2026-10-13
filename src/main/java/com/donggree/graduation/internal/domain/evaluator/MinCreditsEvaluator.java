@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
  *   {"courseType": "ACADEMIC_FOUNDATION", "subCategories": ["실험"], "minCount": 1}
  *   {"courseType": "FIRST_MAJOR", "pdfAreaNames": ["전문"], "minCredits": 30}
  *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["전필"], "minCredits": 12}
+ *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["직선", "직필"], "minCredits": 17}
  *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["전필"], "pdfAreaNames": ["전문"], "minCredits": 9}
  *   {"courseType": "SECOND_MAJOR", "minCredits": 36, "applicableMajorRoles": ["SECONDARY"]}
  *
@@ -37,7 +38,7 @@ import org.springframework.stereotype.Component;
  * - areaNames·subCategories: course_classification의 영역·소분류.
  * - pdfAreaNames: 성적표 PDF의 영역 원문("기초", "전문" 등). course_classification에 등록되지 않은
  *   전공 과목의 전공기초/전공전문 구분이 PDF에만 존재하므로 필요하다.
- * - pdfCourseTypeNames: 성적표 PDF의 이수구분 원문("전필", "전공", "공교", "학기", "일교", "자선").
+ * - pdfCourseTypeNames: 성적표 PDF의 이수구분 원문("전필", "직선", "직필", "전공", "공교", "학기", "일교", "자선").
  *   전공필수 여부는 PDF의 이수구분 칸에만 "전필"로 표시되므로("전필" 과목의 영역 원문은 "기초"/"전문"이다),
  *   전필 학점을 세려면 pdfAreaNames가 아니라 이 선택자를 써야 한다.
  * - courseCodes: 학수번호. "DAI*" 같은 prefix 패턴을 지원한다.
@@ -55,6 +56,15 @@ public class MinCreditsEvaluator implements RuleEvaluator {
     @Override
     public RuleResult evaluate(GraduationRuleView rule, EvaluationContext context) {
         Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
+        if ("TEACHING_SUMMARY".equals(config.creditSource())) {
+            if (config.minCredits() == null) {
+                throw new IllegalStateException("교직 요약 학점 규칙은 minCredits가 필요합니다: " + rule.ruleConfig());
+            }
+            int credits = context.getTranscript().teachingCredits() == null
+                    ? 0
+                    : context.getTranscript().teachingCredits();
+            return new RuleResult(rule.ruleName(), credits >= config.minCredits());
+        }
         if (config.minCredits() == null && config.minCount() == null) {
             throw new IllegalStateException("MIN_CREDITS는 minCredits 또는 minCount가 필요합니다: " + rule.ruleConfig());
         }
@@ -119,6 +129,7 @@ public class MinCreditsEvaluator implements RuleEvaluator {
             List<String> pdfAreaNames,
             List<String> pdfCourseTypeNames,
             List<String> courseCodes,
+            String creditSource,
             Integer minCredits,
             Integer minCount) {}
 }

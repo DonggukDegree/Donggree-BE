@@ -85,6 +85,65 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         assertThat(evaluator.evaluate(multiAreaRule(), ctx).satisfied()).isFalse();
     }
 
+    @Test
+    void 제1전공_최소학점_기준에서_교직선택과_교직필수를_이수구분으로_선택할_수_있다() {
+        var records = List.of(
+                new CourseRecordView("2024-1", "ERC0001", "직선", "교직선택", "교육학개론", 2, true, false),
+                new CourseRecordView("2024-2", "ERC0013", "직필", "교직필수", "교직실무", 2, true, false));
+        var cls = Map.of(
+                "ERC0001", classification(CourseType.FIRST_MAJOR, "교직선택"),
+                "ERC0013", classification(CourseType.FIRST_MAJOR, "교직필수"));
+        EvaluationContext ctx = context(transcript(4, 4.0, records), cls);
+        var rule = new GraduationRuleView(
+                99L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "교직선택·교직필수 4학점",
+                "{\"courseType\":\"FIRST_MAJOR\",\"pdfCourseTypeNames\":[\"직선\",\"직필\"],\"minCredits\":4}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+    }
+
+    @Test
+    void 제1전공_최소학점_기준에서_교직선택과_교직필수_영역을_선택할_수_있다() {
+        var records = List.of(
+                new CourseRecordView("2024-1", "ERC0001", "직선", "교직선택", "교육학개론", 2, true, false),
+                new CourseRecordView("2024-2", "ERC0013", "직필", "교직필수", "교직실무", 2, true, false));
+        var cls = Map.of(
+                "ERC0001", classification(CourseType.FIRST_MAJOR, "교직선택"),
+                "ERC0013", classification(CourseType.FIRST_MAJOR, "교직필수"));
+        EvaluationContext ctx = context(transcript(4, 4.0, records), cls);
+        var rule = new GraduationRuleView(
+                100L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "교직 영역 4학점",
+                "{\"courseType\":\"FIRST_MAJOR\",\"areaNames\":[\"교직선택\",\"교직필수\"],\"minCredits\":4}");
+
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+    }
+
+    @Test
+    void 교직_요약학점_기준은_PDF_합계로_판정한다() {
+        var transcript = withTeachingSummary(transcript(4, 4.0, List.of()), 17, 4.19);
+        EvaluationContext ctx = context(transcript, Map.of());
+        var rule = new GraduationRuleView(
+                101L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "교직 17학점 이상",
+                "{\"creditSource\":\"TEACHING_SUMMARY\",\"minCredits\":17}");
+        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+
+        var higherThreshold = new GraduationRuleView(
+                102L,
+                "MIN_CREDITS",
+                CourseType.FIRST_MAJOR,
+                "교직 22학점 이상",
+                "{\"creditSource\":\"TEACHING_SUMMARY\",\"minCredits\":22}");
+        assertThat(evaluator.evaluate(higherThreshold, ctx).satisfied()).isFalse();
+    }
+
     // --- 이수구분 전체 최소학점 (구 MIN_AREA_CREDITS, areaNames=null) ---
 
     @Test

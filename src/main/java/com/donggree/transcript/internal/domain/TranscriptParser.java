@@ -31,7 +31,7 @@ public class TranscriptParser {
     private static final String GRADE_RE = "(?:A[+0]|B[+0]|C[+0]|D[+0]|[A-DF]|NP|P)";
     private static final String AREA_RE = "(?:[가-힣]{1,2}|[A-Za-z]{2}|\\d)";
     private static final String SEMESTER_RE = "\\d{4}-(?:[12]|여름|겨울|공통)";
-    private static final String CATEGORY_RE = "공교|전공|전필|복수1|복수2|일교|학기|자선";
+    private static final String CATEGORY_RE = "공교|전공|전필|직선|직필|복수1|복수2|일교|학기|자선";
     private static final String CODE_RE = "[A-Z]{2,3}\\d{3,5}|\\d{6}";
 
     /** 과목 행 시작 패턴: 학기 학년 이수구분 과목코드 */
@@ -78,6 +78,8 @@ public class TranscriptParser {
         {"평점평균", "평점평균\\s*:?\\s*([\\d.]+)"},
         {"제1전공총학점", "제1전공\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
         {"제1전공평점", "제1전공평점\\s*:?\\s*([\\d.]+)"},
+        {"교직총학점", "(?:직필직선|직선직필)\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
+        {"교직평점", "(?:직필직선|직선직필)평점\\s*:?\\s*([\\d.]+)"},
         {"공통교양총학점", "공통교양\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
         {"교양선택총학점", "교양선택\\s*:?\\s*총\\s*(\\d+)\\s*학점"},
         {"자유선택총학점", "자선\\s*:?\\s*총\\s*(\\d+)\\s*학점"},

@@ -38,6 +38,36 @@ class EvaluatorTestSupport {
                 records);
     }
 
+    static TranscriptView withTeachingSummary(TranscriptView transcript, Integer credits, double gpa) {
+        return new TranscriptView(
+                transcript.id(),
+                transcript.memberId(),
+                transcript.departmentId(),
+                transcript.dualMajor1Id(),
+                transcript.dualMajor2Id(),
+                transcript.subMajor1Id(),
+                transcript.subMajor2Id(),
+                transcript.admissionYear(),
+                transcript.studentType(),
+                transcript.engineeringCertified(),
+                transcript.totalCredits(),
+                transcript.gpa(),
+                transcript.englishLevel(),
+                transcript.englishCourseTarget(),
+                transcript.completedEnglishResult(),
+                transcript.englishPassResult(),
+                transcript.thesisStatus(),
+                transcript.dualMajor1ThesisStatus(),
+                transcript.transfer(),
+                transcript.dualMajorDeclared(),
+                transcript.unresolvedAdditionalMajor(),
+                transcript.courseRecords(),
+                transcript.majorGpa(),
+                transcript.teachingAptitudeCount(),
+                credits,
+                BigDecimal.valueOf(gpa));
+    }
+
     static TranscriptView transcriptWith(
             int totalCredits,
             double gpa,

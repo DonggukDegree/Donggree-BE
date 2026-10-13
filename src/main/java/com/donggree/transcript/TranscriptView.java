@@ -33,7 +33,64 @@ public record TranscriptView(
         boolean unresolvedAdditionalMajor,
         List<CourseRecordView> courseRecords,
         BigDecimal majorGpa,
-        Integer teachingAptitudeCount) {
+        Integer teachingAptitudeCount,
+        Integer teachingCredits,
+        BigDecimal teachingGpa) {
+
+    /** 직선·직필 요약값을 도입하기 전 호출부와 테스트 픽스처의 호환성 유지용 생성자. */
+    public TranscriptView(
+            Long id,
+            Long memberId,
+            Long departmentId,
+            Long dualMajor1Id,
+            Long dualMajor2Id,
+            Long subMajor1Id,
+            Long subMajor2Id,
+            int admissionYear,
+            String studentType,
+            boolean engineeringCertified,
+            int totalCredits,
+            BigDecimal gpa,
+            String englishLevel,
+            boolean englishCourseTarget,
+            Boolean completedEnglishResult,
+            Boolean englishPassResult,
+            boolean thesisStatus,
+            boolean dualMajor1ThesisStatus,
+            boolean transfer,
+            boolean dualMajorDeclared,
+            boolean unresolvedAdditionalMajor,
+            List<CourseRecordView> courseRecords,
+            BigDecimal majorGpa,
+            Integer teachingAptitudeCount) {
+        this(
+                id,
+                memberId,
+                departmentId,
+                dualMajor1Id,
+                dualMajor2Id,
+                subMajor1Id,
+                subMajor2Id,
+                admissionYear,
+                studentType,
+                engineeringCertified,
+                totalCredits,
+                gpa,
+                englishLevel,
+                englishCourseTarget,
+                completedEnglishResult,
+                englishPassResult,
+                thesisStatus,
+                dualMajor1ThesisStatus,
+                transfer,
+                dualMajorDeclared,
+                unresolvedAdditionalMajor,
+                courseRecords,
+                majorGpa,
+                teachingAptitudeCount,
+                null,
+                null);
+    }
 
     /** 기존 호출부와 테스트 픽스처의 판정 입력 호환성 유지용 생성자. */
     public TranscriptView(
@@ -82,6 +139,8 @@ public record TranscriptView(
                 dualMajorDeclared,
                 unresolvedAdditionalMajor,
                 courseRecords,
+                null,
+                null,
                 null,
                 null);
     }

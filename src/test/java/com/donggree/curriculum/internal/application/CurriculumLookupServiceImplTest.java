@@ -130,6 +130,32 @@ class CurriculumLookupServiceImplTest {
     }
 
     @Test
+    void 학과명_뒤의_괄호_접미부가_달라도_기본_학과명으로_연결한다() {
+        Department department = Department.create(1L, "국어교육과");
+        ReflectionTestUtils.setField(department, "id", 30L);
+        given(departmentRepository.findAllByDepartmentName("국어교육과(2022 교직)")).willReturn(List.of());
+        given(departmentRepository.findAllByDepartmentName("국어교육과（2000 교직）")).willReturn(List.of());
+        given(departmentRepository.findAllByDepartmentName("국어교육과")).willReturn(List.of(department));
+
+        assertThat(service.findDepartmentId("국어교육과(2022 교직)", 2022, false, null))
+                .contains(30L);
+        assertThat(service.findDepartmentId("국어교육과（2000 교직）", 2000, false, null))
+                .contains(30L);
+    }
+
+    @Test
+    void 괄호가_포함된_정확한_학과명이_등록되어_있으면_그_학과를_우선한다() {
+        Department department = Department.create(1L, "국어교육과(2022 교직)");
+        ReflectionTestUtils.setField(department, "id", 31L);
+        given(departmentRepository.findAllByDepartmentName("국어교육과(2022 교직)")).willReturn(List.of(department));
+
+        assertThat(service.findDepartmentId("국어교육과(2022 교직)", 2022, false, null))
+                .contains(31L);
+
+        Mockito.verify(departmentRepository, Mockito.never()).findAllByDepartmentName("국어교육과");
+    }
+
+    @Test
     void 동명_학과는_교육과정_적용년도에_맞는_단과대의_학과를_선택한다() {
         givenNames(true);
         given(requirementSetRepository.findByDepartmentIdInAndActiveTrue(anyList()))
