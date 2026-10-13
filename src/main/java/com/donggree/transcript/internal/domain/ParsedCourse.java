@@ -6,7 +6,7 @@ package com.donggree.transcript.internal.domain;
  *
  * @param semester   이수 학기 (예: "2023-1", "2024-여름", "2023-공통")
  * @param year       학년 (1~6)
- * @param category   이수구분 원시값 (공교, 전공, 전필, 복수1, 복수2, 일교, 학기, 자선)
+ * @param category   이수구분 원시값 (공교, 전공, 전필, 직선, 직필, 복수1, 복수2, 일교, 학기, 자선)
  * @param courseCode 과목 코드 (예: "CSE1101", "123456")
  * @param courseName 과목명
  * @param credits    학점

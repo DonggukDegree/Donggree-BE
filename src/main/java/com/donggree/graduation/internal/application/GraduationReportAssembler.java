@@ -448,7 +448,7 @@ public class GraduationReportAssembler {
     }
 
     private static String extractCourseTitle(String ruleName) {
-        for (String suffix : new String[] {"은 필수", "는 필수"}) {
+        for (String suffix : new String[] {"은 필수", "는 필수", "을 이수", "를 이수"}) {
             int idx = ruleName.indexOf(suffix);
             if (idx > 0) return ruleName.substring(0, idx);
         }

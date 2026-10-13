@@ -44,6 +44,43 @@ class GraduationAreaDisplayTest {
     }
 
     @Test
+    void 교직선택과_교직필수_과목을_제1전공_안의_별도_영역으로_표시한다() {
+        var transcript = transcript(List.of(course("ERC0001", "직선", null), course("ERC0013", "직필", null)));
+        var classifications = Map.of(
+                "ERC0001", GraduationQueryService.inferClassification("직선"),
+                "ERC0013", GraduationQueryService.inferClassification("직필"));
+        var rules = List.of(
+                new GraduationRuleView(
+                        1L,
+                        "MIN_CREDITS",
+                        CourseType.FIRST_MAJOR,
+                        "교직선택 3학점",
+                        "{\"courseType\":\"FIRST_MAJOR\",\"areaNames\":[\"교직선택\"],\"minCredits\":3}"),
+                new GraduationRuleView(
+                        2L,
+                        "MIN_CREDITS",
+                        CourseType.FIRST_MAJOR,
+                        "교직필수 3학점",
+                        "{\"courseType\":\"FIRST_MAJOR\",\"areaNames\":[\"교직필수\"],\"minCredits\":3}"));
+
+        var detail = detail(
+                CourseType.FIRST_MAJOR,
+                transcript,
+                classifications,
+                rules,
+                Map.of(1L, new RuleResult("교직선택 3학점", true), 2L, new RuleResult("교직필수 3학점", true)));
+
+        assertThat(detail.areaDetails())
+                .extracting(AreaDetailProjection.AreaSection::areaName)
+                .containsExactly("교직선택", "교직필수");
+        assertThat(detail.areaDetails())
+                .extracting(AreaDetailProjection.AreaSection::targetCredits)
+                .containsExactly(3, 3);
+        assertThat(detail.creditStatus().earnedCredits()).isEqualTo(6);
+        assertThat(detail.creditStatus().targetCredits()).isEqualTo(6);
+    }
+
+    @Test
     void 분류정보의_축약명과_정식명을_같은_영역으로_묶고_목표와_필수_안내를_유지한다() {
         var transcript = transcript(List.of(course("CSE0001", "복수1", "기초"), course("CSE0002", "복수1", "기초")));
         var classifications = Map.of(

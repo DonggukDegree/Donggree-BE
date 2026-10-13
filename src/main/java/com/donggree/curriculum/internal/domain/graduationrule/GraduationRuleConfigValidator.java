@@ -1,5 +1,6 @@
 package com.donggree.curriculum.internal.domain.graduationrule;
 
+import com.donggree.curriculum.CourseType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Set;
@@ -11,7 +12,7 @@ public final class GraduationRuleConfigValidator {
     private static final Set<String> ROLE_AWARE_TYPES =
             Set.of("MIN_CREDITS", "REQUIRED_COURSE", "THESIS", "ENGLISH_COURSE");
     private static final Set<String> MAJOR_ROLES = Set.of("SINGLE_PRIMARY", "DUAL_PRIMARY", "SECONDARY");
-    private static final Set<String> GPA_SCOPES = Set.of("TOTAL", "MAJOR");
+    private static final Set<String> GPA_SCOPES = Set.of("TOTAL", "MAJOR", "TEACHING");
 
     private GraduationRuleConfigValidator() {}
 
@@ -93,6 +94,24 @@ public final class GraduationRuleConfigValidator {
                         || adjustment.path("credits").asInt() <= 0) return false;
             }
             return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public static boolean hasValidCreditSource(String typeName, CourseType courseType, String ruleConfig) {
+        if (!"MIN_CREDITS".equals(typeName)) return true;
+        try {
+            JsonNode config = MAPPER.readTree(ruleConfig);
+            JsonNode source = config.path("creditSource");
+            if (source.isMissingNode() || source.isNull() || source.asText().isBlank()) return true;
+            return "TEACHING_SUMMARY".equals(source.asText())
+                    && courseType == CourseType.FIRST_MAJOR
+                    && config.path("minCredits").canConvertToInt()
+                    && config.path("minCredits").asInt() > 0
+                    && !config.hasNonNull("minCount")
+                    && (!config.hasNonNull("creditAdjustments")
+                            || config.path("creditAdjustments").isEmpty());
         } catch (Exception ignored) {
             return false;
         }

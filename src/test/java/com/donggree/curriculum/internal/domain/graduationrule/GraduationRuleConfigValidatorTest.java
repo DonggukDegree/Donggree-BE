@@ -2,10 +2,31 @@ package com.donggree.curriculum.internal.domain.graduationrule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.donggree.curriculum.CourseType;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class GraduationRuleConfigValidatorTest {
+
+    @Test
+    void 교직_요약학점_기준은_제1전공_범위에서_양의_최소학점으로_설정한다() {
+        assertThat(GraduationRuleConfigValidator.hasValidCreditSource(
+                        "MIN_CREDITS",
+                        CourseType.FIRST_MAJOR,
+                        "{\"creditSource\":\"TEACHING_SUMMARY\",\"minCredits\":22}"))
+                .isTrue();
+        assertThat(GraduationRuleConfigValidator.hasValidCreditSource(
+                        "MIN_CREDITS",
+                        CourseType.SECOND_MAJOR,
+                        "{\"creditSource\":\"TEACHING_SUMMARY\",\"minCredits\":22}"))
+                .isFalse();
+        assertThat(GraduationRuleConfigValidator.hasValidCreditSource(
+                        "MIN_CREDITS",
+                        CourseType.FIRST_MAJOR,
+                        "{\"creditSource\":\"TEACHING_SUMMARY\",\"minCredits\":0}"))
+                .isFalse();
+    }
 
     @ParameterizedTest
     @ValueSource(

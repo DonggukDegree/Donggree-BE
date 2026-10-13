@@ -61,6 +61,22 @@ class TranscriptParserTest {
         assertThat(result.meta().get("복수1졸업논문심사")).isEqualTo("합격");
     }
 
+    @Test
+    void 교직선택과_교직필수_과목의_이수구분과_성적을_파싱한다() {
+        var result = parser.parse(
+                """
+                2023-1 2 직선 ERC0001 교육학개론 2 A+
+                2023-2 2 직필 ERC0013 교직실무 2 B+
+                """);
+
+        assertThat(result.courses())
+                .extracting(ParsedCourse::category, ParsedCourse::courseCode, ParsedCourse::grade)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("직선", "ERC0001", "A+"),
+                        org.assertj.core.groups.Tuple.tuple("직필", "ERC0013", "B+"));
+        assertThat(result.courses()).extracting(ParsedCourse::area).containsOnly("");
+    }
+
     @Nested
     @DisplayName("텍스트 픽스처 기반 파싱")
     class TextFixtureParsingTest {
@@ -197,6 +213,15 @@ class TranscriptParserTest {
             assertThat(meta.get("영어강의이수결과")).isEqualTo("PASS");
             assertThat(meta.get("졸업논문심사")).isEqualTo("합격");
             assertThat(meta.get("주전공")).isEqualTo("테스트학부");
+        }
+
+        @Test
+        @DisplayName("교직 직필·직선 합계 학점과 평점이 파싱된다")
+        void teaching_summary_fields_are_parsed() {
+            Map<String, String> meta = parser.parseMeta("직필직선: 총17학점 직필직선평점: 4.19");
+
+            assertThat(meta.get("교직총학점")).isEqualTo("17");
+            assertThat(meta.get("교직평점")).isEqualTo("4.19");
         }
 
         @Test
