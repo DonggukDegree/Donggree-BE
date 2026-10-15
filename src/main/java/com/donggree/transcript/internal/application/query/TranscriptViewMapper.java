@@ -6,6 +6,7 @@ import com.donggree.transcript.TranscriptView;
 import com.donggree.transcript.internal.domain.ParsedCourse;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.CourseRecord;
+import com.donggree.transcript.internal.domain.transcript.GpaCalculator;
 import com.donggree.transcript.internal.domain.transcript.Transcript;
 import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -13,7 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -176,16 +176,12 @@ public class TranscriptViewMapper {
 
     /** 미저장 미리보기도 저장 성적표와 같은 전공·전필 평점 산식을 사용한다. */
     private BigDecimal calculateMajorGpa(List<ParsedCourse> courses) {
-        int denominator = 0;
-        BigDecimal weightedSum = BigDecimal.ZERO;
-        for (ParsedCourse course : courses) {
-            if (!("전공".equals(course.category()) || "전필".equals(course.category()))) continue;
-            Grade grade = Grade.fromValue(course.grade());
-            if (grade == Grade.P || grade == Grade.NP) continue;
-            denominator += course.credits();
-            weightedSum = weightedSum.add(grade.getGradePoint().multiply(BigDecimal.valueOf(course.credits())));
-        }
-        return denominator == 0 ? null : weightedSum.divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
+        return GpaCalculator.calculate(
+                courses.stream()
+                        .filter(course -> "전공".equals(course.category()) || "전필".equals(course.category()))
+                        .toList(),
+                ParsedCourse::credits,
+                course -> Grade.fromValue(course.grade()));
     }
 
     private boolean isPassed(Grade grade) {

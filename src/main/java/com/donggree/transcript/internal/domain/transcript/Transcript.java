@@ -243,21 +243,7 @@ public class Transcript extends BaseEntity {
 
     // 전체·전공별 평점에 동일한 학점 가중평균과 반올림 기준 적용. PDF 원본 평점으로 대체하지 않는다.
     private BigDecimal calculateGpa(List<CourseRecord> records) {
-        int gpaDenominator = records.stream()
-                .filter(r -> r.getGrade() != Grade.P && r.getGrade() != Grade.NP)
-                .mapToInt(CourseRecord::getCredits)
-                .sum();
-
-        if (gpaDenominator == 0) {
-            return null;
-        }
-
-        BigDecimal weightedSum = records.stream()
-                .filter(r -> r.getGrade() != Grade.P && r.getGrade() != Grade.NP)
-                .map(r -> r.getGrade().getGradePoint().multiply(BigDecimal.valueOf(r.getCredits())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return weightedSum.divide(BigDecimal.valueOf(gpaDenominator), 2, RoundingMode.HALF_UP);
+        return GpaCalculator.calculate(records, CourseRecord::getCredits, CourseRecord::getGrade);
     }
 
     /**

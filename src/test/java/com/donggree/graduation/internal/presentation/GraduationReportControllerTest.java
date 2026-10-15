@@ -14,7 +14,6 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
-import com.donggree.graduation.internal.application.GraduationQueryService;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection.AreaSection;
@@ -24,6 +23,7 @@ import com.donggree.graduation.internal.application.projection.GraduationReportP
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AdditionalNotice;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary;
+import com.donggree.graduation.internal.application.query.GraduationQueryService;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;

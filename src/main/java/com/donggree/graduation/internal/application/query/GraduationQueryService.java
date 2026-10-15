@@ -1,4 +1,4 @@
-package com.donggree.graduation.internal.application;
+package com.donggree.graduation.internal.application.query;
 
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
@@ -11,6 +11,7 @@ import com.donggree.graduation.internal.application.projection.AreaDetailProject
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
 import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AdditionalNotice;
 import com.donggree.graduation.internal.application.projection.ReportPreviewProjection;
+import com.donggree.graduation.internal.application.report.GraduationReportAssembler;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.MajorRoleRuleMatcher;

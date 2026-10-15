@@ -106,7 +106,7 @@ class SecurityConfigTest {
     private com.donggree.transcript.TranscriptPreviewService transcriptPreviewService;
 
     @MockitoBean
-    private com.donggree.graduation.internal.application.GraduationQueryService graduationQueryService;
+    private com.donggree.graduation.internal.application.query.GraduationQueryService graduationQueryService;
 
     @MockitoBean
     private com.donggree.curriculum.internal.application.courseclassification.CourseClassificationQueryService

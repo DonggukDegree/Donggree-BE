@@ -1,4 +1,4 @@
-package com.donggree.graduation.internal.application;
+package com.donggree.graduation.internal.application.report;
 
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.global.logging.RequestDiagnostics;

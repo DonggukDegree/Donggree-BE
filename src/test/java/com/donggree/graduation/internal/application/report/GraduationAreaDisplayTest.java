@@ -1,4 +1,4 @@
-package com.donggree.graduation.internal.application;
+package com.donggree.graduation.internal.application.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,8 +47,8 @@ class GraduationAreaDisplayTest {
     void 교직선택과_교직필수_과목을_제1전공_안의_별도_영역으로_표시한다() {
         var transcript = transcript(List.of(course("ERC0001", "직선", null), course("ERC0013", "직필", null)));
         var classifications = Map.of(
-                "ERC0001", GraduationQueryService.inferClassification("직선"),
-                "ERC0013", GraduationQueryService.inferClassification("직필"));
+                "ERC0001", new CourseClassificationView(CourseType.FIRST_MAJOR, "교직선택", null, null),
+                "ERC0013", new CourseClassificationView(CourseType.FIRST_MAJOR, "교직필수", null, null));
         var rules = List.of(
                 new GraduationRuleView(
                         1L,

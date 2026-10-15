@@ -1,4 +1,4 @@
-package com.donggree.graduation.internal.application;
+package com.donggree.graduation.internal.application.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
