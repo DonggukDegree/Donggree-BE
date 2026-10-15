@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.command.GraduationRuleCommand;
 import com.donggree.curriculum.internal.application.command.GraduationRuleUpsertCommand;
+import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleCommandService;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleType;

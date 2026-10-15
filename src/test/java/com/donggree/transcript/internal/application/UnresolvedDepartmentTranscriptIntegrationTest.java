@@ -8,11 +8,14 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.config.JpaAuditingConfig;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
+import com.donggree.transcript.internal.application.pdf.TranscriptPdfReader;
+import com.donggree.transcript.internal.application.query.TranscriptQueryService;
+import com.donggree.transcript.internal.application.query.TranscriptViewMapper;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.TranscriptRepository;
 import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.domain.transcript.TranscriptRepository;
 import com.donggree.transcript.internal.infrastructure.PdfTextExtractor;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.user.UserIdentityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -50,7 +53,7 @@ class UnresolvedDepartmentTranscriptIntegrationTest {
     private EntityManager entityManager;
 
     @MockitoBean
-    private MemberIdentityService memberIdentityService;
+    private UserIdentityService memberIdentityService;
 
     @Test
     void 학과_ID_없이_저장한_성적표를_본인만_조회하고_수정한다() {

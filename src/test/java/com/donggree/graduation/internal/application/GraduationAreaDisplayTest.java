@@ -8,7 +8,7 @@ import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
-import com.donggree.graduation.internal.domain.evaluator.MinCreditsEvaluator;
+import com.donggree.graduation.internal.domain.evaluator.credits.MinCreditsEvaluator;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
 import java.math.BigDecimal;

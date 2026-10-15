@@ -12,11 +12,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.CourseClassificationCommandService;
-import com.donggree.curriculum.internal.application.CourseClassificationQueryService;
+import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationCommandService;
+import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationQueryService;
 import com.donggree.curriculum.internal.application.projection.AreaTypeProjection;
 import com.donggree.curriculum.internal.application.projection.CourseClassificationProjection;
-import com.donggree.curriculum.internal.presentation.dto.CourseClassificationBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.courseclassification.CourseClassificationBatchRequest;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;

@@ -6,7 +6,6 @@ import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.LoginMemberId;
 import com.donggree.transcript.internal.application.TranscriptCommandService;
-import com.donggree.transcript.internal.application.TranscriptQueryService;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
@@ -14,9 +13,10 @@ import com.donggree.transcript.internal.application.command.TranscriptUpdateResu
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
+import com.donggree.transcript.internal.application.query.TranscriptQueryService;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
@@ -25,7 +25,7 @@ import com.donggree.transcript.internal.presentation.dto.TranscriptReportRespons
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.Meta;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.SemesterCourses;
 import com.donggree.transcript.internal.presentation.swagger.TranscriptApi;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.user.UserIdentityService;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
@@ -50,7 +50,7 @@ public class TranscriptController implements TranscriptApi {
     private final TranscriptQueryService transcriptQueryService;
     private final TranscriptCommandService transcriptCommandService;
     private final CurriculumLookupService curriculumLookupService;
-    private final MemberIdentityService memberIdentityService;
+    private final UserIdentityService memberIdentityService;
 
     @Override
     @GetMapping

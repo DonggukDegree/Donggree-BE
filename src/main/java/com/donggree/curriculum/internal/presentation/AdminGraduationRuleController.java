@@ -1,11 +1,11 @@
 package com.donggree.curriculum.internal.presentation;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.GraduationRuleCommandService;
-import com.donggree.curriculum.internal.application.GraduationRuleQueryService;
-import com.donggree.curriculum.internal.presentation.dto.GraduationRuleBatchRequest;
-import com.donggree.curriculum.internal.presentation.dto.GraduationRuleResponse;
-import com.donggree.curriculum.internal.presentation.dto.RuleTypeResponse;
+import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleCommandService;
+import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleQueryService;
+import com.donggree.curriculum.internal.presentation.dto.graduationrule.GraduationRuleBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.graduationrule.GraduationRuleResponse;
+import com.donggree.curriculum.internal.presentation.dto.graduationrule.RuleTypeResponse;
 import com.donggree.curriculum.internal.presentation.swagger.AdminGraduationRuleApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;

@@ -21,23 +21,23 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.transcript.internal.application.TranscriptCommandService;
-import com.donggree.transcript.internal.application.TranscriptPdfReader;
-import com.donggree.transcript.internal.application.TranscriptQueryService;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
+import com.donggree.transcript.internal.application.pdf.TranscriptPdfReader;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawCourseRecord;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawMeta;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
+import com.donggree.transcript.internal.application.query.TranscriptQueryService;
 import com.donggree.transcript.internal.domain.ParsedCourse;
 import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.TranscriptCreateData;
 import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest.CourseItem;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.user.UserIdentityService;
 import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -65,7 +65,7 @@ class TranscriptControllerTest extends RestDocsSupport {
     private final TranscriptQueryService transcriptQueryService = Mockito.mock(TranscriptQueryService.class);
     private final TranscriptCommandService transcriptCommandService = Mockito.mock(TranscriptCommandService.class);
     private final CurriculumLookupService curriculumLookupService = Mockito.mock(CurriculumLookupService.class);
-    private final MemberIdentityService memberIdentityService = Mockito.mock(MemberIdentityService.class);
+    private final UserIdentityService memberIdentityService = Mockito.mock(UserIdentityService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override

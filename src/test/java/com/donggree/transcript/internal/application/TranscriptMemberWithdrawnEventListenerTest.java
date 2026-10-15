@@ -4,9 +4,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import com.donggree.transcript.internal.domain.Transcript;
-import com.donggree.transcript.internal.domain.TranscriptCreateData;
-import com.donggree.transcript.internal.domain.TranscriptRepository;
+import com.donggree.transcript.internal.domain.transcript.Transcript;
+import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
+import com.donggree.transcript.internal.domain.transcript.TranscriptRepository;
 import com.donggree.user.event.MemberWithdrawnEvent;
 import java.math.BigDecimal;
 import java.util.Optional;

@@ -6,13 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * graduation_rule.rule_config JSON 문자열을 파싱하는 evaluator 내부 유틸리티.
  */
-final class RuleConfigParser {
+public final class RuleConfigParser {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private RuleConfigParser() {}
 
-    static <T> T parse(String json, Class<T> configType) {
+    public static <T> T parse(String json, Class<T> configType) {
         if (json == null || json.isBlank()) {
             throw new IllegalStateException("rule_config가 비어 있습니다.");
         }

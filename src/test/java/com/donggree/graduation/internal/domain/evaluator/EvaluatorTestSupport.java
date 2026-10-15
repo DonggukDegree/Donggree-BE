@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 /** 평가기 단위 테스트에서 공통으로 사용하는 헬퍼 메서드 모음. */
-class EvaluatorTestSupport {
+public abstract class EvaluatorTestSupport {
 
-    static TranscriptView transcript(int totalCredits, double gpa, List<CourseRecordView> records) {
+    protected static TranscriptView transcript(int totalCredits, double gpa, List<CourseRecordView> records) {
         return new TranscriptView(
                 1L,
                 1L,
@@ -38,7 +38,7 @@ class EvaluatorTestSupport {
                 records);
     }
 
-    static TranscriptView withTeachingSummary(TranscriptView transcript, Integer credits, double gpa) {
+    protected static TranscriptView withTeachingSummary(TranscriptView transcript, Integer credits, double gpa) {
         return new TranscriptView(
                 transcript.id(),
                 transcript.memberId(),
@@ -68,7 +68,7 @@ class EvaluatorTestSupport {
                 BigDecimal.valueOf(gpa));
     }
 
-    static TranscriptView transcriptWith(
+    protected static TranscriptView transcriptWith(
             int totalCredits,
             double gpa,
             boolean englishTarget,
@@ -102,7 +102,7 @@ class EvaluatorTestSupport {
                 records);
     }
 
-    static TranscriptView transcriptWithThesisStatuses(
+    protected static TranscriptView transcriptWithThesisStatuses(
             boolean primaryPassed, boolean secondaryPassed, String studentType, List<CourseRecordView> records) {
         return new TranscriptView(
                 1L,
@@ -129,32 +129,32 @@ class EvaluatorTestSupport {
                 records);
     }
 
-    static CourseRecordView passed(String code, String name, int credits, String semester) {
+    protected static CourseRecordView passed(String code, String name, int credits, String semester) {
         return new CourseRecordView(semester, code, null, null, name, credits, true, false);
     }
 
-    static CourseRecordView failed(String code, String name, int credits, String semester) {
+    protected static CourseRecordView failed(String code, String name, int credits, String semester) {
         return new CourseRecordView(semester, code, null, null, name, credits, false, false);
     }
 
-    static EvaluationContext context(TranscriptView t, Map<String, CourseClassificationView> cls) {
+    protected static EvaluationContext context(TranscriptView t, Map<String, CourseClassificationView> cls) {
         return new EvaluationContext(t, cls);
     }
 
-    static EvaluationContext contextNoClassification(TranscriptView t) {
+    protected static EvaluationContext contextNoClassification(TranscriptView t) {
         return new EvaluationContext(t, Map.of());
     }
 
-    static CourseClassificationView classification(
+    protected static CourseClassificationView classification(
             CourseType type, String areaName, String subCategory, String subjectDomain) {
         return new CourseClassificationView(type, areaName, subCategory, subjectDomain);
     }
 
-    static CourseClassificationView classification(CourseType type, String areaName) {
+    protected static CourseClassificationView classification(CourseType type, String areaName) {
         return new CourseClassificationView(type, areaName, null, null);
     }
 
-    static CourseClassificationView classification(CourseType type) {
+    protected static CourseClassificationView classification(CourseType type) {
         return new CourseClassificationView(type, null, null, null);
     }
 }

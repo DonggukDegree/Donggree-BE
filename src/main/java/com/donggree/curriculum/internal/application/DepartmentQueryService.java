@@ -1,7 +1,7 @@
 package com.donggree.curriculum.internal.application;
 
-import com.donggree.curriculum.internal.application.projection.CollegeProjection;
-import com.donggree.curriculum.internal.application.projection.DepartmentProjection;
+import com.donggree.curriculum.internal.application.projection.organization.CollegeProjection;
+import com.donggree.curriculum.internal.application.projection.organization.DepartmentProjection;
 import com.donggree.curriculum.internal.domain.college.College;
 import com.donggree.curriculum.internal.domain.college.CollegeRepository;
 import com.donggree.curriculum.internal.domain.department.Department;

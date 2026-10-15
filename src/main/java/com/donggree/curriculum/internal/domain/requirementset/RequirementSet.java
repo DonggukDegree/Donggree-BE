@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 /**
  * 졸업 요건 세트를 나타내는 루트 애그리거트.
  * 특정 학과의 입학년도 범위와 과정(일반/심화)에 적용되는 졸업 규칙들의 모음이다.
- * GraduationRule을 하위 엔티티로 소유하며, 반드시 이 엔티티를 통해 규칙을 추가한다.
+ * 독립적으로 관리되는 GraduationRule을 공유 참조하며, 이 세트는 규칙의 연결 목록을 관리한다.
  */
 @Entity
 @Table(

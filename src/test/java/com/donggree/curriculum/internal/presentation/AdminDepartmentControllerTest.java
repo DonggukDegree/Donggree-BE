@@ -11,8 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.internal.application.DepartmentQueryService;
-import com.donggree.curriculum.internal.application.projection.CollegeProjection;
-import com.donggree.curriculum.internal.application.projection.DepartmentProjection;
+import com.donggree.curriculum.internal.application.projection.organization.CollegeProjection;
+import com.donggree.curriculum.internal.application.projection.organization.DepartmentProjection;
 import com.donggree.global.support.RestDocsSupport;
 import java.util.List;
 import org.junit.jupiter.api.Test;

@@ -13,8 +13,8 @@ import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.global.auth.JwtProperties;
 import com.donggree.global.auth.JwtTokenProvider;
 import com.donggree.transcript.internal.application.TranscriptCommandService;
-import com.donggree.transcript.internal.application.TranscriptQueryService;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.transcript.internal.application.query.TranscriptQueryService;
+import com.donggree.user.UserIdentityService;
 import com.donggree.user.internal.application.AuthService;
 import com.donggree.user.internal.application.UserCommandService;
 import com.donggree.user.internal.application.UserQueryService;
@@ -100,7 +100,7 @@ class SecurityConfigTest {
     private CurriculumLookupService curriculumLookupService;
 
     @MockitoBean
-    private MemberIdentityService memberIdentityService;
+    private UserIdentityService memberIdentityService;
 
     @MockitoBean
     private com.donggree.transcript.TranscriptPreviewService transcriptPreviewService;
@@ -109,24 +109,28 @@ class SecurityConfigTest {
     private com.donggree.graduation.internal.application.GraduationQueryService graduationQueryService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.CourseClassificationQueryService
+    private com.donggree.curriculum.internal.application.courseclassification.CourseClassificationQueryService
             courseClassificationQueryService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.CourseClassificationCommandService
+    private com.donggree.curriculum.internal.application.courseclassification.CourseClassificationCommandService
             courseClassificationCommandService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.GraduationRuleQueryService graduationRuleQueryService;
+    private com.donggree.curriculum.internal.application.graduationrule.GraduationRuleQueryService
+            graduationRuleQueryService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.GraduationRuleCommandService graduationRuleCommandService;
+    private com.donggree.curriculum.internal.application.graduationrule.GraduationRuleCommandService
+            graduationRuleCommandService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.RequirementSetQueryService requirementSetQueryService;
+    private com.donggree.curriculum.internal.application.requirementset.RequirementSetQueryService
+            requirementSetQueryService;
 
     @MockitoBean
-    private com.donggree.curriculum.internal.application.RequirementSetCommandService requirementSetCommandService;
+    private com.donggree.curriculum.internal.application.requirementset.RequirementSetCommandService
+            requirementSetCommandService;
 
     @MockitoBean
     private com.donggree.curriculum.internal.application.DepartmentQueryService departmentQueryService;

@@ -6,6 +6,8 @@ import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluator.courses.RequiredCourseEvaluator;
+import com.donggree.graduation.internal.domain.evaluator.credits.MinCreditsEvaluator;
 import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;

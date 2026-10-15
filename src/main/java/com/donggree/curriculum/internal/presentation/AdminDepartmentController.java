@@ -1,8 +1,8 @@
 package com.donggree.curriculum.internal.presentation;
 
 import com.donggree.curriculum.internal.application.DepartmentQueryService;
-import com.donggree.curriculum.internal.presentation.dto.CollegeResponse;
-import com.donggree.curriculum.internal.presentation.dto.DepartmentResponse;
+import com.donggree.curriculum.internal.presentation.dto.organization.CollegeResponse;
+import com.donggree.curriculum.internal.presentation.dto.organization.DepartmentResponse;
 import com.donggree.curriculum.internal.presentation.swagger.AdminDepartmentApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;

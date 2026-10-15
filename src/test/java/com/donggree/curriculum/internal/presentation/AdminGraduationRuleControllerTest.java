@@ -13,12 +13,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.GraduationRuleCommandService;
-import com.donggree.curriculum.internal.application.GraduationRuleQueryService;
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
+import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleCommandService;
+import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleQueryService;
 import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
 import com.donggree.curriculum.internal.application.projection.RuleTypeProjection;
-import com.donggree.curriculum.internal.presentation.dto.GraduationRuleBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.graduationrule.GraduationRuleBatchRequest;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
