@@ -9,3 +9,10 @@ monitoring
 *.md
 .env
 .env.*
+
+# 로컬 백업·개인 성적표는 이미지 빌드에 전달하지 않는다.
+backup.sql
+src/test/resources/pdf
+.DS_Store
+**/.DS_Store
+.agents
