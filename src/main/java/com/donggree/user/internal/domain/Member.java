@@ -112,7 +112,7 @@ public class Member extends BaseEntity {
     }
 
     /**
-     * 본인 인증을 완료 처리한다. transcript 모듈의 PDF 인증 이벤트 수신 시 사용된다.
+     * 본인 인증을 완료 처리한다. PDF 업로드 트랜잭션에서 회원 공개 서비스를 통해 동기 호출된다.
      */
     public void verifyIdentity() {
         this.identityVerified = true;
