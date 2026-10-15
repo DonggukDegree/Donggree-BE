@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
  * JWT 액세스/리프레시 토큰 생성, 검증, 클레임 추출을 담당하는 컴포넌트.
  */
 @Component
+@org.springframework.modulith.NamedInterface("auth")
 public class JwtTokenProvider {
 
     private final SecretKey key;
