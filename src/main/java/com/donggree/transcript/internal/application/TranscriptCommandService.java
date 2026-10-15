@@ -2,13 +2,13 @@ package com.donggree.transcript.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.application.pdf.TranscriptPdfReader;
 import com.donggree.transcript.internal.application.query.TranscriptRecordGrouper;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.transcript.CourseRecordData;
 import com.donggree.transcript.internal.domain.transcript.Transcript;
 import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;

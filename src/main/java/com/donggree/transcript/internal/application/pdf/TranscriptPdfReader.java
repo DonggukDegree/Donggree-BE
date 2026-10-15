@@ -3,12 +3,10 @@ package com.donggree.transcript.internal.application.pdf;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.logging.RequestDiagnostics;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.TranscriptParser;
 import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
-import com.donggree.transcript.internal.infrastructure.PdfTextExtractor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -22,9 +20,9 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class TranscriptPdfReader {
-    private final PdfTextExtractor pdfTextExtractor;
+    private final PdfTextReader pdfTextExtractor;
     private final ObjectMapper objectMapper;
-    private final TranscriptParser parser = new TranscriptParser();
+    private final TranscriptTextParser parser;
 
     /**
      * PDF를 파싱하여 결과와 원문 JSON을 반환한다.

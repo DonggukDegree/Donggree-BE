@@ -3,7 +3,7 @@ package com.donggree.transcript.internal.application.query;
 import com.donggree.global.logging.RequestDiagnostics;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
-import com.donggree.transcript.internal.domain.ParsedCourse;
+import com.donggree.transcript.internal.application.command.ParsedCourse;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.CourseRecord;
 import com.donggree.transcript.internal.domain.transcript.GpaCalculator;

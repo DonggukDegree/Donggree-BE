@@ -1,4 +1,4 @@
-package com.donggree.transcript.internal.domain;
+package com.donggree.transcript.internal.application.command;
 
 /**
  * PDF에서 파싱한 개별 교과목 정보를 담는 레코드.

@@ -22,6 +22,8 @@ import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.transcript.internal.application.TranscriptCommandService;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedCourse;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
@@ -31,8 +33,6 @@ import com.donggree.transcript.internal.application.projection.TranscriptReportP
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawMeta;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
 import com.donggree.transcript.internal.application.query.TranscriptQueryService;
-import com.donggree.transcript.internal.domain.ParsedCourse;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
@@ -310,7 +310,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         authenticate(1L);
         ParsedTranscriptData parsed = parsedForDepartment(department);
         String rawData = objectMapper.writeValueAsString(Map.of("meta", parsed.meta()));
-        TranscriptCreateData createData = new TranscriptPdfReader(null, objectMapper)
+        TranscriptCreateData createData = new TranscriptPdfReader(null, objectMapper, null)
                 .buildCreateData(1L, rawData, parsed, null, null, null, null, null);
         given(transcriptCommandService.parseTranscript(any(byte[].class)))
                 .willReturn(new TranscriptParseResult(parsed, rawData));

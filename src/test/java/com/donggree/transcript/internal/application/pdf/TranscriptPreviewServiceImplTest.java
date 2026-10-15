@@ -14,7 +14,7 @@ import com.donggree.transcript.internal.application.query.TranscriptViewMapper;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.Transcript;
 import com.donggree.transcript.internal.domain.transcript.TranscriptRepository;
-import com.donggree.transcript.internal.infrastructure.PdfTextExtractor;
+import com.donggree.transcript.internal.infrastructure.PdfTranscriptTextParser;
 import com.donggree.user.UserIdentityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -27,11 +27,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class TranscriptPreviewServiceImplTest {
     private final byte[] pdf = {1, 2, 3};
-    private final PdfTextExtractor extractor = mock(PdfTextExtractor.class);
+    private final PdfTextReader extractor = mock(PdfTextReader.class);
     private final CurriculumLookupService curriculum = mock(CurriculumLookupService.class);
     private final TranscriptRepository repository = mock(TranscriptRepository.class);
     private final UserIdentityService identity = mock(UserIdentityService.class);
-    private final TranscriptPdfReader reader = new TranscriptPdfReader(extractor, new ObjectMapper());
+    private final TranscriptPdfReader reader =
+            new TranscriptPdfReader(extractor, new ObjectMapper(), new PdfTranscriptTextParser());
     private final TranscriptViewMapper mapper = new TranscriptViewMapper(new ObjectMapper());
     private final TranscriptPreviewServiceImpl service = new TranscriptPreviewServiceImpl(reader, mapper, curriculum);
 

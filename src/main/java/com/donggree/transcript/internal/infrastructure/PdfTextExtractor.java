@@ -1,5 +1,6 @@
 package com.donggree.transcript.internal.infrastructure;
 
+import com.donggree.transcript.internal.application.pdf.PdfTextReader;
 import java.io.IOException;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
  * 위치 기반 정렬을 활성화하여 원본 레이아웃 순서를 유지한다.
  */
 @Component
-public class PdfTextExtractor {
+public class PdfTextExtractor implements PdfTextReader {
 
     /**
      * PDF 바이트 배열에서 텍스트를 추출한다.
@@ -20,6 +21,7 @@ public class PdfTextExtractor {
      * @return 추출된 텍스트
      * @throws IOException PDF 로딩 또는 텍스트 추출 실패 시
      */
+    @Override
     public String extract(byte[] pdfBytes) throws IOException {
         try (PDDocument doc = Loader.loadPDF(pdfBytes)) {
             PDFTextStripper stripper = new PDFTextStripper();

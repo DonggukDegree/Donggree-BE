@@ -7,6 +7,7 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.LoginMemberId;
 import com.donggree.transcript.internal.application.TranscriptCommandService;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
@@ -14,7 +15,6 @@ import com.donggree.transcript.internal.application.exception.TranscriptErrorCod
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
 import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
 import com.donggree.transcript.internal.application.query.TranscriptQueryService;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;

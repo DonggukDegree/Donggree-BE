@@ -1,4 +1,4 @@
-package com.donggree.transcript.internal.domain;
+package com.donggree.transcript.internal.application.command;
 
 import java.util.List;
 import java.util.Map;

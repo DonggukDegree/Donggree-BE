@@ -1,15 +1,16 @@
-package com.donggree.transcript.internal.domain;
+package com.donggree.transcript.internal.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.donggree.transcript.internal.application.command.ParsedCourse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /** 개인정보 없이 PDF에서 확인한 성적·영역 공백 누락을 재현한다. */
-class TranscriptParserAreaTest {
-    private final TranscriptParser parser = new TranscriptParser();
+class PdfTranscriptTextParserAreaTest {
+    private final PdfTranscriptTextParser parser = new PdfTranscriptTextParser();
 
     @ParameterizedTest
     @ValueSource(strings = {"A+", "A0", "B+", "B0", "C+", "C0", "D+", "D0", "F", "P", "NP"})

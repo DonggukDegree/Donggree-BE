@@ -7,14 +7,15 @@ import static org.mockito.BDDMockito.then;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.config.JpaAuditingConfig;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
 import com.donggree.transcript.internal.application.pdf.TranscriptPdfReader;
 import com.donggree.transcript.internal.application.query.TranscriptQueryService;
 import com.donggree.transcript.internal.application.query.TranscriptViewMapper;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.TranscriptRepository;
 import com.donggree.transcript.internal.infrastructure.PdfTextExtractor;
+import com.donggree.transcript.internal.infrastructure.PdfTranscriptTextParser;
 import com.donggree.user.UserIdentityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
@@ -37,6 +38,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     TranscriptViewMapper.class,
     TranscriptPdfReader.class,
     PdfTextExtractor.class,
+    PdfTranscriptTextParser.class,
     ObjectMapper.class
 })
 class UnresolvedDepartmentTranscriptIntegrationTest {

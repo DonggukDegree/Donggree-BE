@@ -1,5 +1,8 @@
-package com.donggree.transcript.internal.domain;
+package com.donggree.transcript.internal.infrastructure;
 
+import com.donggree.transcript.internal.application.command.ParsedCourse;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
+import com.donggree.transcript.internal.application.pdf.TranscriptTextParser;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -10,10 +13,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * PDF에서 추출한 텍스트를 파싱하여 성적 메타 정보와 수강 이력을 추출하는 도메인 서비스.
+ * PDF에서 추출한 텍스트를 파싱하여 성적 메타 정보와 수강 이력을 추출하는 인프라 어댑터.
  * nDRIMS "취득교과목 영역별 분류표" PDF 형식에 특화되어 있다.
  */
-public class TranscriptParser {
+@org.springframework.stereotype.Component
+public class PdfTranscriptTextParser implements TranscriptTextParser {
 
     /** 이수구분별 유효 영역 매핑 */
     private static final Map<String, Set<String>> AREA_BY_CATEGORY = Map.of(
@@ -114,6 +118,7 @@ public class TranscriptParser {
      * @return 파싱된 성적표 데이터 (메타 정보 + 교과목 목록)
      * @throws IllegalArgumentException pdfText가 null인 경우
      */
+    @Override
     public ParsedTranscriptData parse(String pdfText) {
         if (pdfText == null) {
             throw new IllegalArgumentException("pdfText must not be null");
