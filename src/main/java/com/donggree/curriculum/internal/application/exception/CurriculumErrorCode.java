@@ -21,6 +21,8 @@ public enum CurriculumErrorCode implements BaseErrorCode {
 
     RULE_TYPE_NOT_FOUND(HttpStatus.BAD_REQUEST, "CURRICULUM400_2", "존재하지 않는 규칙 종류입니다."),
 
+    UNSUPPORTED_RULE_TYPE(HttpStatus.BAD_REQUEST, "CURRICULUM400_7", "판정기가 지원하지 않는 규칙 종류입니다."),
+
     DUPLICATE_GRADUATION_RULE(HttpStatus.CONFLICT, "CURRICULUM409_2", "규칙 종류, 규칙 이름, 규칙 옵션이 모두 동일한 졸업 규칙이 이미 존재합니다."),
 
     INVALID_GRADUATION_RULE_CONFIG(HttpStatus.BAD_REQUEST, "CURRICULUM400_5", "졸업 규칙 옵션의 형식이나 값이 올바르지 않습니다."),

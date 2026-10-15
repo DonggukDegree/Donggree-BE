@@ -3,10 +3,14 @@ package com.donggree;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.donggree.curriculum.GraduationRuleType;
+import com.donggree.graduation.internal.domain.RuleEvaluator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.ObservationRegistry;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +49,18 @@ class DonggreeApplicationTests {
 
     @Autowired
     private MeterRegistry meterRegistry;
+
+    @Autowired
+    private List<RuleEvaluator> evaluators;
+
+    @Test
+    void 등록을_허용하는_모든_규칙에_중복_없는_판정기가_있다() {
+        assertThat(evaluators)
+                .extracting(RuleEvaluator::supportedTypeName)
+                .containsExactlyInAnyOrderElementsOf(Arrays.stream(GraduationRuleType.values())
+                        .map(Enum::name)
+                        .toList());
+    }
 
     @Test
     void Modulith_관측을_활성화한_실제_서버가_기동한다() {

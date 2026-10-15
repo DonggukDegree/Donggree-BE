@@ -1,5 +1,6 @@
 package com.donggree.curriculum.internal.application.graduationrule;
 
+import com.donggree.curriculum.GraduationRuleType;
 import com.donggree.curriculum.internal.application.command.GraduationRuleCommand;
 import com.donggree.curriculum.internal.application.command.GraduationRuleUpsertCommand;
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
@@ -132,6 +133,9 @@ public class GraduationRuleCommandService {
     private Map<Long, RuleType> findAndValidateRuleTypes(List<GraduationRuleUpsertCommand> items) {
         Set<Long> ruleTypeIds =
                 items.stream().map(item -> item.data().ruleTypeId()).collect(Collectors.toSet());
+        if (ruleTypeIds.contains(null)) {
+            throw new GeneralException(CurriculumErrorCode.RULE_TYPE_NOT_FOUND);
+        }
         if (ruleTypeIds.isEmpty()) {
             return Map.of();
         }
@@ -139,6 +143,9 @@ public class GraduationRuleCommandService {
                 .collect(Collectors.toMap(RuleType::getId, ruleType -> ruleType));
         if (ruleTypes.size() != ruleTypeIds.size()) {
             throw new GeneralException(CurriculumErrorCode.RULE_TYPE_NOT_FOUND);
+        }
+        if (ruleTypes.values().stream().anyMatch(type -> !GraduationRuleType.supports(type.getTypeName()))) {
+            throw new GeneralException(CurriculumErrorCode.UNSUPPORTED_RULE_TYPE);
         }
         return ruleTypes;
     }

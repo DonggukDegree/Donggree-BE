@@ -18,8 +18,11 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -71,16 +74,21 @@ class GraduationRuleCommandServiceTest {
         GraduationRule existing = rule(1L, 10L, "옛이름");
         given(graduationRuleRepository.findById(1L)).willReturn(Optional.of(existing));
         given(ruleTypeRepository.findAllById(Set.of(20L)))
-                .willReturn(List.of(ruleType(20L, "MIN_AREA_CREDITS", CourseType.FIRST_MAJOR)));
+                .willReturn(List.of(ruleType(20L, "MIN_CREDITS", CourseType.FIRST_MAJOR)));
         given(graduationRuleRepository.findAllByRuleTypeIdAndRuleName(20L, "새이름"))
                 .willReturn(List.of());
 
-        List<Long> ids = service.upsert(List.of(item(1L, new GraduationRuleCommand(20L, "새이름", "{\"x\":1}", "설명"))));
+        List<Long> ids = service.upsert(List.of(item(
+                1L,
+                new GraduationRuleCommand(
+                        20L, "새이름", "{\"minCredits\":1,\"applicableMajorRoles\":[\"SINGLE_PRIMARY\"]}", "설명"))));
 
         assertThat(ids).containsExactly(1L);
         assertThat(existing.getRuleTypeId()).isEqualTo(20L);
         assertThat(existing.getRuleName()).isEqualTo("새이름");
-        assertThat(existing.getRuleConfig()).isEqualTo("{\"x\":1}");
+        assertThat(existing.getRuleConfig())
+                .isEqualTo(GraduationRuleConfig.normalize(
+                        "{\"minCredits\":1,\"applicableMajorRoles\":[\"SINGLE_PRIMARY\"]}"));
     }
 
     @Test
@@ -345,6 +353,37 @@ class GraduationRuleCommandServiceTest {
         assertError(
                 List.of(item(null, new GraduationRuleCommand(10L, "총학점", "{}", null))),
                 CurriculumErrorCode.DUPLICATE_GRADUATION_RULE);
+    }
+
+    @ParameterizedTest
+    @MethodSource("unsupportedRuleTypes")
+    void 판정기가_없는_종류는_등록과_수정을_모두_거절한다(Long id, String typeName) {
+        RuleType type = ruleType(10L, "TOTAL_CREDITS", null);
+        // DB의 오래된 종류·오입력도 서비스 경계에서 방어한다.
+        ReflectionTestUtils.setField(type, "typeName", typeName);
+        given(ruleTypeRepository.findAllById(Set.of(10L))).willReturn(List.of(type));
+
+        assertError(
+                List.of(item(id, new GraduationRuleCommand(10L, "규칙", "{}", null))),
+                CurriculumErrorCode.UNSUPPORTED_RULE_TYPE);
+        Mockito.verifyNoInteractions(graduationRuleRepository);
+    }
+
+    private static Stream<Arguments> unsupportedRuleTypes() {
+        return Stream.of(null, "", " ", "UNKNOWN", "MIN_AREA_CREDITS", "SCIENCE_EXPERIMENT")
+                .flatMap(type -> Stream.of(Arguments.of(null, type), Arguments.of(7L, type)));
+    }
+
+    @Test
+    void 배치에_미지원_종류가_있으면_지원_규칙도_저장하지_않는다() {
+        given(ruleTypeRepository.findAllById(Set.of(10L, 20L)))
+                .willReturn(List.of(ruleType(10L, "TOTAL_CREDITS", null), ruleType(20L, "UNKNOWN", null)));
+        assertError(
+                List.of(
+                        item(null, new GraduationRuleCommand(10L, "총학점", "{}", null)),
+                        item(null, new GraduationRuleCommand(20L, "미지원", "{}", null))),
+                CurriculumErrorCode.UNSUPPORTED_RULE_TYPE);
+        Mockito.verifyNoInteractions(graduationRuleRepository);
     }
 
     private void assertError(List<GraduationRuleUpsertCommand> items, CurriculumErrorCode expected) {

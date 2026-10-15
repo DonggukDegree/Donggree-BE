@@ -153,4 +153,20 @@ class AdminGraduationRuleControllerTest extends RestDocsSupport {
                                 fieldWithPath("message").description("종류·이름·옵션 전체 중복 안내(설명 제외)"),
                                 fieldWithPath("result").optional().description("결과 없음"))));
     }
+
+    @Test
+    void 미지원_규칙_종류_등록은_400으로_응답한다() throws Exception {
+        Mockito.doThrow(new GeneralException(CurriculumErrorCode.UNSUPPORTED_RULE_TYPE))
+                .when(graduationRuleCommandService)
+                .upsert(Mockito.anyList());
+        mockMvc.perform(
+                        RestDocumentationRequestBuilders.put("/api/admin/graduation-rules")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                {"items":[{"id":null,"ruleTypeId":1,"ruleName":"규칙","ruleConfig":{}}]}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CURRICULUM400_7"));
+    }
 }
