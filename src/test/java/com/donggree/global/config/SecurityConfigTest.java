@@ -49,6 +49,13 @@ class SecurityConfigTest {
     @Test
     void 요약_API_실제_보안_필터에서도_학생과_관리자_운영_지표를_구분한다() throws Exception {
         meterRegistry.clear();
+        given(graduationQueryService.getReport(999L))
+                .willReturn(new com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel(
+                        new com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.Summary(
+                                0, 0, 130, 130, java.math.BigDecimal.ZERO, false, java.util.List.of()),
+                        java.util.List.of(),
+                        false,
+                        null));
         for (String role : new String[] {"STUDENT", "ADMIN", "SUPER_ADMIN"}) {
             mockMvc.perform(get("/api/reports/summary")
                             .header("Authorization", "Bearer " + jwtTokenProvider.generateAccessToken(999L, role)))

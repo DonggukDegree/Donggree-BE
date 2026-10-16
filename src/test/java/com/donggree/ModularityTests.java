@@ -65,4 +65,38 @@ public class ModularityTests {
                 .resideInAnyPackage("com.fasterxml.jackson..", "org.springframework..", "jakarta.persistence..")
                 .check(classes);
     }
+
+    @Test
+    void HTTP_응답은_중첩_필드까지_응용_모델과_모듈_View를_노출하지_않는다() {
+        var classes = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("com.donggree");
+        for (var type : classes) {
+            if (type.getPackageName().contains(".internal.presentation.dto")
+                    && type.getSimpleName().endsWith("Response")) {
+                verifyResponseType(type.reflect(), new java.util.HashSet<>());
+            }
+        }
+        for (var method :
+                com.donggree.graduation.internal.presentation.GraduationReportController.class.getDeclaredMethods()) {
+            if (java.lang.reflect.Modifier.isPublic(method.getModifiers())) {
+                verifyResponseType(method.getGenericReturnType(), new java.util.HashSet<>());
+            }
+        }
+    }
+
+    private static void verifyResponseType(java.lang.reflect.Type type, java.util.Set<java.lang.reflect.Type> visited) {
+        if (!visited.add(type)) return;
+        if (type instanceof java.lang.reflect.ParameterizedType parameterized) {
+            verifyResponseType(parameterized.getRawType(), visited);
+            for (var argument : parameterized.getActualTypeArguments()) verifyResponseType(argument, visited);
+        } else if (type instanceof Class<?> valueType) {
+            assertThat(valueType.getPackageName()).doesNotContain(".internal.application.");
+            assertThat(valueType.getSimpleName()).doesNotEndWith("View");
+            if (valueType.isRecord()) {
+                for (var component : valueType.getRecordComponents())
+                    verifyResponseType(component.getGenericType(), visited);
+            }
+        }
+    }
 }
