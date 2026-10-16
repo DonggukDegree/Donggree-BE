@@ -11,8 +11,8 @@ import static com.donggree.graduation.internal.application.report.ReportRuleConf
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.transcript.TranscriptView;
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class GraduationReportAssembler {
 
-    public GraduationReportProjection assembleReport(
+    public GraduationReportReadModel assembleReport(
             TranscriptView transcript,
             List<GraduationRuleView> rules,
             List<GraduationRuleView> statusRules,
@@ -34,15 +34,15 @@ public class GraduationReportAssembler {
         return assembleReport(transcript, rules, statusRules, resultByRuleId, context, hasUnsupportedMajor, List.of());
     }
 
-    public GraduationReportProjection assembleReport(
+    public GraduationReportReadModel assembleReport(
             TranscriptView transcript,
             List<GraduationRuleView> rules,
             List<GraduationRuleView> statusRules,
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
             boolean hasUnsupportedMajor,
-            List<GraduationReportProjection.AdditionalNotice> additionalNotices) {
-        return new GraduationReportProjection(
+            List<GraduationReportReadModel.AdditionalNotice> additionalNotices) {
+        return new GraduationReportReadModel(
                 buildSummary(transcript, rules, statusRules, resultByRuleId),
                 buildAreaOverviews(rules, statusRules, resultByRuleId, context),
                 hasUnsupportedMajor,
@@ -50,7 +50,7 @@ public class GraduationReportAssembler {
                 additionalNotices);
     }
 
-    public AreaDetailProjection assembleAreaDetail(
+    public AreaDetailReadModel assembleAreaDetail(
             CourseType courseType,
             List<GraduationRuleView> areaRules,
             List<GraduationRuleView> statusRules,
@@ -59,7 +59,7 @@ public class GraduationReportAssembler {
             Map<String, CourseClassificationView> allCls,
             List<String> roleRequiredCodes) {
 
-        List<AreaDetailProjection.AreaSection> areaDetails =
+        List<AreaDetailReadModel.AreaSection> areaDetails =
                 buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls, roleRequiredCodes);
 
         List<String> unsatisfiedReasons = statusRules.stream()
@@ -72,9 +72,9 @@ public class GraduationReportAssembler {
                 .distinct()
                 .toList();
 
-        AreaDetailProjection.CreditStatus creditStatus = buildTypeCredits(courseType, areaRules, context);
+        AreaDetailReadModel.CreditStatus creditStatus = buildTypeCredits(courseType, areaRules, context);
 
-        return new AreaDetailProjection(areaDetails, unsatisfiedReasons, creditStatus);
+        return new AreaDetailReadModel(areaDetails, unsatisfiedReasons, creditStatus);
     }
 
     public List<String> requiredCourseCodes(List<GraduationRuleView> rules) {

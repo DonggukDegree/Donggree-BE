@@ -2,7 +2,7 @@ package com.donggree.curriculum.internal.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.donggree.curriculum.internal.application.projection.RequirementSetSummaryProjection;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetSummaryReadModel;
 import com.donggree.curriculum.internal.application.requirementset.RequirementSetQueries;
 import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
@@ -182,7 +182,7 @@ class RequirementSetRepositoryTest {
         requirementSetRepository.save(
                 RequirementSet.create(dept.getId(), 2023, 2025, RequirementTrack.ALL, 1, null, null, true));
 
-        List<RequirementSetSummaryProjection> result = customRepository.search(List.of(dept.getId()), null);
+        List<RequirementSetSummaryReadModel> result = customRepository.search(List.of(dept.getId()), null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).departmentName()).isEqualTo("컴퓨터·AI학부");

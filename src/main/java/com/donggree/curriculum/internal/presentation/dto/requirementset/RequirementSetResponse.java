@@ -1,6 +1,6 @@
 package com.donggree.curriculum.internal.presentation.dto.requirementset;
 
-import com.donggree.curriculum.internal.application.projection.RequirementSetProjection;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetReadModel;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import java.util.List;
 
@@ -20,7 +20,7 @@ public record RequirementSetResponse(
         String sheetImageUrl,
         boolean active,
         List<Long> graduationRuleIds) {
-    public static RequirementSetResponse from(RequirementSetProjection p) {
+    public static RequirementSetResponse from(RequirementSetReadModel p) {
         return new RequirementSetResponse(
                 p.id(),
                 p.departmentId(),

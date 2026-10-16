@@ -2,7 +2,7 @@ package com.donggree.user.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.internal.application.exception.UserErrorCode;
-import com.donggree.user.internal.application.projection.UserInfoProjection;
+import com.donggree.user.internal.application.readmodel.UserInfoReadModel;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +27,11 @@ public class UserQueryService {
      * @throws GeneralException 회원 미존재 시
      */
     @Transactional(readOnly = true)
-    public UserInfoProjection getUserInfo(Long memberId) {
+    public UserInfoReadModel getUserInfo(Long memberId) {
         Member member = memberRepository
                 .findById(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
-        return UserInfoProjection.from(member);
+        return UserInfoReadModel.from(member);
     }
 }

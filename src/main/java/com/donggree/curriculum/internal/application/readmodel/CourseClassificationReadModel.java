@@ -1,4 +1,4 @@
-package com.donggree.curriculum.internal.application.projection;
+package com.donggree.curriculum.internal.application.readmodel;
 
 import com.donggree.curriculum.CourseType;
 
@@ -7,7 +7,7 @@ import com.donggree.curriculum.CourseType;
  * area_type_id 대신 영역 이름(areaName)을 함께 내려주며, 편집 왕복을 위해 areaTypeId도 포함한다.
  * tag는 과목명 등 표시용 자유 텍스트다.
  */
-public record CourseClassificationProjection(
+public record CourseClassificationReadModel(
         Long id,
         String courseCode,
         String tag,

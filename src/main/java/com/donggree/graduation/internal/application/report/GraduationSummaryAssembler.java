@@ -6,8 +6,8 @@ import static com.donggree.graduation.internal.application.report.ReportRuleConf
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AreaOverview;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.Summary;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.transcript.TranscriptView;

@@ -4,9 +4,9 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.auth.LoginMemberId;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
 import com.donggree.graduation.internal.application.query.GraduationQueryService;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
 import com.donggree.graduation.internal.presentation.swagger.GraduationReportApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,13 +23,13 @@ public class GraduationReportController implements GraduationReportApi {
 
     @Override
     @GetMapping("/summary")
-    public ApiResponse<GraduationReportProjection> getReport(@LoginMemberId Long memberId) {
+    public ApiResponse<GraduationReportReadModel> getReport(@LoginMemberId Long memberId) {
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, graduationQueryService.getReport(memberId));
     }
 
     @Override
     @GetMapping
-    public ApiResponse<AreaDetailProjection> getAreaDetail(
+    public ApiResponse<AreaDetailReadModel> getAreaDetail(
             @LoginMemberId Long memberId, @RequestParam CourseType courseType) {
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, graduationQueryService.getAreaDetail(memberId, courseType));
     }

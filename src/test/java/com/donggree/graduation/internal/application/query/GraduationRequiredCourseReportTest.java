@@ -11,7 +11,7 @@ import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -121,7 +121,7 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
         givenRequiredRule("CSE3001", "운영체제는 필수");
         givenClassification("CSE3001", CourseType.COMMON_GENERAL, "기초세계");
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
 
         assertThat(items(response)).anySatisfy(item -> {
             assertThat(item.title()).isEqualTo("운영체제특론");
@@ -136,7 +136,7 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
         givenRequiredRule("CSE3001", "운영체제는 필수");
         givenClassification("CSE3001", CourseType.COMMON_GENERAL, "기초세계");
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
 
         assertThat(items(response)).noneMatch(item -> item.title().contains("운영체제"));
     }
@@ -147,7 +147,7 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
         givenRequiredRule("CSE3001", "운영체제는 필수");
         givenNoClassification();
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
 
         assertThat(items(response)).anySatisfy(item -> {
             assertThat(item.title()).isEqualTo("운영체제");
@@ -162,7 +162,7 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
         givenRequiredRule("CSE3001", "통치구조론을 이수하거나 헌법 졸업시험을 응시해야 합니다.");
         givenNoClassification();
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
 
         assertThat(items(response)).anySatisfy(item -> assertThat(item.title()).isEqualTo("통치구조론"));
     }
@@ -177,13 +177,13 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
                         + "\"minCredits\":2}");
         givenClassification("RGC1075", CourseType.COMMON_GENERAL, "지역연구");
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
 
         var primary = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
         assertThat(response.unsatisfiedReasons()).containsExactly("21세기시민·지역연구·미래위험사회와안전 중 2학점 이상 이수해야 합니다.");
         assertThat(primary.unsatisfiedReasons()).isEmpty();
-        assertThat(response.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(1, 2, 1));
-        assertThat(primary.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(0, 0, 0));
+        assertThat(response.creditStatus()).isEqualTo(new AreaDetailReadModel.CreditStatus(1, 2, 1));
+        assertThat(primary.creditStatus()).isEqualTo(new AreaDetailReadModel.CreditStatus(0, 0, 0));
         assertThat(items(primary)).isEmpty();
         assertMajorStatus(CourseType.COMMON_GENERAL, false, 0);
         assertThat(service.getReport(MEMBER_ID).areaOverviews())
@@ -229,7 +229,7 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
         assertThat(report.summary().achievementRate()).isZero();
         assertThat(report.summary().graduated()).isFalse();
         assertThat(detail.unsatisfiedReasons()).containsExactly(creditReason, "추가 기본과목은 필수");
-        assertThat(detail.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(3, 6, 3));
+        assertThat(detail.creditStatus()).isEqualTo(new AreaDetailReadModel.CreditStatus(3, 6, 3));
         assertMajorStatus(type, false, 0);
         assertThat(service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR).unsatisfiedReasons())
                 .isEmpty();

@@ -3,7 +3,7 @@ package com.donggree.graduation.internal.application.query;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import org.junit.jupiter.api.Test;
 
 class GraduationCreditReportTest extends GraduationQueryTestSupport {
@@ -18,7 +18,7 @@ class GraduationCreditReportTest extends GraduationQueryTestSupport {
                         + "\"minCredits\":2}");
         givenClassification("RGC1075", CourseType.COMMON_GENERAL, "지역연구");
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
 
         assertThat(response.areaDetails())
                 .filteredOn(section -> section.areaName().equals("지역연구"))
@@ -35,7 +35,7 @@ class GraduationCreditReportTest extends GraduationQueryTestSupport {
                 "{\"courseType\":\"COMMON_GENERAL\",\"areaNames\":[\"리더십\"],\"minCredits\":2}");
         givenClassification("RGC1090", CourseType.COMMON_GENERAL, "리더십");
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
 
         assertThat(response.areaDetails())
                 .filteredOn(section -> section.areaName().equals("리더십"))
@@ -55,7 +55,7 @@ class GraduationCreditReportTest extends GraduationQueryTestSupport {
                 "{\"courseType\":\"COMMON_GENERAL\",\"minCredits\":17}");
         givenClassification("RGC0003", CourseType.COMMON_GENERAL, "자아성찰");
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.COMMON_GENERAL);
 
         assertThat(response.creditStatus().targetCredits()).isEqualTo(17);
         assertThat(response.creditStatus().earnedCredits()).isEqualTo(2);
@@ -71,7 +71,7 @@ class GraduationCreditReportTest extends GraduationQueryTestSupport {
                 "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"subCategories\":[\"실험\"],\"minCount\":1}");
         givenClassification("PRI4002", CourseType.ACADEMIC_FOUNDATION, "과학");
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.ACADEMIC_FOUNDATION);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.ACADEMIC_FOUNDATION);
 
         assertThat(response.creditStatus().targetCredits()).isZero();
     }

@@ -10,7 +10,7 @@ import static com.donggree.graduation.internal.application.report.ReportRuleConf
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
@@ -28,7 +28,7 @@ final class GraduationAreaDetailAssembler {
 
     private GraduationAreaDetailAssembler() {}
 
-    static List<AreaDetailProjection.AreaSection> buildAreaSections(
+    static List<AreaDetailReadModel.AreaSection> buildAreaSections(
             CourseType courseType,
             List<GraduationRuleView> areaRules,
             Map<Long, RuleResult> resultByRuleId,
@@ -104,11 +104,11 @@ final class GraduationAreaDetailAssembler {
             coursesByArea.computeIfAbsent(area, k -> new ArrayList<>());
         }
 
-        List<AreaDetailProjection.AreaSection> sections = new ArrayList<>();
+        List<AreaDetailReadModel.AreaSection> sections = new ArrayList<>();
         for (Map.Entry<String, List<CourseRecordView>> entry : coursesByArea.entrySet()) {
             String areaName = entry.getKey();
             List<CourseRecordView> areaCourses = entry.getValue();
-            List<AreaDetailProjection.CourseItem> items = new ArrayList<>();
+            List<AreaDetailReadModel.CourseItem> items = new ArrayList<>();
 
             // 이수 과목 분류 — 필수 학수번호를 충족시킨 과목은 학생 수강 내역대로 SATISFIED로 표시한다.
             // subCategory(실험, 개론 등)가 있으면 alias로 그룹핑, 없으면 개별 항목.
@@ -133,14 +133,14 @@ final class GraduationAreaDetailAssembler {
 
             // 충족된 필수 과목 (학생이 실제 이수한 과목명·학점)
             for (CourseRecordView cr : requiredFulfilled) {
-                items.add(new AreaDetailProjection.CourseItem(cr.courseName(), cr.credits(), "SATISFIED", null));
+                items.add(new AreaDetailReadModel.CourseItem(cr.courseName(), cr.credits(), "SATISFIED", null));
             }
             // 미충족 필수 과목 placeholder (규칙명·0학점) — 규칙이 속한 이수구분 탭에만 노출
             for (RequiredRule rr : requiredRules) {
                 if (isRuleSatisfied(rr.rule(), resultByRuleId)) continue;
                 String ruleArea = rr.areaName() != null ? rr.areaName() : fallbackArea;
                 if (!areaName.equals(ruleArea)) continue;
-                items.add(new AreaDetailProjection.CourseItem(
+                items.add(new AreaDetailReadModel.CourseItem(
                         extractCourseTitle(rr.rule().ruleName()), 0, "UNSATISFIED", null));
             }
             for (Map.Entry<String, List<CourseRecordView>> subEntry : bySubCategory.entrySet()) {
@@ -151,10 +151,10 @@ final class GraduationAreaDetailAssembler {
                 List<String> detail =
                         subCourses.stream().map(CourseRecordView::courseName).toList();
                 String subStatus = resolveSubCategoryStatus(subCat, areaRules, resultByRuleId);
-                items.add(new AreaDetailProjection.CourseItem(subCat, subEarned, subStatus, detail));
+                items.add(new AreaDetailReadModel.CourseItem(subCat, subEarned, subStatus, detail));
             }
             for (CourseRecordView cr : individualOptional) {
-                items.add(new AreaDetailProjection.CourseItem(cr.courseName(), cr.credits(), "OPTIONAL", null));
+                items.add(new AreaDetailReadModel.CourseItem(cr.courseName(), cr.credits(), "OPTIONAL", null));
             }
 
             int earnedCredits =
@@ -181,7 +181,7 @@ final class GraduationAreaDetailAssembler {
             }
 
             sections.add(
-                    new AreaDetailProjection.AreaSection(areaName, earnedCredits, targetCredits, areaSatisfied, items));
+                    new AreaDetailReadModel.AreaSection(areaName, earnedCredits, targetCredits, areaSatisfied, items));
         }
 
         return sections;

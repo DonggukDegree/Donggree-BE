@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.graduation.internal.domain.evaluator.credits.MinCreditsEvaluator;
@@ -33,7 +33,7 @@ class GraduationAreaDisplayTest {
         var detail = detail(type, transcript, classifications, List.of(), Map.of());
 
         assertThat(detail.areaDetails())
-                .extracting(AreaDetailProjection.AreaSection::areaName)
+                .extracting(AreaDetailReadModel.AreaSection::areaName)
                 .containsExactly("전공기초", "전공전문");
         assertThat(detail.creditStatus().earnedCredits()).isEqualTo(6);
         assertThat(transcript.courseRecords())
@@ -71,10 +71,10 @@ class GraduationAreaDisplayTest {
                 Map.of(1L, new RuleResult("교직선택 3학점", true), 2L, new RuleResult("교직필수 3학점", true)));
 
         assertThat(detail.areaDetails())
-                .extracting(AreaDetailProjection.AreaSection::areaName)
+                .extracting(AreaDetailReadModel.AreaSection::areaName)
                 .containsExactly("교직선택", "교직필수");
         assertThat(detail.areaDetails())
-                .extracting(AreaDetailProjection.AreaSection::targetCredits)
+                .extracting(AreaDetailReadModel.AreaSection::targetCredits)
                 .containsExactly(3, 3);
         assertThat(detail.creditStatus().earnedCredits()).isEqualTo(6);
         assertThat(detail.creditStatus().targetCredits()).isEqualTo(6);
@@ -122,7 +122,7 @@ class GraduationAreaDisplayTest {
                 List.of(),
                 Map.of());
         assertThat(detail.areaDetails())
-                .extracting(AreaDetailProjection.AreaSection::areaName)
+                .extracting(AreaDetailReadModel.AreaSection::areaName)
                 .containsExactly("기초");
     }
 
@@ -142,13 +142,13 @@ class GraduationAreaDisplayTest {
         var detail = detail(CourseType.SECOND_MAJOR, transcript, classifications, List.of(), Map.of());
 
         assertThat(detail.areaDetails())
-                .extracting(AreaDetailProjection.AreaSection::areaName)
+                .extracting(AreaDetailReadModel.AreaSection::areaName)
                 .containsExactly("전공전문");
         assertThat(new MinCreditsEvaluator().evaluate(rule, context)).isEqualTo(before);
         assertThat(before.satisfied()).isTrue();
     }
 
-    private AreaDetailProjection detail(
+    private AreaDetailReadModel detail(
             CourseType type,
             TranscriptView transcript,
             Map<String, CourseClassificationView> classifications,

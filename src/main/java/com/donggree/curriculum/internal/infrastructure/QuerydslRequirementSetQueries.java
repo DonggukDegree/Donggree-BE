@@ -1,6 +1,6 @@
 package com.donggree.curriculum.internal.infrastructure;
 
-import com.donggree.curriculum.internal.application.projection.RequirementSetSummaryProjection;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetSummaryReadModel;
 import com.donggree.curriculum.internal.application.requirementset.RequirementSetQueries;
 import com.donggree.curriculum.internal.domain.department.QDepartment;
 import com.donggree.curriculum.internal.domain.requirementset.QRequirementSet;
@@ -23,12 +23,12 @@ public class QuerydslRequirementSetQueries implements RequirementSetQueries {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<RequirementSetSummaryProjection> search(List<Long> departmentIds, Integer year) {
+    public List<RequirementSetSummaryReadModel> search(List<Long> departmentIds, Integer year) {
         QRequirementSet rs = QRequirementSet.requirementSet;
         QDepartment d = QDepartment.department;
         return queryFactory
                 .select(Projections.constructor(
-                        RequirementSetSummaryProjection.class,
+                        RequirementSetSummaryReadModel.class,
                         rs.id,
                         rs.departmentId,
                         d.departmentName,

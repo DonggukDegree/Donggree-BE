@@ -1,4 +1,4 @@
-package com.donggree.curriculum.internal.application.projection;
+package com.donggree.curriculum.internal.application.readmodel;
 
 import com.donggree.curriculum.CourseType;
 
@@ -7,7 +7,7 @@ import com.donggree.curriculum.CourseType;
  * rule_type 정보(typeName, courseType)를 함께 내려준다.
  * ruleConfig는 jsonb 원문을 그대로 JSON 객체로 직렬화한다(@JsonRawValue) — 문자열이 아니라 객체로 내려간다.
  */
-public record GraduationRuleProjection(
+public record GraduationRuleReadModel(
         Long id,
         Long ruleTypeId,
         String typeName,

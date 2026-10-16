@@ -258,14 +258,14 @@ class SecurityConfigTest {
     @ParameterizedTest
     @ValueSource(strings = {"ADMIN", "SUPER_ADMIN"})
     void PDF_미리보기는_관리자_역할만으로_허용하고_본인확인과_저장_미호출(String role) throws Exception {
-        var report = new com.donggree.graduation.internal.application.projection.GraduationReportProjection(
-                new com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary(
+        var report = new com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel(
+                new com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.Summary(
                         0, 0, 130, 130, java.math.BigDecimal.ZERO, false, java.util.List.of()),
                 java.util.List.of(),
                 false,
                 null);
         given(graduationQueryService.preview(any()))
-                .willReturn(new com.donggree.graduation.internal.application.projection.ReportPreviewProjection(
+                .willReturn(new com.donggree.graduation.internal.application.readmodel.ReportPreviewReadModel(
                         report, java.util.Map.of()));
         mockMvc.perform(multipart("/api/admin/reports/preview")
                         .file("file", new byte[] {1})

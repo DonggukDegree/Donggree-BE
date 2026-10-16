@@ -2,8 +2,8 @@ package com.donggree.transcript.internal.application.query;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawMeta;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawMeta;
 import com.donggree.transcript.internal.domain.transcript.Transcript;
 import com.donggree.transcript.internal.domain.transcript.TranscriptRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 성적표 조회(Query) 응용 서비스.
  * 상태를 변경하지 않는 읽기 유스케이스만 담당한다.
- * 커리큘럼 이름 해소 없이 ID만 담은 프로젝션을 반환하며, 이름 변환은 컨트롤러에서 수행한다.
+ * 커리큘럼 이름 해소 없이 ID만 담은 읽기 모델을 반환하며, 이름 변환은 컨트롤러에서 수행한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class TranscriptQueryService {
      * @param memberId 로그인한 회원 ID
      */
     @Transactional(readOnly = true)
-    public TranscriptReportProjection getTranscriptRawReport(Long memberId) {
+    public TranscriptReportReadModel getTranscriptRawReport(Long memberId) {
         Transcript transcript = transcriptRepository
                 .findByMemberId(memberId)
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.TRANSCRIPT_NOT_FOUND));
@@ -54,7 +54,7 @@ public class TranscriptQueryService {
                 transcript.getCreatedAt(),
                 transcript.getUpdatedAt());
 
-        return new TranscriptReportProjection(meta, TranscriptRecordGrouper.groupBySemester(transcript));
+        return new TranscriptReportReadModel(meta, TranscriptRecordGrouper.groupBySemester(transcript));
     }
 
     private String pdfName(JsonNode meta, String key) {

@@ -1,6 +1,6 @@
 package com.donggree.curriculum.internal.presentation.dto.requirementset;
 
-import com.donggree.curriculum.internal.application.projection.RequirementSetSummaryProjection;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetSummaryReadModel;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 
 /**
@@ -17,7 +17,7 @@ public record RequirementSetSummaryResponse(
         String description,
         String sheetImageUrl,
         boolean active) {
-    public static RequirementSetSummaryResponse from(RequirementSetSummaryProjection p) {
+    public static RequirementSetSummaryResponse from(RequirementSetSummaryReadModel p) {
         return new RequirementSetSummaryResponse(
                 p.id(),
                 p.departmentId(),

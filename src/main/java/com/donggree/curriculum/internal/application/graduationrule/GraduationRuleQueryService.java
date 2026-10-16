@@ -1,8 +1,8 @@
 package com.donggree.curriculum.internal.application.graduationrule;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
-import com.donggree.curriculum.internal.application.projection.RuleTypeProjection;
+import com.donggree.curriculum.internal.application.readmodel.GraduationRuleReadModel;
+import com.donggree.curriculum.internal.application.readmodel.RuleTypeReadModel;
 import com.donggree.curriculum.internal.domain.ruletype.RuleTypeRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +22,9 @@ public class GraduationRuleQueryService {
 
     /** 규칙 종류 전체를 조회한다. 졸업 규칙 필터의 선택지로 사용된다. */
     @Transactional(readOnly = true)
-    public List<RuleTypeProjection> getRuleTypes() {
+    public List<RuleTypeReadModel> getRuleTypes() {
         return ruleTypeRepository.findAll().stream()
-                .map(rt ->
-                        new RuleTypeProjection(rt.getId(), rt.getTypeName(), rt.getCourseType(), rt.getDescription()))
+                .map(rt -> new RuleTypeReadModel(rt.getId(), rt.getTypeName(), rt.getCourseType(), rt.getDescription()))
                 .toList();
     }
 
@@ -35,7 +34,7 @@ public class GraduationRuleQueryService {
      * requirementSetId가 주어지면 그 졸업 요건 세트에 연결된 규칙만 조회한다.
      */
     @Transactional(readOnly = true)
-    public List<GraduationRuleProjection> search(
+    public List<GraduationRuleReadModel> search(
             List<Long> ruleTypeIds, List<CourseType> courseTypes, Long requirementSetId) {
         return graduationRuleRepository.search(ruleTypeIds, courseTypes, requirementSetId);
     }

@@ -1,4 +1,4 @@
-package com.donggree.graduation.internal.application.projection;
+package com.donggree.graduation.internal.application.readmodel;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -10,14 +10,14 @@ import java.util.List;
  * summary: 졸업 달성률 요약 / areaOverviews: courseType별 이수 현황
  * hasUnsupportedMajor: 복수전공 판정 누락·복수전공 2·부전공·편입 등으로 정확도 경고가 필요한지 여부.
  */
-public record GraduationReportProjection(
+public record GraduationReportReadModel(
         Summary summary,
         List<AreaOverview> areaOverviews,
         boolean hasUnsupportedMajor,
         Boolean englishPassed,
         List<AdditionalNotice> additionalNotices) {
 
-    public GraduationReportProjection(
+    public GraduationReportReadModel(
             Summary summary, List<AreaOverview> areaOverviews, boolean hasUnsupportedMajor, Boolean englishPassed) {
         this(summary, areaOverviews, hasUnsupportedMajor, englishPassed, List.of());
     }

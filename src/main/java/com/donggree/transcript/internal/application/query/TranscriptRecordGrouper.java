@@ -1,7 +1,7 @@
 package com.donggree.transcript.internal.application.query;
 
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawCourseRecord;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawCourseRecord;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawSemesterGroup;
 import com.donggree.transcript.internal.domain.transcript.CourseRecord;
 import com.donggree.transcript.internal.domain.transcript.Transcript;
 import java.util.LinkedHashMap;

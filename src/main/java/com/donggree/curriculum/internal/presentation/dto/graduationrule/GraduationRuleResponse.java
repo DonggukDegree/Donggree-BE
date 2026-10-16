@@ -1,7 +1,7 @@
 package com.donggree.curriculum.internal.presentation.dto.graduationrule;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
+import com.donggree.curriculum.internal.application.readmodel.GraduationRuleReadModel;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 
 /**
@@ -15,7 +15,7 @@ public record GraduationRuleResponse(
         String ruleName,
         @JsonRawValue String ruleConfig,
         String description) {
-    public static GraduationRuleResponse from(GraduationRuleProjection p) {
+    public static GraduationRuleResponse from(GraduationRuleReadModel p) {
         return new GraduationRuleResponse(
                 p.id(), p.ruleTypeId(), p.typeName(), p.courseType(), p.ruleName(), p.ruleConfig(), p.description());
     }

@@ -11,8 +11,8 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CourseItem;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.CourseItem;
 import com.donggree.graduation.internal.application.report.GraduationReportAssembler;
 import com.donggree.graduation.internal.domain.evaluator.courses.PrerequisiteEvaluator;
 import com.donggree.graduation.internal.domain.evaluator.courses.RequiredCourseEvaluator;
@@ -167,7 +167,7 @@ abstract class GraduationQueryTestSupport {
         return new CourseRecordView("2023-1", code, courseTypeName, pdfAreaName, name, credits, true, false);
     }
 
-    static List<CourseItem> items(AreaDetailProjection response) {
+    static List<CourseItem> items(AreaDetailReadModel response) {
         return response.areaDetails().stream()
                 .flatMap(section -> section.items().stream())
                 .toList();

@@ -2,7 +2,7 @@ package com.donggree.curriculum.internal.infrastructure;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationQueries;
-import com.donggree.curriculum.internal.application.projection.CourseClassificationProjection;
+import com.donggree.curriculum.internal.application.readmodel.CourseClassificationReadModel;
 import com.donggree.curriculum.internal.domain.areatype.QAreaType;
 import com.donggree.curriculum.internal.domain.courseclassification.QCourseClassification;
 import com.querydsl.core.types.Projections;
@@ -24,13 +24,13 @@ public class QuerydslCourseClassificationQueries implements CourseClassification
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<CourseClassificationProjection> search(
+    public List<CourseClassificationReadModel> search(
             List<Long> areaTypeIds, List<CourseType> courseTypes, List<Integer> years) {
         QCourseClassification cc = QCourseClassification.courseClassification;
         QAreaType at = QAreaType.areaType;
         return queryFactory
                 .select(Projections.constructor(
-                        CourseClassificationProjection.class,
+                        CourseClassificationReadModel.class,
                         cc.id,
                         cc.courseCode,
                         cc.tag,

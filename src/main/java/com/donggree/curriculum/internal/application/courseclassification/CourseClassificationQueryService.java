@@ -1,8 +1,8 @@
 package com.donggree.curriculum.internal.application.courseclassification;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.projection.AreaTypeProjection;
-import com.donggree.curriculum.internal.application.projection.CourseClassificationProjection;
+import com.donggree.curriculum.internal.application.readmodel.AreaTypeReadModel;
+import com.donggree.curriculum.internal.application.readmodel.CourseClassificationReadModel;
 import com.donggree.curriculum.internal.domain.areatype.AreaTypeRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,16 +25,16 @@ public class CourseClassificationQueryService {
      * 엔티티 로딩 없이 바로 조회한다. 각 필터 목록이 비어 있으면(미지정) 전체를 반환한다.
      */
     @Transactional(readOnly = true)
-    public List<CourseClassificationProjection> search(
+    public List<CourseClassificationReadModel> search(
             List<Long> areaTypeIds, List<CourseType> courseTypes, List<Integer> years) {
         return courseClassificationRepository.search(areaTypeIds, courseTypes, years);
     }
 
     /** 이수 영역 전체를 조회한다. 과목 분류 필터의 선택지로 사용된다. */
     @Transactional(readOnly = true)
-    public List<AreaTypeProjection> getAreaTypes() {
+    public List<AreaTypeReadModel> getAreaTypes() {
         return areaTypeRepository.findAll().stream()
-                .map(area -> new AreaTypeProjection(area.getId(), area.getAreaName()))
+                .map(area -> new AreaTypeReadModel(area.getId(), area.getAreaName()))
                 .toList();
     }
 }

@@ -20,10 +20,10 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
-import com.donggree.graduation.internal.application.projection.ReportPreviewProjection;
 import com.donggree.graduation.internal.application.query.GraduationQueryService;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
+import com.donggree.graduation.internal.application.readmodel.ReportPreviewReadModel;
 import com.donggree.transcript.TranscriptPreviewService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -47,15 +47,15 @@ class AdminReportPreviewControllerTest extends RestDocsSupport {
 
     @Test
     void 요약과_전체_영역_상세를_캐시_없이_일괄_반환() throws Exception {
-        var report = new GraduationReportProjection(
-                new GraduationReportProjection.Summary(0, 3, 130, 127, new BigDecimal("4.0"), false, List.of("총학점 부족")),
-                List.of(new GraduationReportProjection.AreaOverview("FIRST_MAJOR", "제1전공", 0, 33, false)),
+        var report = new GraduationReportReadModel(
+                new GraduationReportReadModel.Summary(0, 3, 130, 127, new BigDecimal("4.0"), false, List.of("총학점 부족")),
+                List.of(new GraduationReportReadModel.AreaOverview("FIRST_MAJOR", "제1전공", 0, 33, false)),
                 false,
                 true);
-        var detail = new AreaDetailProjection(
-                List.of(), List.of("전공 학점 부족"), new AreaDetailProjection.CreditStatus(3, 36, 33));
+        var detail = new AreaDetailReadModel(
+                List.of(), List.of("전공 학점 부족"), new AreaDetailReadModel.CreditStatus(3, 36, 33));
         given(graduationQueryService.preview(any()))
-                .willReturn(new ReportPreviewProjection(report, Map.of(CourseType.FIRST_MAJOR, detail)));
+                .willReturn(new ReportPreviewReadModel(report, Map.of(CourseType.FIRST_MAJOR, detail)));
         mockMvc.perform(multipart("/api/admin/reports/preview")
                         .file(new MockMultipartFile("file", "transcript.pdf", "application/pdf", new byte[] {1})))
                 .andExpect(status().isOk())

@@ -6,7 +6,7 @@ import static com.donggree.graduation.internal.application.report.ReportRuleConf
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import java.util.List;
@@ -19,11 +19,11 @@ final class ReportCreditTargets {
 
     private ReportCreditTargets() {}
 
-    static AreaDetailProjection.CreditStatus buildTypeCredits(
+    static AreaDetailReadModel.CreditStatus buildTypeCredits(
             CourseType courseType, List<GraduationRuleView> areaRules, EvaluationContext context) {
         int earned = context.getTotalPassedCreditsByType(courseType);
         int target = resolveTypeTargetCredits(courseType, areaRules, context);
-        return new AreaDetailProjection.CreditStatus(earned, target, Math.max(0, target - earned));
+        return new AreaDetailReadModel.CreditStatus(earned, target, Math.max(0, target - earned));
     }
 
     static int resolveTypeTargetCredits(

@@ -12,9 +12,9 @@ import com.donggree.transcript.internal.application.command.TranscriptCreateResu
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
 import com.donggree.transcript.internal.application.query.TranscriptQueryService;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawSemesterGroup;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
@@ -55,7 +55,7 @@ public class TranscriptController implements TranscriptApi {
     @Override
     @GetMapping
     public ApiResponse<TranscriptReportResponse> getTranscriptReport(@LoginMemberId Long memberId) {
-        TranscriptReportProjection raw = transcriptQueryService.getTranscriptRawReport(memberId);
+        TranscriptReportReadModel raw = transcriptQueryService.getTranscriptRawReport(memberId);
 
         List<Long> deptIds = Stream.of(
                         raw.meta().departmentId(),

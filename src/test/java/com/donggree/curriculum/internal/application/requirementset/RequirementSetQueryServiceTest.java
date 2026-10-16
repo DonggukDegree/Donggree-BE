@@ -3,7 +3,7 @@ package com.donggree.curriculum.internal.application.requirementset;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
-import com.donggree.curriculum.internal.application.projection.RequirementSetProjection;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetReadModel;
 import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
@@ -54,7 +54,7 @@ class RequirementSetQueryServiceTest {
         given(requirementSetRepository.findById(1L)).willReturn(Optional.of(existing));
         given(departmentRepository.findById(1L)).willReturn(Optional.of(department(1L, 1L, "컴퓨터·AI학부")));
 
-        RequirementSetProjection response = service.get(1L);
+        RequirementSetReadModel response = service.get(1L);
 
         assertThat(response.departmentName()).isEqualTo("컴퓨터·AI학부");
         assertThat(response.graduationRuleIds()).containsExactly(10L, 20L);

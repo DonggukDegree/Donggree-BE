@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationQueries;
-import com.donggree.curriculum.internal.application.projection.CourseClassificationProjection;
+import com.donggree.curriculum.internal.application.readmodel.CourseClassificationReadModel;
 import com.donggree.curriculum.internal.domain.areatype.AreaType;
 import com.donggree.curriculum.internal.domain.areatype.AreaTypeRepository;
 import com.donggree.curriculum.internal.domain.courseclassification.CourseClassification;
@@ -50,80 +50,70 @@ class CourseClassificationRepositoryTest {
 
     @Test
     void areaTypeId로_필터링한다() {
-        List<CourseClassificationProjection> result = customRepository.search(List.of(10L), null, null);
+        List<CourseClassificationReadModel> result = customRepository.search(List.of(10L), null, null);
 
-        assertThat(result)
-                .extracting(CourseClassificationProjection::courseCode)
-                .containsExactly("CS001");
+        assertThat(result).extracting(CourseClassificationReadModel::courseCode).containsExactly("CS001");
     }
 
     @Test
     void areaTypeId를_여러_개_지정하면_OR로_조회한다() {
-        List<CourseClassificationProjection> result = customRepository.search(List.of(10L, 20L), null, null);
+        List<CourseClassificationReadModel> result = customRepository.search(List.of(10L, 20L), null, null);
 
-        assertThat(result)
-                .extracting(CourseClassificationProjection::courseCode)
-                .containsExactly("CS001", "CS002");
+        assertThat(result).extracting(CourseClassificationReadModel::courseCode).containsExactly("CS001", "CS002");
     }
 
     @Test
     void courseType으로_필터링한다() {
-        List<CourseClassificationProjection> result =
+        List<CourseClassificationReadModel> result =
                 customRepository.search(null, List.of(CourseType.FIRST_MAJOR), null);
 
-        assertThat(result)
-                .extracting(CourseClassificationProjection::courseCode)
-                .containsExactly("CS001", "CS003");
+        assertThat(result).extracting(CourseClassificationReadModel::courseCode).containsExactly("CS001", "CS003");
     }
 
     @Test
     void courseType을_여러_개_지정하면_OR로_조회한다() {
-        List<CourseClassificationProjection> result =
+        List<CourseClassificationReadModel> result =
                 customRepository.search(null, List.of(CourseType.FIRST_MAJOR, CourseType.LIBERAL_ARTS), null);
 
         assertThat(result)
-                .extracting(CourseClassificationProjection::courseCode)
+                .extracting(CourseClassificationReadModel::courseCode)
                 .containsExactly("CS001", "CS002", "CS003");
     }
 
     @Test
     void 단일_연도가_적용_범위에_포함되는_행만_조회한다() {
-        List<CourseClassificationProjection> result = customRepository.search(null, null, List.of(2024));
+        List<CourseClassificationReadModel> result = customRepository.search(null, null, List.of(2024));
 
         // CS001(2023~2025), CS002(2024~2024) 포함, CS003(2026~2027) 제외
-        assertThat(result)
-                .extracting(CourseClassificationProjection::courseCode)
-                .containsExactly("CS001", "CS002");
+        assertThat(result).extracting(CourseClassificationReadModel::courseCode).containsExactly("CS001", "CS002");
     }
 
     @Test
     void 여러_연도를_지정하면_하나라도_범위에_들면_조회한다() {
         // 2024 -> CS001,CS002 / 2026 -> CS003
-        List<CourseClassificationProjection> result = customRepository.search(null, null, List.of(2024, 2026));
+        List<CourseClassificationReadModel> result = customRepository.search(null, null, List.of(2024, 2026));
 
         assertThat(result)
-                .extracting(CourseClassificationProjection::courseCode)
+                .extracting(CourseClassificationReadModel::courseCode)
                 .containsExactly("CS001", "CS002", "CS003");
     }
 
     @Test
     void 연도_경계값도_포함한다() {
         assertThat(customRepository.search(null, null, List.of(2023)))
-                .extracting(CourseClassificationProjection::courseCode)
+                .extracting(CourseClassificationReadModel::courseCode)
                 .containsExactly("CS001");
         assertThat(customRepository.search(null, null, List.of(2025)))
-                .extracting(CourseClassificationProjection::courseCode)
+                .extracting(CourseClassificationReadModel::courseCode)
                 .containsExactly("CS001");
     }
 
     @Test
     void 여러_필터를_함께_적용한다() {
-        List<CourseClassificationProjection> result =
+        List<CourseClassificationReadModel> result =
                 customRepository.search(List.of(10L), List.of(CourseType.FIRST_MAJOR), List.of(2023));
 
-        assertThat(result)
-                .extracting(CourseClassificationProjection::courseCode)
-                .containsExactly("CS001");
+        assertThat(result).extracting(CourseClassificationReadModel::courseCode).containsExactly("CS001");
     }
 
     @Test
@@ -132,7 +122,7 @@ class CourseClassificationRepositoryTest {
         repository.save(CourseClassification.create(
                 "CS900", 2023, 2025, CourseType.FIRST_MAJOR, area.getId(), null, null, "네트워크"));
 
-        CourseClassificationProjection found = customRepository.search(List.of(area.getId()), null, null).stream()
+        CourseClassificationReadModel found = customRepository.search(List.of(area.getId()), null, null).stream()
                 .filter(p -> p.courseCode().equals("CS900"))
                 .findFirst()
                 .orElseThrow();

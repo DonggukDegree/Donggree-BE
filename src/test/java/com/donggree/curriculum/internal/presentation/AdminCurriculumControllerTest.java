@@ -14,8 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationCommandService;
 import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationQueryService;
-import com.donggree.curriculum.internal.application.projection.AreaTypeProjection;
-import com.donggree.curriculum.internal.application.projection.CourseClassificationProjection;
+import com.donggree.curriculum.internal.application.readmodel.AreaTypeReadModel;
+import com.donggree.curriculum.internal.application.readmodel.CourseClassificationReadModel;
 import com.donggree.curriculum.internal.presentation.dto.courseclassification.CourseClassificationBatchRequest;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +42,7 @@ class AdminCurriculumControllerTest extends RestDocsSupport {
     void 과목_분류를_다중_필터로_조회한다() throws Exception {
         given(courseClassificationQueryService.search(
                         List.of(10L, 20L), List.of(CourseType.FIRST_MAJOR), List.of(2024)))
-                .willReturn(List.of(new CourseClassificationProjection(
+                .willReturn(List.of(new CourseClassificationReadModel(
                         1L, "CSE2001", "자료구조", 2023, 2025, CourseType.FIRST_MAJOR, 10L, "전공기초", "개론", "물리")));
 
         mockMvc.perform(get("/api/admin/course-classifications")
@@ -118,7 +118,7 @@ class AdminCurriculumControllerTest extends RestDocsSupport {
     @Test
     void 이수_영역을_조회한다() throws Exception {
         given(courseClassificationQueryService.getAreaTypes())
-                .willReturn(List.of(new AreaTypeProjection(10L, "전공기초"), new AreaTypeProjection(20L, "기본소양")));
+                .willReturn(List.of(new AreaTypeReadModel(10L, "전공기초"), new AreaTypeReadModel(20L, "기본소양")));
 
         mockMvc.perform(get("/api/admin/area-types"))
                 .andExpect(status().isOk())

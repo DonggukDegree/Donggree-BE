@@ -5,7 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
-import com.donggree.support.internal.application.projection.FaqProjection;
+import com.donggree.support.internal.application.readmodel.FaqReadModel;
 import com.donggree.support.internal.domain.Faq;
 import com.donggree.support.internal.domain.FaqRepository;
 import com.donggree.support.internal.domain.enums.FaqTag;
@@ -30,9 +30,9 @@ class FaqQueryServiceTest {
         given(faqRepository.findAllByOrderByCreatedAtDesc())
                 .willReturn(List.of(faq(2L, FaqTag.MAJOR, "전공 질문", "전공 답변"), faq(1L, FaqTag.COMMON, "공통 질문", "공통 답변")));
 
-        List<FaqProjection> result = service.getFaqs(null);
+        List<FaqReadModel> result = service.getFaqs(null);
 
-        assertThat(result).extracting(FaqProjection::id).containsExactly(2L, 1L);
+        assertThat(result).extracting(FaqReadModel::id).containsExactly(2L, 1L);
         assertThat(result.get(0).tag()).isEqualTo(FaqTag.MAJOR);
         then(faqRepository).should(never()).findByTagOrderByCreatedAtDesc(Mockito.any());
     }
@@ -42,7 +42,7 @@ class FaqQueryServiceTest {
         given(faqRepository.findByTagOrderByCreatedAtDesc(FaqTag.MAJOR))
                 .willReturn(List.of(faq(2L, FaqTag.MAJOR, "전공 질문", "전공 답변")));
 
-        List<FaqProjection> result = service.getFaqs(FaqTag.MAJOR);
+        List<FaqReadModel> result = service.getFaqs(FaqTag.MAJOR);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).title()).isEqualTo("전공 질문");
@@ -54,7 +54,7 @@ class FaqQueryServiceTest {
         given(faqRepository.findByTagOrderByCreatedAtDesc(FaqTag.SERVICE))
                 .willReturn(List.of(faq(3L, FaqTag.SERVICE, "성적표는 어디서 받나요?", "nDRIMS에서 받을 수 있어요.")));
 
-        List<FaqProjection> result = service.getFaqs(FaqTag.SERVICE);
+        List<FaqReadModel> result = service.getFaqs(FaqTag.SERVICE);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).tag()).isEqualTo(FaqTag.SERVICE);

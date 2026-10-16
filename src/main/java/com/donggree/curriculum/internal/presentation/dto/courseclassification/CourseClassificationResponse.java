@@ -1,7 +1,7 @@
 package com.donggree.curriculum.internal.presentation.dto.courseclassification;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.projection.CourseClassificationProjection;
+import com.donggree.curriculum.internal.application.readmodel.CourseClassificationReadModel;
 
 /**
  * 과목 분류 조회 응답. area_type_id 대신 영역 이름(areaName)을 함께 내려주며, 편집 왕복을 위해 areaTypeId도 포함한다.
@@ -17,7 +17,7 @@ public record CourseClassificationResponse(
         String areaName,
         String subCategory,
         String subjectDomain) {
-    public static CourseClassificationResponse from(CourseClassificationProjection p) {
+    public static CourseClassificationResponse from(CourseClassificationReadModel p) {
         return new CourseClassificationResponse(
                 p.id(),
                 p.courseCode(),

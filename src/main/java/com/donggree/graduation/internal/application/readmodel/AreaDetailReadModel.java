@@ -1,4 +1,4 @@
-package com.donggree.graduation.internal.application.projection;
+package com.donggree.graduation.internal.application.readmodel;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ import java.util.List;
  * unsatisfiedReasons: 역할별 사유는 제1·제2전공, 역할 옵션 없는 규칙은 기존 이수구분에 표시
  * creditStatus: 해당 courseType 전체 학점 이수 현황
  */
-public record AreaDetailProjection(
+public record AreaDetailReadModel(
         List<AreaSection> areaDetails, List<String> unsatisfiedReasons, CreditStatus creditStatus) {
 
     /**

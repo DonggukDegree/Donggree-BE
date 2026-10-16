@@ -14,7 +14,7 @@ import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
 import java.math.BigDecimal;
@@ -215,7 +215,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         assertThat(report.areaOverviews()).isEmpty();
         assertThat(primary.areaDetails()).isEmpty();
         assertThat(secondary.areaDetails()).isEmpty();
-        assertThat(secondary.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(0, 0, 0));
+        assertThat(secondary.creditStatus()).isEqualTo(new AreaDetailReadModel.CreditStatus(0, 0, 0));
         assertThat(report.hasUnsupportedMajor()).isFalse();
     }
 
@@ -292,10 +292,9 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         assertThat(report.areaOverviews()).extracting(area -> area.courseType()).containsExactly("ACADEMIC_FOUNDATION");
         assertMajorStatus(CourseType.ACADEMIC_FOUNDATION, foundationPassed, foundationPassed ? 100 : 0);
         assertThat(detail.creditStatus())
-                .isEqualTo(
-                        new AreaDetailProjection.CreditStatus(foundationPassed ? 3 : 0, 3, foundationPassed ? 0 : 3));
-        assertThat(primary.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(0, 0, 0));
-        assertThat(secondary.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(0, 0, 0));
+                .isEqualTo(new AreaDetailReadModel.CreditStatus(foundationPassed ? 3 : 0, 3, foundationPassed ? 0 : 3));
+        assertThat(primary.creditStatus()).isEqualTo(new AreaDetailReadModel.CreditStatus(0, 0, 0));
+        assertThat(secondary.creditStatus()).isEqualTo(new AreaDetailReadModel.CreditStatus(0, 0, 0));
         assertThat(items(primary)).isEmpty();
         assertThat(items(secondary)).isEmpty();
         if (foundationPassed) {
@@ -545,7 +544,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
 
         var report = service.getReport(MEMBER_ID);
         var detail = service.getAreaDetail(MEMBER_ID, CourseType.ACADEMIC_FOUNDATION);
-        assertThat(detail.creditStatus()).isEqualTo(new AreaDetailProjection.CreditStatus(36, 36, 0));
+        assertThat(detail.creditStatus()).isEqualTo(new AreaDetailReadModel.CreditStatus(36, 36, 0));
         assertThat(detail.unsatisfiedReasons())
                 .containsExactlyElementsOf(primaryPassed ? List.of() : List.of("수학과학 21학점"));
         assertThat(report.summary().graduated()).isEqualTo(primaryPassed);
@@ -581,7 +580,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         given(curriculumLookupService.findGraduationRules(20L)).willReturn(List.of(secondaryRequired));
         givenNoClassification();
 
-        AreaDetailProjection response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
+        AreaDetailReadModel response = service.getAreaDetail(MEMBER_ID, CourseType.FIRST_MAJOR);
 
         assertThat(items(response))
                 .filteredOn(item -> item.title().equals("인공지능"))

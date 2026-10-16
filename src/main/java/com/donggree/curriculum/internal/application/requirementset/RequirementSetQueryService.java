@@ -1,8 +1,8 @@
 package com.donggree.curriculum.internal.application.requirementset;
 
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
-import com.donggree.curriculum.internal.application.projection.RequirementSetProjection;
-import com.donggree.curriculum.internal.application.projection.RequirementSetSummaryProjection;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetReadModel;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetSummaryReadModel;
 import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RequirementSetQueryService {
 
-    private final RequirementSetQueries requirementSetQueryRepository;
+    private final RequirementSetQueries requirementSetQueries;
     private final RequirementSetRepository requirementSetRepository;
     private final DepartmentRepository departmentRepository;
 
@@ -34,12 +34,12 @@ public class RequirementSetQueryService {
      * 모든 조건이 null이면 무시(미지정=전체).
      */
     @Transactional(readOnly = true)
-    public List<RequirementSetSummaryProjection> search(Long departmentId, Long collegeId, Integer year) {
+    public List<RequirementSetSummaryReadModel> search(Long departmentId, Long collegeId, Integer year) {
         List<Long> departmentIds = resolveDepartmentIds(departmentId, collegeId);
         if (departmentIds != null && departmentIds.isEmpty()) {
             return List.of(); // 학과/단과대 필터는 있으나 해당하는 학과가 없음 → 빈 결과
         }
-        return requirementSetQueryRepository.search(departmentIds, year);
+        return requirementSetQueries.search(departmentIds, year);
     }
 
     /**
@@ -63,7 +63,7 @@ public class RequirementSetQueryService {
 
     /** 졸업 요건 세트 단건을 조회한다. 연결 규칙 ID 목록이 필요하므로 애그리거트를 로딩해 조립한다. */
     @Transactional(readOnly = true)
-    public RequirementSetProjection get(Long id) {
+    public RequirementSetReadModel get(Long id) {
         RequirementSet set = requirementSetRepository
                 .findById(id)
                 .orElseThrow(() -> new GeneralException(CurriculumErrorCode.REQUIREMENT_SET_NOT_FOUND));
@@ -72,7 +72,7 @@ public class RequirementSetQueryService {
                 .map(Department::getDepartmentName)
                 .orElse(null);
         List<Long> ruleIds = set.getRules().stream().map(GraduationRule::getId).toList();
-        return new RequirementSetProjection(
+        return new RequirementSetReadModel(
                 set.getId(),
                 set.getDepartmentId(),
                 departmentName,

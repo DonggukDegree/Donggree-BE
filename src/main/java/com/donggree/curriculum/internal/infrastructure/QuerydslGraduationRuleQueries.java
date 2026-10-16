@@ -2,7 +2,7 @@ package com.donggree.curriculum.internal.infrastructure;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleQueries;
-import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
+import com.donggree.curriculum.internal.application.readmodel.GraduationRuleReadModel;
 import com.donggree.curriculum.internal.domain.graduationrule.QGraduationRule;
 import com.donggree.curriculum.internal.domain.requirementset.QRequirementSet;
 import com.donggree.curriculum.internal.domain.ruletype.QRuleType;
@@ -26,13 +26,13 @@ public class QuerydslGraduationRuleQueries implements GraduationRuleQueries {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<GraduationRuleProjection> search(
+    public List<GraduationRuleReadModel> search(
             List<Long> ruleTypeIds, List<CourseType> courseTypes, Long requirementSetId) {
         QGraduationRule gr = QGraduationRule.graduationRule;
         QRuleType rt = QRuleType.ruleType;
         return queryFactory
                 .select(Projections.constructor(
-                        GraduationRuleProjection.class,
+                        GraduationRuleReadModel.class,
                         gr.id,
                         gr.ruleTypeId,
                         rt.typeName,

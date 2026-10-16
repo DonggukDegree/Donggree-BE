@@ -1,6 +1,6 @@
 package com.donggree.support.internal.application;
 
-import com.donggree.support.internal.application.projection.FaqProjection;
+import com.donggree.support.internal.application.readmodel.FaqReadModel;
 import com.donggree.support.internal.domain.Faq;
 import com.donggree.support.internal.domain.FaqRepository;
 import com.donggree.support.internal.domain.enums.FaqTag;
@@ -23,13 +23,13 @@ public class FaqQueryService {
      * (화면 상단 칩의 '전체'가 tag 미지정에 해당한다.)
      */
     @Transactional(readOnly = true)
-    public List<FaqProjection> getFaqs(FaqTag tag) {
+    public List<FaqReadModel> getFaqs(FaqTag tag) {
         List<Faq> faqs = (tag == null)
                 ? faqRepository.findAllByOrderByCreatedAtDesc()
                 : faqRepository.findByTagOrderByCreatedAtDesc(tag);
 
         return faqs.stream()
-                .map(f -> new FaqProjection(f.getId(), f.getTag(), f.getTitle(), f.getContent()))
+                .map(f -> new FaqReadModel(f.getId(), f.getTag(), f.getTitle(), f.getContent()))
                 .toList();
     }
 }

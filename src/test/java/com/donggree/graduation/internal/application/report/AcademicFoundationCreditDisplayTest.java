@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.transcript.CourseRecordView;
@@ -211,7 +211,7 @@ class AcademicFoundationCreditDisplayTest {
         return new GraduationRuleView(id, "MIN_CREDITS", CourseType.ACADEMIC_FOUNDATION, "규칙" + id, config);
     }
 
-    private AreaDetailProjection detail(List<GraduationRuleView> rules, Map<Long, RuleResult> results) {
+    private AreaDetailReadModel detail(List<GraduationRuleView> rules, Map<Long, RuleResult> results) {
         return assembler.assembleAreaDetail(
                 CourseType.ACADEMIC_FOUNDATION,
                 rules,

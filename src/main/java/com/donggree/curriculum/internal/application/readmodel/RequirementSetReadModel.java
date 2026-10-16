@@ -1,4 +1,4 @@
-package com.donggree.curriculum.internal.application.projection;
+package com.donggree.curriculum.internal.application.readmodel;
 
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.List;
  * 관리자 대시보드용 졸업 요건 세트 조회 응답.
  * 연결된 졸업 규칙은 ID 목록으로 내려주며, 프론트는 졸업 규칙 조회 결과와 교차참조한다.
  */
-public record RequirementSetProjection(
+public record RequirementSetReadModel(
         Long id,
         Long departmentId,
         String departmentName,
@@ -21,7 +21,7 @@ public record RequirementSetProjection(
         boolean active,
         List<Long> graduationRuleIds) {
 
-    public RequirementSetProjection(
+    public RequirementSetReadModel(
             Long id,
             Long departmentId,
             String departmentName,

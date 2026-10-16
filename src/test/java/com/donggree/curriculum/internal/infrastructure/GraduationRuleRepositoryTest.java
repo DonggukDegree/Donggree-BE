@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleQueries;
-import com.donggree.curriculum.internal.application.projection.GraduationRuleProjection;
+import com.donggree.curriculum.internal.application.readmodel.GraduationRuleReadModel;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleRepository;
@@ -61,15 +61,15 @@ class GraduationRuleRepositoryTest {
 
     @Test
     void 필터가_없으면_course_type_그다음_rule_type_id_순으로_전체_조회한다() {
-        List<GraduationRuleProjection> result = customRepository.search(null, null, null);
+        List<GraduationRuleReadModel> result = customRepository.search(null, null, null);
 
         // course_type asc(NULLS LAST): FIRST_MAJOR(전공영역) < LIBERAL_ARTS(교양필수) < null(총학점)
-        assertThat(result).extracting(GraduationRuleProjection::ruleName).containsExactly("전공영역", "교양필수", "총학점");
+        assertThat(result).extracting(GraduationRuleReadModel::ruleName).containsExactly("전공영역", "교양필수", "총학점");
     }
 
     @Test
     void 조회_결과에_rule_type을_조인해_typeName과_courseType을_채운다() {
-        GraduationRuleProjection major =
+        GraduationRuleReadModel major =
                 customRepository.search(List.of(majorTypeId), null, null).get(0);
 
         assertThat(major.typeName()).isEqualTo("MIN_AREA_CREDITS");
@@ -79,24 +79,24 @@ class GraduationRuleRepositoryTest {
 
     @Test
     void ruleTypeId로_필터링한다() {
-        List<GraduationRuleProjection> result = customRepository.search(List.of(majorTypeId), null, null);
+        List<GraduationRuleReadModel> result = customRepository.search(List.of(majorTypeId), null, null);
 
-        assertThat(result).extracting(GraduationRuleProjection::ruleName).containsExactly("전공영역");
+        assertThat(result).extracting(GraduationRuleReadModel::ruleName).containsExactly("전공영역");
     }
 
     @Test
     void courseType으로_필터링한다() {
-        List<GraduationRuleProjection> result = customRepository.search(null, List.of(CourseType.LIBERAL_ARTS), null);
+        List<GraduationRuleReadModel> result = customRepository.search(null, List.of(CourseType.LIBERAL_ARTS), null);
 
-        assertThat(result).extracting(GraduationRuleProjection::ruleName).containsExactly("교양필수");
+        assertThat(result).extracting(GraduationRuleReadModel::ruleName).containsExactly("교양필수");
     }
 
     @Test
     void courseType을_여러_개_지정하면_OR로_정렬되어_조회한다() {
-        List<GraduationRuleProjection> result =
+        List<GraduationRuleReadModel> result =
                 customRepository.search(null, List.of(CourseType.FIRST_MAJOR, CourseType.LIBERAL_ARTS), null);
 
-        assertThat(result).extracting(GraduationRuleProjection::ruleName).containsExactly("전공영역", "교양필수");
+        assertThat(result).extracting(GraduationRuleReadModel::ruleName).containsExactly("전공영역", "교양필수");
     }
 
     @Test
@@ -109,10 +109,10 @@ class GraduationRuleRepositoryTest {
         set.replaceRules(List.of(linked1, linked2));
         Long setId = requirementSetRepository.save(set).getId();
 
-        List<GraduationRuleProjection> result = customRepository.search(null, null, setId);
+        List<GraduationRuleReadModel> result = customRepository.search(null, null, setId);
 
         assertThat(result)
-                .extracting(GraduationRuleProjection::id)
+                .extracting(GraduationRuleReadModel::id)
                 .containsExactlyInAnyOrder(linked1.getId(), linked2.getId());
     }
 

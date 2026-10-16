@@ -7,10 +7,10 @@ import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AdditionalNotice;
-import com.donggree.graduation.internal.application.projection.ReportPreviewProjection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AdditionalNotice;
+import com.donggree.graduation.internal.application.readmodel.ReportPreviewReadModel;
 import com.donggree.graduation.internal.application.report.GraduationReportAssembler;
 import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
@@ -55,24 +55,24 @@ public class GraduationQueryService {
                 evaluators.stream().collect(Collectors.toMap(RuleEvaluator::supportedTypeName, Function.identity()));
     }
 
-    public GraduationReportProjection getReport(Long memberId) {
+    public GraduationReportReadModel getReport(Long memberId) {
         return assembleReport(evaluateTranscript(findTranscript(memberId)));
     }
 
-    public AreaDetailProjection getAreaDetail(Long memberId, CourseType courseType) {
+    public AreaDetailReadModel getAreaDetail(Long memberId, CourseType courseType) {
         return assembleAreaDetail(courseType, evaluateTranscript(findTranscript(memberId)));
     }
 
     /** 임시 성적표도 사용자와 같은 판정·조립 경로를 사용하며, 저장 성적표는 조회하지 않는다. */
-    public ReportPreviewProjection preview(TranscriptView transcript) {
+    public ReportPreviewReadModel preview(TranscriptView transcript) {
         ReportEvaluation evaluation = evaluateTranscript(transcript);
-        GraduationReportProjection report = assembleReport(evaluation);
-        Map<CourseType, AreaDetailProjection> details = new LinkedHashMap<>();
+        GraduationReportReadModel report = assembleReport(evaluation);
+        Map<CourseType, AreaDetailReadModel> details = new LinkedHashMap<>();
         for (var area : report.areaOverviews()) {
             CourseType courseType = CourseType.valueOf(area.courseType());
             details.put(courseType, assembleAreaDetail(courseType, evaluation));
         }
-        return new ReportPreviewProjection(report, details);
+        return new ReportPreviewReadModel(report, details);
     }
 
     private TranscriptView findTranscript(Long memberId) {
@@ -103,7 +103,7 @@ public class GraduationQueryService {
                 resolved.additionalNotices());
     }
 
-    private GraduationReportProjection assembleReport(ReportEvaluation evaluation) {
+    private GraduationReportReadModel assembleReport(ReportEvaluation evaluation) {
         return reportAssembler.assembleReport(
                 evaluation.transcript(),
                 evaluation.rules(),
@@ -123,7 +123,7 @@ public class GraduationQueryService {
                 || transcript.transfer();
     }
 
-    private AreaDetailProjection assembleAreaDetail(CourseType courseType, ReportEvaluation evaluation) {
+    private AreaDetailReadModel assembleAreaDetail(CourseType courseType, ReportEvaluation evaluation) {
         TranscriptView transcript = evaluation.transcript();
         List<GraduationRuleView> allRules = evaluation.rules();
         List<GraduationRuleView> areaRules =

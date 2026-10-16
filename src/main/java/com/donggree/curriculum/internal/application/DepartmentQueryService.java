@@ -1,7 +1,7 @@
 package com.donggree.curriculum.internal.application;
 
-import com.donggree.curriculum.internal.application.projection.organization.CollegeProjection;
-import com.donggree.curriculum.internal.application.projection.organization.DepartmentProjection;
+import com.donggree.curriculum.internal.application.readmodel.organization.CollegeReadModel;
+import com.donggree.curriculum.internal.application.readmodel.organization.DepartmentReadModel;
 import com.donggree.curriculum.internal.domain.college.College;
 import com.donggree.curriculum.internal.domain.college.CollegeRepository;
 import com.donggree.curriculum.internal.domain.department.Department;
@@ -26,9 +26,9 @@ public class DepartmentQueryService {
 
     /** 단과대 목록(id·이름)을 이름순으로 조회한다. */
     @Transactional(readOnly = true)
-    public List<CollegeProjection> getColleges() {
+    public List<CollegeReadModel> getColleges() {
         return collegeRepository.findAllByOrderByCollegeNameAsc().stream()
-                .map(c -> new CollegeProjection(c.getId(), c.getCollegeName()))
+                .map(c -> new CollegeReadModel(c.getId(), c.getCollegeName()))
                 .toList();
     }
 
@@ -37,14 +37,14 @@ public class DepartmentQueryService {
      * 각 항목은 단과대명까지 채워 내려준다.
      */
     @Transactional(readOnly = true)
-    public List<DepartmentProjection> getDepartments(Long collegeId) {
+    public List<DepartmentReadModel> getDepartments(Long collegeId) {
         List<Department> departments = (collegeId == null)
                 ? departmentRepository.findAllByOrderByDepartmentNameAsc()
                 : departmentRepository.findByCollegeIdOrderByDepartmentNameAsc(collegeId);
 
         Map<Long, String> collegeNames = loadCollegeNames(departments);
         return departments.stream()
-                .map(d -> new DepartmentProjection(
+                .map(d -> new DepartmentReadModel(
                         d.getId(), d.getCollegeId(), collegeNames.get(d.getCollegeId()), d.getDepartmentName()))
                 .toList();
     }
