@@ -3,7 +3,7 @@ package com.donggree.graduation.internal.application.readmodel;
 import java.util.List;
 
 /**
- * 영역별 이수 현황 조회 결과 프로젝션.
+ * 영역별 이수 현황 조회 결과 읽기 모델.
  * 애그리거트를 거치지 않고 여러 모듈 조회 결과를 응용 계층에서 조립한 읽기 전용 모델이다.
  * areaDetails: courseType 내 areaName별 이수 현황
  * unsatisfiedReasons: 역할별 사유는 제1·제2전공, 역할 옵션 없는 규칙은 기존 이수구분에 표시

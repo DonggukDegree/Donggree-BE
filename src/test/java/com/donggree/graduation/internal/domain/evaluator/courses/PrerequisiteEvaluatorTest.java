@@ -4,8 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,10 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed("CSE1001", "기초프로그래밍", 3, "2023-1"), passed("CSE2001", "자료구조", 3, "2023-2"));
         EvaluationContext ctx = contextNoClassification(transcript(6, 4.0, records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -30,7 +34,10 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed("CSE1001", "기초프로그래밍", 3, "2023-1"));
         EvaluationContext ctx = contextNoClassification(transcript(3, 4.0, records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -38,7 +45,10 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed("CSE2001", "자료구조", 3, "2023-1"));
         EvaluationContext ctx = contextNoClassification(transcript(3, 4.0, records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -46,7 +56,10 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed("CSE1001", "기초프로그래밍", 3, "2023-1"), passed("CSE2001", "자료구조", 3, "2023-1"));
         EvaluationContext ctx = contextNoClassification(transcript(6, 4.0, records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -54,7 +67,10 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed("CSE2001", "자료구조", 3, "2023-1"), passed("CSE1001", "기초프로그래밍", 3, "2023-2"));
         EvaluationContext ctx = contextNoClassification(transcript(6, 4.0, records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -65,7 +81,10 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed("CSE1001-OLD", "프로그래밍기초", 3, "2021-1"), passed("CSE2001", "자료구조", 3, "2023-1"));
         EvaluationContext ctx = contextNoClassification(transcript(6, 4.0, records));
 
-        assertThat(evaluator.evaluate(rule(config), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(config)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -76,7 +95,9 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var t = transcriptWith(0, 4.0, false, null, false, "단일", "S1", records);
         EvaluationContext ctx = contextNoClassification(t);
 
-        assertThat(evaluator.evaluate(rule(configWithCondition), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(configWithCondition)), ctx)
+                        .satisfied())
                 .isTrue();
     }
 
@@ -88,7 +109,9 @@ class PrerequisiteEvaluatorTest extends EvaluatorTestSupport {
         var t = transcriptWith(0, 4.0, false, null, false, "단일", "S4", records);
         EvaluationContext ctx = contextNoClassification(t);
 
-        assertThat(evaluator.evaluate(rule(configWithCondition), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(configWithCondition)), ctx)
+                        .satisfied())
                 .isFalse();
     }
 

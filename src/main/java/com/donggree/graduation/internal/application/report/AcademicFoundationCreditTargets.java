@@ -1,12 +1,7 @@
 package com.donggree.graduation.internal.application.report;
 
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.global.logging.RequestDiagnostics;
-import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
-import com.donggree.graduation.internal.domain.EvaluationContext;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,20 +11,25 @@ import java.util.Map;
 /** 학문기초 리포트의 표시용 목표학점 계산. 실제 규칙 판정·수강 학점 집계에는 사용하지 않는다. */
 final class AcademicFoundationCreditTargets {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final List<String> SELECTORS =
             List.of("courseType", "areaNames", "subCategories", "pdfAreaNames", "pdfCourseTypeNames", "courseCodes");
     private static final int AREA_NAMES = 1;
     private static final int COURSE_CODES = 5;
 
-    private AcademicFoundationCreditTargets() {}
+    private final ReportRuleConfig config;
+    private final ReportSettingsReader reader;
 
-    static int total(List<GraduationRuleView> rules, EvaluationContext context) {
+    AcademicFoundationCreditTargets(ReportRuleConfig config, ReportSettingsReader reader) {
+        this.config = config;
+        this.reader = reader;
+    }
+
+    int total(List<GraduationRuleView> rules, EvaluationContext context) {
         return rollUp(readTargets(rules, context));
     }
 
     /** 단일 영역에 직접 지정된 목표만 카드에 귀속한다. 다중 영역·전체 목표는 임의 배분하지 않는다. */
-    static Map<String, Integer> byArea(List<GraduationRuleView> rules, EvaluationContext context) {
+    Map<String, Integer> byArea(List<GraduationRuleView> rules, EvaluationContext context) {
         Map<String, Map<Scope, Integer>> targetsByArea = new LinkedHashMap<>();
         readTargets(rules, context).forEach((scope, credits) -> {
             List<String> areas = scope.selectors().get(AREA_NAMES);
@@ -44,46 +44,33 @@ final class AcademicFoundationCreditTargets {
         return result;
     }
 
-    private static Map<Scope, Integer> readTargets(List<GraduationRuleView> rules, EvaluationContext context) {
+    private Map<Scope, Integer> readTargets(List<GraduationRuleView> rules, EvaluationContext context) {
         Map<Scope, Integer> targets = new LinkedHashMap<>();
         for (GraduationRuleView rule : rules) {
             if (!"MIN_CREDITS".equals(rule.typeName()) || rule.ruleConfig() == null) continue;
-            try {
-                JsonNode config = MAPPER.readTree(rule.ruleConfig());
-                if (config == null || !config.path("minCredits").isNumber()) continue;
-                int credits = CreditAdjustmentCalculator.adjustedTarget(
-                        rule, context, config.path("minCredits").asInt());
-                if (credits <= 0) continue;
-                List<List<String>> selectors = new ArrayList<>();
-                for (String field : SELECTORS) {
-                    List<String> values = values(config.path(field));
-                    // DAI*와 DAI1001을 함께 쓴 경우에도 DAI* 하나와 동일한 범위로 비교한다.
-                    if ("courseCodes".equals(field)) {
-                        List<String> patterns = values;
-                        values = patterns.stream()
-                                .filter(value -> patterns.stream()
-                                        .noneMatch(other -> !other.equals(value) && coversCode(other, value)))
-                                .toList();
-                    }
-                    selectors.add(values);
+            var target = reader.creditTarget(rule.ruleConfig(), SELECTORS);
+            if (target.isEmpty()) continue;
+            int credits = config.adjustedTarget(rule, context, target.get().credits());
+            if (credits <= 0) continue;
+            List<List<String>> selectors = new ArrayList<>();
+            List<List<String>> parsedSelectors = target.get().selectors();
+            if (parsedSelectors.isEmpty()) continue;
+            for (int index = 0; index < SELECTORS.size(); index++) {
+                String field = SELECTORS.get(index);
+                List<String> values = parsedSelectors.get(index);
+                // DAI*와 DAI1001을 함께 쓴 경우에도 DAI* 하나와 동일한 범위로 비교한다.
+                if ("courseCodes".equals(field)) {
+                    List<String> patterns = values;
+                    values = patterns.stream()
+                            .filter(value -> patterns.stream()
+                                    .noneMatch(other -> !other.equals(value) && coversCode(other, value)))
+                            .toList();
                 }
-                targets.merge(new Scope(List.copyOf(selectors)), credits, Math::max);
-            } catch (JsonProcessingException ex) {
-                RequestDiagnostics.fallback("academic_foundation_target", ex);
-                // 기존 표시용 파서와 동일하게 해석 불가능한 설정은 목표 계산에서 제외한다.
-                // 실제 설정 오류 검증은 규칙 판정기가 수행한다.
+                selectors.add(values);
             }
+            targets.merge(new Scope(List.copyOf(selectors)), credits, Math::max);
         }
         return targets;
-    }
-
-    private static List<String> values(JsonNode node) {
-        if (node.isMissingNode() || node.isNull()) return List.of();
-        if (node.isTextual()) return List.of(node.asText());
-        if (!node.isArray()) return List.of();
-        List<String> values = new ArrayList<>();
-        node.forEach(value -> values.add(value.asText()));
-        return values.stream().distinct().sorted().toList();
     }
 
     private static int rollUp(Map<Scope, Integer> targets) {

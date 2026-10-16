@@ -48,4 +48,21 @@ public class ModularityTests {
                 .resideInAnyPackage("..internal.presentation..", "..internal.infrastructure..")
                 .check(classes);
     }
+
+    @Test
+    void 졸업_판정_도메인은_외부_DTO와_기술_라이브러리에_의존하지_않는다() {
+        var classes = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("com.donggree.graduation.internal.domain");
+        noClasses()
+                .should()
+                .dependOnClassesThat()
+                .haveSimpleNameEndingWith("View")
+                .check(classes);
+        noClasses()
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("com.fasterxml.jackson..", "org.springframework..", "jakarta.persistence..")
+                .check(classes);
+    }
 }

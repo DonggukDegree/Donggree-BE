@@ -1,20 +1,13 @@
 package com.donggree.graduation.internal.application.report;
 
-import static com.donggree.graduation.internal.application.report.GraduationAreaDetailAssembler.buildAreaSections;
-import static com.donggree.graduation.internal.application.report.GraduationSummaryAssembler.buildAreaOverviews;
-import static com.donggree.graduation.internal.application.report.GraduationSummaryAssembler.buildSummary;
-import static com.donggree.graduation.internal.application.report.ReportCreditTargets.buildTypeCredits;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.applicableRequiredRules;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.extractRequiredCodes;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.requiredCodes;
-
-import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.graduation.internal.application.evaluation.RuleConfigurationReader;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.graduation.internal.domain.evaluation.CourseClassification;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.transcript.TranscriptView;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +16,18 @@ import org.springframework.stereotype.Component;
 /** 조회 결과를 요약·상세 조립기에 위임한다. 외부 모듈 조회와 실제 규칙 판정은 수행하지 않는다. */
 @Component
 public class GraduationReportAssembler {
+    private final ReportRuleConfig config;
+    private final GraduationSummaryAssembler summary;
+    private final GraduationAreaDetailAssembler areas;
+    private final ReportCreditTargets creditTargets;
+
+    public GraduationReportAssembler(RuleConfigurationReader configurationReader, ReportSettingsReader displayReader) {
+        config = new ReportRuleConfig(displayReader, configurationReader);
+        var foundation = new AcademicFoundationCreditTargets(config, displayReader);
+        creditTargets = new ReportCreditTargets(config, foundation);
+        summary = new GraduationSummaryAssembler(config, creditTargets);
+        areas = new GraduationAreaDetailAssembler(config, foundation, creditTargets);
+    }
 
     public GraduationReportReadModel assembleReport(
             TranscriptView transcript,
@@ -43,8 +48,8 @@ public class GraduationReportAssembler {
             boolean hasUnsupportedMajor,
             List<GraduationReportReadModel.AdditionalNotice> additionalNotices) {
         return new GraduationReportReadModel(
-                buildSummary(transcript, rules, statusRules, resultByRuleId),
-                buildAreaOverviews(rules, statusRules, resultByRuleId, context),
+                summary.buildSummary(transcript, rules, statusRules, resultByRuleId),
+                summary.buildAreaOverviews(rules, statusRules, resultByRuleId, context),
                 hasUnsupportedMajor,
                 transcript.englishPassResult(),
                 additionalNotices);
@@ -56,11 +61,11 @@ public class GraduationReportAssembler {
             List<GraduationRuleView> statusRules,
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
-            Map<String, CourseClassificationView> allCls,
+            Map<String, CourseClassification> allCls,
             List<String> roleRequiredCodes) {
 
         List<AreaDetailReadModel.AreaSection> areaDetails =
-                buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls, roleRequiredCodes);
+                areas.buildAreaSections(courseType, areaRules, resultByRuleId, context, allCls, roleRequiredCodes);
 
         List<String> unsatisfiedReasons = statusRules.stream()
                 .filter(r -> {
@@ -72,19 +77,19 @@ public class GraduationReportAssembler {
                 .distinct()
                 .toList();
 
-        AreaDetailReadModel.CreditStatus creditStatus = buildTypeCredits(courseType, areaRules, context);
+        AreaDetailReadModel.CreditStatus creditStatus = creditTargets.buildTypeCredits(courseType, areaRules, context);
 
         return new AreaDetailReadModel(areaDetails, unsatisfiedReasons, creditStatus);
     }
 
     public List<String> requiredCourseCodes(List<GraduationRuleView> rules) {
-        return extractRequiredCodes(rules);
+        return config.extractRequiredCodes(rules);
     }
 
     public List<String> applicableRequiredCourseCodes(
             List<GraduationRuleView> rules, String studentEnglishLevel, CourseType displayedCourseType) {
         boolean secondaryArea = displayedCourseType == CourseType.SECOND_MAJOR;
-        return applicableRequiredRules(rules, studentEnglishLevel).stream()
+        return config.applicableRequiredRules(rules, studentEnglishLevel).stream()
                 // 복수전공 규칙은 GraduationQueryService에서 음수 스코프 ID를 부여한다.
                 // 역할이 다른 같은 학수번호가 상세 화면에서 잘못 충족 표시되는 것을 막는다.
                 .filter(rule -> secondaryArea == (rule.id() < 0)
@@ -92,7 +97,7 @@ public class GraduationReportAssembler {
                         || (rule.id() < 0
                                 && (rule.courseType() == CourseType.ACADEMIC_FOUNDATION
                                         || rule.courseType() == CourseType.COMMON_GENERAL)))
-                .flatMap(r -> requiredCodes(r).stream())
+                .flatMap(r -> config.requiredCodes(r).stream())
                 .distinct()
                 .toList();
     }

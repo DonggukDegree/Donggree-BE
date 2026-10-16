@@ -4,8 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,10 @@ class ScienceConflictEvaluatorTest extends EvaluatorTestSupport {
                 "SCI002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "개론", "물리"));
         EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule("{}")), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -33,7 +37,10 @@ class ScienceConflictEvaluatorTest extends EvaluatorTestSupport {
                 "SCI002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "개론", "생물"));
         EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule("{}")), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -42,14 +49,20 @@ class ScienceConflictEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("SCI001", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리"));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule("{}")), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
     void 수강_이력이_없으면_충족이다() {
         EvaluationContext ctx = context(transcript(0, 4.0, List.of()), Map.of());
 
-        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule("{}")), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     private GraduationRuleView rule(String config) {

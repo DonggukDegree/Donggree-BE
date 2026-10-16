@@ -3,9 +3,10 @@ package com.donggree.graduation.internal.domain.evaluator.credits;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ class TotalCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(130, 3.0, List.of()), Map.of());
         GraduationRuleView rule = rule("{\"minCredits\": 130}");
 
-        RuleResult result = evaluator.evaluate(rule, ctx);
+        RuleResult result = evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx);
 
         assertThat(result.satisfied()).isTrue();
     }
@@ -29,7 +30,7 @@ class TotalCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(129, 3.0, List.of()), Map.of());
         GraduationRuleView rule = rule("{\"minCredits\": 130}");
 
-        RuleResult result = evaluator.evaluate(rule, ctx);
+        RuleResult result = evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx);
 
         assertThat(result.satisfied()).isFalse();
     }
@@ -39,7 +40,7 @@ class TotalCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(130, 3.0, List.of()), Map.of());
         GraduationRuleView rule = rule("{\"minCredits\": 130}");
 
-        RuleResult result = evaluator.evaluate(rule, ctx);
+        RuleResult result = evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx);
 
         assertThat(result.ruleName()).isEqualTo("총 취득학점이 130학점 이상이어야 합니다.");
     }

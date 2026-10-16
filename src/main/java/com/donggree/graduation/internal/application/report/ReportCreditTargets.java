@@ -1,14 +1,9 @@
 package com.donggree.graduation.internal.application.report;
 
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.hasNumberField;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.parseIntField;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.parseStringList;
-
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
-import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
-import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
@@ -17,40 +12,44 @@ import java.util.stream.Collectors;
 final class ReportCreditTargets {
     private static final String MIN_CREDITS = "MIN_CREDITS";
 
-    private ReportCreditTargets() {}
+    private final ReportRuleConfig config;
+    private final AcademicFoundationCreditTargets foundation;
 
-    static AreaDetailReadModel.CreditStatus buildTypeCredits(
+    ReportCreditTargets(ReportRuleConfig config, AcademicFoundationCreditTargets foundation) {
+        this.config = config;
+        this.foundation = foundation;
+    }
+
+    AreaDetailReadModel.CreditStatus buildTypeCredits(
             CourseType courseType, List<GraduationRuleView> areaRules, EvaluationContext context) {
         int earned = context.getTotalPassedCreditsByType(courseType);
         int target = resolveTypeTargetCredits(courseType, areaRules, context);
         return new AreaDetailReadModel.CreditStatus(earned, target, Math.max(0, target - earned));
     }
 
-    static int resolveTypeTargetCredits(
-            CourseType courseType, List<GraduationRuleView> rules, EvaluationContext context) {
+    int resolveTypeTargetCredits(CourseType courseType, List<GraduationRuleView> rules, EvaluationContext context) {
         if (courseType == CourseType.ACADEMIC_FOUNDATION) {
-            return AcademicFoundationCreditTargets.total(rules, context);
+            return foundation.total(rules, context);
         }
         OptionalInt wholeType = rules.stream()
-                .filter(ReportCreditTargets::isCreditTargetRule)
-                .filter(r -> parseStringList(r.ruleConfig(), "areaNames").isEmpty())
-                .mapToInt(r -> CreditAdjustmentCalculator.adjustedTarget(
-                        r, context, parseIntField(r.ruleConfig(), "minCredits", 0)))
+                .filter(this::isCreditTargetRule)
+                .filter(r -> config.parseStringList(r.ruleConfig(), "areaNames").isEmpty())
+                .mapToInt(r -> config.adjustedTarget(r, context, config.parseIntField(r.ruleConfig(), "minCredits", 0)))
                 .max();
         if (wholeType.isPresent()) return wholeType.getAsInt();
 
         // A/B 학과가 같은 영역 학점을 요구해도 학생이 그 학점을 두 번 취득할 필요는 없다.
         // 동일 영역 묶음은 더 큰 기준을 표시하고, 서로 다른 묶음은 기존처럼 합산한다.
         return rules.stream()
-                .filter(ReportCreditTargets::isCreditTargetRule)
-                .filter(r -> !parseStringList(r.ruleConfig(), "areaNames").isEmpty())
+                .filter(this::isCreditTargetRule)
+                .filter(r ->
+                        !config.parseStringList(r.ruleConfig(), "areaNames").isEmpty())
                 .collect(Collectors.toMap(
-                        r -> parseStringList(r.ruleConfig(), "areaNames").stream()
+                        r -> config.parseStringList(r.ruleConfig(), "areaNames").stream()
                                 .distinct()
                                 .sorted()
                                 .toList(),
-                        r -> CreditAdjustmentCalculator.adjustedTarget(
-                                r, context, parseIntField(r.ruleConfig(), "minCredits", 0)),
+                        r -> config.adjustedTarget(r, context, config.parseIntField(r.ruleConfig(), "minCredits", 0)),
                         Math::max))
                 .values()
                 .stream()
@@ -58,8 +57,8 @@ final class ReportCreditTargets {
                 .sum();
     }
 
-    static boolean isCreditTargetRule(GraduationRuleView rule) {
-        return MIN_CREDITS.equals(rule.typeName()) && hasNumberField(rule.ruleConfig(), "minCredits");
+    boolean isCreditTargetRule(GraduationRuleView rule) {
+        return MIN_CREDITS.equals(rule.typeName()) && config.hasNumberField(rule.ruleConfig(), "minCredits");
     }
 
     static String courseTypeKoreanName(CourseType courseType) {

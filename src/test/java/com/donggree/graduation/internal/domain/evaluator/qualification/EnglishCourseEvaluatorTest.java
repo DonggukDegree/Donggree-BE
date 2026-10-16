@@ -5,9 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,10 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = contextNoClassification(t);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(
+                                        rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -36,7 +40,10 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = contextNoClassification(t);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(
+                                        rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -51,7 +58,10 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(t, cls);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(
+                                        rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -64,7 +74,10 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(t, cls);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(
+                                        rule("{\"courseTypes\": [\"FIRST_MAJOR\"], \"minCount\": 2}")),
+                                ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -85,7 +98,7 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(t, cls);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\": null, \"minCount\": 4}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"courseTypes\": null, \"minCount\": 4}")), ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -100,10 +113,12 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(role, true, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":null,\"minCount\":7}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"courseTypes\":null,\"minCount\":7}")), ctx)
                         .satisfied())
                 .isTrue();
-        assertThat(evaluator.evaluate(rule("{\"minCount\":8}"), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"minCount\":8}")), ctx)
+                        .satisfied())
                 .isFalse();
     }
 
@@ -115,11 +130,15 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(role, true, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":3}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":3}")),
+                                ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -129,11 +148,15 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(MajorRole.SECONDARY, true, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":3}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":3}")),
+                                ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -144,11 +167,15 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(role, true, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"SECOND_MAJOR\"],\"minCount\":2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"SECOND_MAJOR\"],\"minCount\":2}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"SECOND_MAJOR\"],\"minCount\":3}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"SECOND_MAJOR\"],\"minCount\":3}")),
+                                ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -158,11 +185,17 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(MajorRole.DUAL_PRIMARY, true, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\",\"SECOND_MAJOR\"],\"minCount\":4}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(
+                                        rule("{\"courseTypes\":[\"FIRST_MAJOR\",\"SECOND_MAJOR\"],\"minCount\":4}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\",\"SECOND_MAJOR\"],\"minCount\":5}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(
+                                        rule("{\"courseTypes\":[\"FIRST_MAJOR\",\"SECOND_MAJOR\"],\"minCount\":5}")),
+                                ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -172,7 +205,10 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(MajorRole.SECONDARY, true, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\",\"SECOND_MAJOR\"],\"minCount\":3}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(
+                                        rule("{\"courseTypes\":[\"FIRST_MAJOR\",\"SECOND_MAJOR\"],\"minCount\":3}")),
+                                ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -182,11 +218,15 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(MajorRole.SECONDARY, true, true);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":3}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":3}")),
+                                ctx)
                         .satisfied())
                 .isFalse();
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":2}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -196,7 +236,9 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(MajorRole.DUAL_PRIMARY, true, true);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":99}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":99}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -206,7 +248,9 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(MajorRole.SECONDARY, false, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":99}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseTypes\":[\"FIRST_MAJOR\"],\"minCount\":99}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -216,7 +260,7 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = roleContext(MajorRole.DUAL_PRIMARY, true, null);
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseTypes\":null,\"minCount\":7}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"courseTypes\":null,\"minCount\":7}")), ctx)
                         .satisfied())
                 .isTrue();
         assertThat(ctx.getPassedCourses())
@@ -246,8 +290,8 @@ class EnglishCourseEvaluatorTest extends EvaluatorTestSupport {
                 "G1", classification(CourseType.COMMON_GENERAL));
         var transcript = transcriptWith(27, 4.0, target, completed, false, "학사과정", "S1", records);
         return role == MajorRole.SECONDARY
-                ? EvaluationContext.secondary(transcript, cls, "복수1")
-                : EvaluationContext.primary(transcript, cls, role);
+                ? EvaluationTestInputs.secondary(transcript, cls, "복수1")
+                : EvaluationTestInputs.primary(transcript, cls, role);
     }
 
     private CourseRecordView englishRecord(String code, String pdfType, boolean passed, boolean english) {

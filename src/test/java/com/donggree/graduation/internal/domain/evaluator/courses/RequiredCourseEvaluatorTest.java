@@ -4,10 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
 import com.donggree.graduation.internal.domain.evaluator.credits.MinCreditsEvaluator;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,9 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed(first, first, 3, "2023-1"), passed(second, second, 3, "2023-2"));
 
         assertThat(evaluator
-                        .evaluate(rule(EXPERIMENT_SETS), contextNoClassification(transcript(6, 4.0, records)))
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule(EXPERIMENT_SETS)),
+                                contextNoClassification(transcript(6, 4.0, records)))
                         .satisfied())
                 .isEqualTo(expected);
     }
@@ -50,7 +53,9 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 passed("PHY2", "물리2", 3, "2023-1"),
                 passed("BIO1", "생물1", 3, "2023-2"));
         assertThat(evaluator
-                        .evaluate(rule(EXPERIMENT_SETS), contextNoClassification(transcript(9, 4.0, records)))
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule(EXPERIMENT_SETS)),
+                                contextNoClassification(transcript(9, 4.0, records)))
                         .satisfied())
                 .isTrue();
     }
@@ -62,7 +67,9 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 List.of(passed("PHY1", "물리1", 3, "2023-1")),
                 List.of(passed("PHY1", "물리1", 3, "2023-1"), failed("PHY2", "물리2", 3, "2023-2")))) {
             assertThat(evaluator
-                            .evaluate(rule(EXPERIMENT_SETS), contextNoClassification(transcript(3, 4.0, records)))
+                            .evaluate(
+                                    EvaluationTestInputs.rule(rule(EXPERIMENT_SETS)),
+                                    contextNoClassification(transcript(3, 4.0, records)))
                             .satisfied())
                     .isFalse();
         }
@@ -73,7 +80,7 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(passed("PHY1001", "물리1", 3, "2023-1"), passed("PHY2001", "물리2", 3, "2023-2"));
         var rule = rule("{\"requiredCourseSets\":[[[\"PHY1*\"],[\"PHY2*\"]]]}");
         assertThat(evaluator
-                        .evaluate(rule, contextNoClassification(transcript(6, 4.0, records)))
+                        .evaluate(EvaluationTestInputs.rule(rule), contextNoClassification(transcript(6, 4.0, records)))
                         .satisfied())
                 .isTrue();
     }
@@ -92,9 +99,10 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(
                 new CourseRecordView("2023-1", "PHY1", pdfType, "과학", "물리1", 3, true, false),
                 new CourseRecordView("2023-2", "PHY2", pdfType, "과학", "물리2", 3, true, false));
-        var ctx = EvaluationContext.secondary(transcript(6, 4.0, records), Map.of(), "복수1");
+        var ctx = EvaluationTestInputs.secondary(transcript(6, 4.0, records), Map.of(), "복수1");
         var rule = new GraduationRuleView(1L, "REQUIRED_COURSE", type, "실험 세트", EXPERIMENT_SETS);
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isEqualTo(expected);
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isEqualTo(expected);
     }
 
     @ParameterizedTest
@@ -102,7 +110,7 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
     void 비어있는_세트는_자동_충족으로_판정하지_않는다(String sets) {
         assertThat(evaluator
                         .evaluate(
-                                rule("{\"requiredCourseSets\":" + sets + "}"),
+                                EvaluationTestInputs.rule(rule("{\"requiredCourseSets\":" + sets + "}")),
                                 contextNoClassification(transcript(0, 4.0, List.of())))
                         .satisfied())
                 .isFalse();
@@ -113,7 +121,8 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         var ctx = contextNoClassification(transcriptWith(0, 4.0, false, null, false, "단일", "S0", List.of()));
         for (String condition : List.of("\"exemptEnglishLevels\":[\"S0\"]", "\"requiredEnglishLevels\":[\"S4\"]")) {
             var rule = rule("{\"requiredCourseSets\":[[[\"A\"],[\"B\"]]]," + condition + "}");
-            assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+            assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                    .isTrue();
         }
     }
 
@@ -123,7 +132,7 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = contextNoClassification(transcript(3, 4.0, records));
         GraduationRuleView rule = rule("{\"courseCodes\": [\"CSE1001\"]}");
 
-        RuleResult result = evaluator.evaluate(rule, ctx);
+        RuleResult result = evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx);
 
         assertThat(result.satisfied()).isTrue();
     }
@@ -133,7 +142,7 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = contextNoClassification(transcript(0, 4.0, List.of()));
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseCodes\": [\"CSE1001\"]}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"courseCodes\": [\"CSE1001\"]}")), ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -144,7 +153,7 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = contextNoClassification(transcript(0, 0.0, records));
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseCodes\": [\"CSE1001\"]}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"courseCodes\": [\"CSE1001\"]}")), ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -155,7 +164,9 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = contextNoClassification(transcript(3, 4.0, records));
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseCodes\": [\"CSE1001\", \"CSE1001-OLD\"]}"), ctx)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{\"courseCodes\": [\"CSE1001\", \"CSE1001-OLD\"]}")),
+                                ctx)
                         .satisfied())
                 .isTrue();
     }
@@ -171,7 +182,8 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 "EAS1은 필수 과목입니다.",
                 "{\"courseCodes\":[\"RGC1080\"],\"exemptEnglishLevels\":[\"S0\"]}");
 
-        assertThat(evaluator.evaluate(easRule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(easRule), ctx).satisfied())
+                .isTrue();
     }
 
     @Test
@@ -186,7 +198,8 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 "EAS1은 필수 과목입니다.",
                 "{\"courseCodes\":[\"RGC1080\"],\"exemptEnglishLevels\":[\"S0\"]}");
 
-        assertThat(evaluator.evaluate(easRule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(easRule), ctx).satisfied())
+                .isTrue();
     }
 
     @Test
@@ -200,7 +213,10 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 "BasicEAS는 필수 과목입니다.",
                 "{\"courseCodes\":[\"RGC1030\"],\"requiredEnglishLevels\":[\"S4\"]}");
 
-        assertThat(evaluator.evaluate(basicEasRule, ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(basicEasRule), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -215,7 +231,10 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 "BasicEAS는 필수 과목입니다.",
                 "{\"courseCodes\":[\"RGC1030\"],\"requiredEnglishLevels\":[\"S4\"]}");
 
-        assertThat(evaluator.evaluate(basicEasRule, ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(basicEasRule), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -229,16 +248,19 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 "BasicEAS는 필수 과목입니다.",
                 "{\"courseCodes\":[\"RGC1030\"],\"requiredEnglishLevels\":[\"S4\"]}");
 
-        assertThat(evaluator.evaluate(basicEasRule, ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(basicEasRule), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
     void 복수전공_필수과목은_해당_복수_순번에서_이수해야_한다() {
         var records = List.of(new CourseRecordView("2024-1", "DAI1001", "복수2", "전문", "인공지능", 3, true, false));
-        EvaluationContext ctx = EvaluationContext.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
+        EvaluationContext ctx = EvaluationTestInputs.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
 
         assertThat(evaluator
-                        .evaluate(rule("{\"courseCodes\":[\"DAI1001\"]}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"courseCodes\":[\"DAI1001\"]}")), ctx)
                         .satisfied())
                 .isFalse();
     }
@@ -262,11 +284,14 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
     })
     void 복수전공_필수과목의_규칙별_인정_범위를_구분한다(CourseType ruleCourseType, String pdfCourseType, boolean expected) {
         var records = List.of(new CourseRecordView("2024-1", "RGC1001", pdfCourseType, null, "지정과목", 3, true, false));
-        EvaluationContext ctx = EvaluationContext.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
+        EvaluationContext ctx = EvaluationTestInputs.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
         GraduationRuleView requiredRule = new GraduationRuleView(
                 2L, "REQUIRED_COURSE", ruleCourseType, "지정과목은 필수", "{\"courseCodes\":[\"RGC1001\"]}");
 
-        assertThat(evaluator.evaluate(requiredRule, ctx).satisfied()).isEqualTo(expected);
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(requiredRule), ctx)
+                        .satisfied())
+                .isEqualTo(expected);
     }
 
     @Test
@@ -274,29 +299,35 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
         var records = List.of(
                 new CourseRecordView("2024-1", "RGC1001", "공교", "글", "글쓰기", 3, false, false),
                 new CourseRecordView("2024-1", "RGC1002", "공교", "글", "다른글쓰기", 3, true, false));
-        EvaluationContext ctx = EvaluationContext.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
+        EvaluationContext ctx = EvaluationTestInputs.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
         GraduationRuleView requiredRule = new GraduationRuleView(
                 2L, "REQUIRED_COURSE", CourseType.COMMON_GENERAL, "글쓰기는 필수", "{\"courseCodes\":[\"RGC1001\"]}");
 
-        assertThat(evaluator.evaluate(requiredRule, ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(requiredRule), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
     void 복수전공_공통교양_필수의_동일유사_학수번호와_접두어를_인정한다() {
         var records = List.of(new CourseRecordView("2024-1", "RGC1001", "공교", "글", "글쓰기", 3, true, false));
-        EvaluationContext ctx = EvaluationContext.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
+        EvaluationContext ctx = EvaluationTestInputs.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
         for (String codes : List.of("[\"RGC1002\",\"RGC1001\"]", "[\"RGC*\"]")) {
             GraduationRuleView requiredRule = new GraduationRuleView(
                     2L, "REQUIRED_COURSE", CourseType.COMMON_GENERAL, "글쓰기는 필수", "{\"courseCodes\":" + codes + "}");
 
-            assertThat(evaluator.evaluate(requiredRule, ctx).satisfied()).isTrue();
+            assertThat(evaluator
+                            .evaluate(EvaluationTestInputs.rule(requiredRule), ctx)
+                            .satisfied())
+                    .isTrue();
         }
     }
 
     @Test
     void 복수전공_공통교양_필수_인정이_최소학점_규칙의_기존_범위를_넓히지_않는다() {
         var records = List.of(new CourseRecordView("2024-1", "RGC1001", "공교", "글", "글쓰기", 3, true, false));
-        EvaluationContext ctx = EvaluationContext.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
+        EvaluationContext ctx = EvaluationTestInputs.secondary(transcript(3, 4.0, records), Map.of(), "복수1");
         GraduationRuleView requiredRule = new GraduationRuleView(
                 2L, "REQUIRED_COURSE", CourseType.COMMON_GENERAL, "글쓰기는 필수", "{\"courseCodes\":[\"RGC1001\"]}");
         GraduationRuleView creditRule = new GraduationRuleView(
@@ -306,8 +337,13 @@ class RequiredCourseEvaluatorTest extends EvaluatorTestSupport {
                 "글쓰기 3학점",
                 "{\"courseCodes\":[\"RGC1001\"],\"minCredits\":3}");
 
-        assertThat(evaluator.evaluate(requiredRule, ctx).satisfied()).isTrue();
-        assertThat(new MinCreditsEvaluator().evaluate(creditRule, ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(requiredRule), ctx)
+                        .satisfied())
+                .isTrue();
+        assertThat(new MinCreditsEvaluator()
+                        .evaluate(EvaluationTestInputs.rule(creditRule), ctx)
+                        .satisfied())
                 .isFalse();
     }
 

@@ -5,10 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.graduation.internal.application.evaluation.EvaluationInputMapper;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
 import com.donggree.graduation.internal.domain.evaluator.credits.MinCreditsEvaluator;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
 import java.math.BigDecimal;
@@ -20,7 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class GraduationAreaDisplayTest {
-    private final GraduationReportAssembler assembler = new GraduationReportAssembler();
+    private final GraduationReportAssembler assembler = EvaluationTestInputs.assembler();
 
     @ParameterizedTest
     @CsvSource({"FIRST_MAJOR,전공", "FIRST_MAJOR,전필", "SECOND_MAJOR,복수1", "SECOND_MAJOR,복수2"})
@@ -130,21 +131,22 @@ class GraduationAreaDisplayTest {
     void 표시_변환_후에도_전문_원문_선택자의_복수전공_규칙_판정은_유지한다() {
         var transcript = transcript(List.of(course("CSE0001", "복수1", "전문")));
         var classifications = Map.of("CSE0001", new CourseClassificationView(CourseType.FIRST_MAJOR, null, null, null));
-        var context = EvaluationContext.secondary(transcript, classifications, "복수1");
+        var context = EvaluationTestInputs.secondary(transcript, classifications, "복수1");
         var rule = new GraduationRuleView(
                 1L,
                 "MIN_CREDITS",
                 CourseType.FIRST_MAJOR,
                 "전문 3학점",
                 "{\"courseType\":\"FIRST_MAJOR\",\"pdfAreaNames\":[\"전문\"],\"minCredits\":3}");
-        var before = new MinCreditsEvaluator().evaluate(rule, context);
+        var before = new MinCreditsEvaluator().evaluate(EvaluationTestInputs.rule(rule), context);
 
         var detail = detail(CourseType.SECOND_MAJOR, transcript, classifications, List.of(), Map.of());
 
         assertThat(detail.areaDetails())
                 .extracting(AreaDetailReadModel.AreaSection::areaName)
                 .containsExactly("전공전문");
-        assertThat(new MinCreditsEvaluator().evaluate(rule, context)).isEqualTo(before);
+        assertThat(new MinCreditsEvaluator().evaluate(EvaluationTestInputs.rule(rule), context))
+                .isEqualTo(before);
         assertThat(before.satisfied()).isTrue();
     }
 
@@ -154,8 +156,8 @@ class GraduationAreaDisplayTest {
             Map<String, CourseClassificationView> classifications,
             List<GraduationRuleView> rules,
             Map<Long, RuleResult> results) {
-        var context = EvaluationContext.report(transcript, classifications);
-        var allClassifications = new HashMap<>(classifications);
+        var context = EvaluationTestInputs.report(transcript, classifications);
+        var allClassifications = new HashMap<>(EvaluationInputMapper.classifications(classifications));
         // 실제 조회 서비스와 동일한 복수전공 수강별 분류 보충 경로
         context.getPassedCoursesByType(type)
                 .forEach(record -> allClassifications.put(record.courseCode(), context.getClassification(record)));

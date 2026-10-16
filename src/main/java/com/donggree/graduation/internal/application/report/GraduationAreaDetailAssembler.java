@@ -1,20 +1,12 @@
 package com.donggree.graduation.internal.application.report;
 
-import static com.donggree.graduation.internal.application.report.ReportCreditTargets.courseTypeKoreanName;
-import static com.donggree.graduation.internal.application.report.ReportCreditTargets.isCreditTargetRule;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.applicableRequiredRules;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.parseIntField;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.parseStringList;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.requiredCodes;
-
-import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
-import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
-import com.donggree.transcript.CourseRecordView;
+import com.donggree.graduation.internal.domain.evaluation.CourseClassification;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationCourse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -26,30 +18,39 @@ import java.util.Objects;
 final class GraduationAreaDetailAssembler {
     private static final String MIN_CREDITS = "MIN_CREDITS";
 
-    private GraduationAreaDetailAssembler() {}
+    private final ReportRuleConfig config;
+    private final AcademicFoundationCreditTargets foundation;
+    private final ReportCreditTargets creditTargets;
 
-    static List<AreaDetailReadModel.AreaSection> buildAreaSections(
+    GraduationAreaDetailAssembler(
+            ReportRuleConfig config, AcademicFoundationCreditTargets foundation, ReportCreditTargets creditTargets) {
+        this.config = config;
+        this.foundation = foundation;
+        this.creditTargets = creditTargets;
+    }
+
+    List<AreaDetailReadModel.AreaSection> buildAreaSections(
             CourseType courseType,
             List<GraduationRuleView> areaRules,
             Map<Long, RuleResult> resultByRuleId,
             EvaluationContext context,
-            Map<String, CourseClassificationView> allCls,
+            Map<String, CourseClassification> allCls,
             List<String> roleRequiredCodes) {
 
-        String fallbackArea = courseTypeKoreanName(courseType);
-        List<CourseRecordView> allPassed = context.getPassedCoursesByType(courseType);
+        String fallbackArea = ReportCreditTargets.courseTypeKoreanName(courseType);
+        List<EvaluationCourse> allPassed = context.getPassedCoursesByType(courseType);
         String studentEnglishLevel = context.getTranscript().englishLevel();
 
         // 이 이수구분에 속한 필수 규칙 — 미충족 시 규칙명·0학점 placeholder로 노출하기 위해 사용한다.
         record RequiredRule(GraduationRuleView rule, List<String> codes, String areaName) {}
         List<RequiredRule> requiredRules = new ArrayList<>();
-        for (GraduationRuleView rule : applicableRequiredRules(areaRules, studentEnglishLevel)) {
-            List<String> codes = requiredCodes(rule);
+        for (GraduationRuleView rule : config.applicableRequiredRules(areaRules, studentEnglishLevel)) {
+            List<String> codes = config.requiredCodes(rule);
             // course_classification을 우선하되 PDF 원문과 동일한 표시명 정규화 적용
             String ruleArea = codes.stream()
                     .map(allCls::get)
                     .filter(Objects::nonNull)
-                    .map(CourseClassificationView::areaName)
+                    .map(CourseClassification::areaName)
                     .filter(Objects::nonNull)
                     .findFirst()
                     .orElse(null);
@@ -58,7 +59,7 @@ final class GraduationAreaDetailAssembler {
                 ruleArea = allPassed.stream()
                         .filter(cr -> context.codeMatchesAny(cr.courseCode(), codes))
                         .findFirst()
-                        .map(CourseRecordView::pdfAreaName)
+                        .map(EvaluationCourse::pdfAreaName)
                         .orElse(null);
             }
             requiredRules.add(new RequiredRule(rule, codes, resolveAreaName(ruleArea, courseType, null)));
@@ -70,25 +71,25 @@ final class GraduationAreaDetailAssembler {
         Map<String, Integer> targetCreditsByArea;
         if (courseType == CourseType.ACADEMIC_FOUNDATION) {
             // 영역명뿐 아니라 학수번호·소분류 등 실제 대상 범위의 포함 관계까지 반영한다.
-            targetCreditsByArea = AcademicFoundationCreditTargets.byArea(areaRules, context);
+            targetCreditsByArea = foundation.byArea(areaRules, context);
         } else {
             targetCreditsByArea = new HashMap<>();
             for (GraduationRuleView rule : areaRules) {
-                if (!isCreditTargetRule(rule)) continue;
-                List<String> areaNames = parseStringList(rule.ruleConfig(), "areaNames");
+                if (!creditTargets.isCreditTargetRule(rule)) continue;
+                List<String> areaNames = config.parseStringList(rule.ruleConfig(), "areaNames");
                 if (areaNames.size() == 1) {
                     targetCreditsByArea.merge(
                             resolveAreaName(areaNames.get(0), courseType, fallbackArea),
-                            CreditAdjustmentCalculator.adjustedTarget(
-                                    rule, context, parseIntField(rule.ruleConfig(), "minCredits", 0)),
+                            config.adjustedTarget(
+                                    rule, context, config.parseIntField(rule.ruleConfig(), "minCredits", 0)),
                             Math::max);
                 }
             }
         }
 
-        LinkedHashMap<String, List<CourseRecordView>> coursesByArea = new LinkedHashMap<>();
-        for (CourseRecordView cr : allPassed) {
-            CourseClassificationView cls = cr.courseCode() != null ? allCls.get(cr.courseCode()) : null;
+        LinkedHashMap<String, List<EvaluationCourse>> coursesByArea = new LinkedHashMap<>();
+        for (EvaluationCourse cr : allPassed) {
+            CourseClassification cls = cr.courseCode() != null ? allCls.get(cr.courseCode()) : null;
             String area;
             if (cls != null && cls.areaName() != null) {
                 area = resolveAreaName(cls.areaName(), courseType, fallbackArea);
@@ -105,22 +106,22 @@ final class GraduationAreaDetailAssembler {
         }
 
         List<AreaDetailReadModel.AreaSection> sections = new ArrayList<>();
-        for (Map.Entry<String, List<CourseRecordView>> entry : coursesByArea.entrySet()) {
+        for (Map.Entry<String, List<EvaluationCourse>> entry : coursesByArea.entrySet()) {
             String areaName = entry.getKey();
-            List<CourseRecordView> areaCourses = entry.getValue();
+            List<EvaluationCourse> areaCourses = entry.getValue();
             List<AreaDetailReadModel.CourseItem> items = new ArrayList<>();
 
             // 이수 과목 분류 — 필수 학수번호를 충족시킨 과목은 학생 수강 내역대로 SATISFIED로 표시한다.
             // subCategory(실험, 개론 등)가 있으면 alias로 그룹핑, 없으면 개별 항목.
-            List<CourseRecordView> requiredFulfilled = new ArrayList<>();
-            LinkedHashMap<String, List<CourseRecordView>> bySubCategory = new LinkedHashMap<>();
-            List<CourseRecordView> individualOptional = new ArrayList<>();
-            for (CourseRecordView cr : areaCourses) {
+            List<EvaluationCourse> requiredFulfilled = new ArrayList<>();
+            LinkedHashMap<String, List<EvaluationCourse>> bySubCategory = new LinkedHashMap<>();
+            List<EvaluationCourse> individualOptional = new ArrayList<>();
+            for (EvaluationCourse cr : areaCourses) {
                 if (context.codeMatchesAny(cr.courseCode(), roleRequiredCodes)) {
                     requiredFulfilled.add(cr);
                     continue;
                 }
-                CourseClassificationView cls = cr.courseCode() != null ? allCls.get(cr.courseCode()) : null;
+                CourseClassification cls = cr.courseCode() != null ? allCls.get(cr.courseCode()) : null;
                 String subCat = cls != null ? cls.subCategory() : null;
                 if (subCat != null) {
                     bySubCategory
@@ -132,7 +133,7 @@ final class GraduationAreaDetailAssembler {
             }
 
             // 충족된 필수 과목 (학생이 실제 이수한 과목명·학점)
-            for (CourseRecordView cr : requiredFulfilled) {
+            for (EvaluationCourse cr : requiredFulfilled) {
                 items.add(new AreaDetailReadModel.CourseItem(cr.courseName(), cr.credits(), "SATISFIED", null));
             }
             // 미충족 필수 과목 placeholder (규칙명·0학점) — 규칙이 속한 이수구분 탭에만 노출
@@ -143,22 +144,22 @@ final class GraduationAreaDetailAssembler {
                 items.add(new AreaDetailReadModel.CourseItem(
                         extractCourseTitle(rr.rule().ruleName()), 0, "UNSATISFIED", null));
             }
-            for (Map.Entry<String, List<CourseRecordView>> subEntry : bySubCategory.entrySet()) {
+            for (Map.Entry<String, List<EvaluationCourse>> subEntry : bySubCategory.entrySet()) {
                 String subCat = subEntry.getKey();
-                List<CourseRecordView> subCourses = subEntry.getValue();
+                List<EvaluationCourse> subCourses = subEntry.getValue();
                 int subEarned =
-                        subCourses.stream().mapToInt(CourseRecordView::credits).sum();
+                        subCourses.stream().mapToInt(EvaluationCourse::credits).sum();
                 List<String> detail =
-                        subCourses.stream().map(CourseRecordView::courseName).toList();
+                        subCourses.stream().map(EvaluationCourse::courseName).toList();
                 String subStatus = resolveSubCategoryStatus(subCat, areaRules, resultByRuleId);
                 items.add(new AreaDetailReadModel.CourseItem(subCat, subEarned, subStatus, detail));
             }
-            for (CourseRecordView cr : individualOptional) {
+            for (EvaluationCourse cr : individualOptional) {
                 items.add(new AreaDetailReadModel.CourseItem(cr.courseName(), cr.credits(), "OPTIONAL", null));
             }
 
             int earnedCredits =
-                    areaCourses.stream().mapToInt(CourseRecordView::credits).sum();
+                    areaCourses.stream().mapToInt(EvaluationCourse::credits).sum();
             int targetCredits = targetCreditsByArea.getOrDefault(areaName, 0);
 
             boolean areaSatisfied = requiredRules.stream()
@@ -172,8 +173,8 @@ final class GraduationAreaDetailAssembler {
                 // 다중 영역 요건은 해당 개별 카드에 귀속하지 않는다.
                 areaSatisfied = areaSatisfied
                         && areaRules.stream()
-                                .filter(ReportCreditTargets::isCreditTargetRule)
-                                .filter(rule -> parseStringList(rule.ruleConfig(), "areaNames").stream()
+                                .filter(creditTargets::isCreditTargetRule)
+                                .filter(rule -> config.parseStringList(rule.ruleConfig(), "areaNames").stream()
                                         .distinct()
                                         .toList()
                                         .equals(List.of(areaName)))
@@ -212,11 +213,12 @@ final class GraduationAreaDetailAssembler {
         return areaName;
     }
 
-    static String resolveSubCategoryStatus(
+    String resolveSubCategoryStatus(
             String subCategory, List<GraduationRuleView> areaRules, Map<Long, RuleResult> resultByRuleId) {
         return areaRules.stream()
                 .filter(r -> MIN_CREDITS.equals(r.typeName()))
-                .filter(r -> parseStringList(r.ruleConfig(), "subCategories").contains(subCategory))
+                .filter(r ->
+                        config.parseStringList(r.ruleConfig(), "subCategories").contains(subCategory))
                 .findFirst()
                 .map(r -> isRuleSatisfied(r, resultByRuleId) ? "SATISFIED" : "UNSATISFIED")
                 .orElse("OPTIONAL");

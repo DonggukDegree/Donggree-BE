@@ -1,14 +1,12 @@
 package com.donggree.graduation.internal.domain.evaluator.qualification;
 
-import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
-import com.donggree.graduation.internal.domain.evaluator.RuleConfigParser;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.rule.EvaluationRule;
+import com.donggree.graduation.internal.domain.rule.RuleConfiguration;
 import java.util.List;
-import org.springframework.stereotype.Component;
 
 /**
  * 졸업논문 규칙 평가기.
@@ -56,7 +54,6 @@ import org.springframework.stereotype.Component;
  * 학과 구분은 이 규칙이 아니라 requirement_set(department_id)이 담당하므로
  * 규칙 자체에 적용 학과를 두지 않는다.
  */
-@Component
 public class ThesisEvaluator implements RuleEvaluator {
 
     @Override
@@ -65,8 +62,8 @@ public class ThesisEvaluator implements RuleEvaluator {
     }
 
     @Override
-    public RuleResult evaluate(GraduationRuleView rule, EvaluationContext context) {
-        Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
+    public RuleResult evaluate(EvaluationRule rule, EvaluationContext context) {
+        RuleConfiguration.Thesis config = rule.configuration(RuleConfiguration.Thesis.class);
         String studentType = context.getTranscript().studentType();
         boolean exempt = config.exemptStudentTypes() != null
                 && config.exemptStudentTypes().contains(studentType);
@@ -106,10 +103,4 @@ public class ThesisEvaluator implements RuleEvaluator {
     private static boolean isEmpty(List<String> values) {
         return values == null || values.isEmpty();
     }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private record Config(
-            List<String> exemptStudentTypes,
-            List<String> exemptCourseCodes,
-            List<List<List<String>>> requiredCourseSets) {}
 }

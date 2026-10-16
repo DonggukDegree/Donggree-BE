@@ -1,14 +1,12 @@
 package com.donggree.graduation.internal.domain.evaluator.qualification;
 
-import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
-import com.donggree.graduation.internal.domain.evaluator.RuleConfigParser;
-import org.springframework.stereotype.Component;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.rule.EvaluationRule;
+import com.donggree.graduation.internal.domain.rule.RuleConfiguration;
 
 /** PDF에 기록된 교직인적성 합격 횟수의 최소 기준을 판정한다. */
-@Component
 public class TeachingAptitudeEvaluator implements RuleEvaluator {
 
     @Override
@@ -17,11 +15,9 @@ public class TeachingAptitudeEvaluator implements RuleEvaluator {
     }
 
     @Override
-    public RuleResult evaluate(GraduationRuleView rule, EvaluationContext context) {
-        Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
+    public RuleResult evaluate(EvaluationRule rule, EvaluationContext context) {
+        RuleConfiguration.TeachingAptitude config = rule.configuration(RuleConfiguration.TeachingAptitude.class);
         Integer passedCount = context.getTranscript().teachingAptitudeCount();
         return new RuleResult(rule.ruleName(), passedCount != null && passedCount >= config.minCount());
     }
-
-    private record Config(int minCount) {}
 }

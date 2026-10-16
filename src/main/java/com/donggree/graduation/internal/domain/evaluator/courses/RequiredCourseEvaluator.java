@@ -1,13 +1,10 @@
 package com.donggree.graduation.internal.domain.evaluator.courses;
 
-import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
-import com.donggree.graduation.internal.domain.evaluator.RuleConfigParser;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.util.List;
-import org.springframework.stereotype.Component;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.rule.EvaluationRule;
+import com.donggree.graduation.internal.domain.rule.RuleConfiguration;
 
 /**
  * 필수 과목 이수 규칙 평가기. 수학필수·전공필수·공통교양필수 등에 공통으로 사용한다.
@@ -22,7 +19,6 @@ import org.springframework.stereotype.Component;
  * applicableMajorRoles: SINGLE_PRIMARY·DUAL_PRIMARY·SECONDARY 중 이 규칙을 적용할 전공 역할.
  * 값이 없는 마이그레이션 전 규칙은 SINGLE_PRIMARY로 해석한다.
  */
-@Component
 public class RequiredCourseEvaluator implements RuleEvaluator {
 
     @Override
@@ -31,8 +27,8 @@ public class RequiredCourseEvaluator implements RuleEvaluator {
     }
 
     @Override
-    public RuleResult evaluate(GraduationRuleView rule, EvaluationContext context) {
-        Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
+    public RuleResult evaluate(EvaluationRule rule, EvaluationContext context) {
+        RuleConfiguration.RequiredCourse config = rule.configuration(RuleConfiguration.RequiredCourse.class);
         String englishLevel = context.getTranscript().englishLevel();
 
         if (englishLevel != null) {
@@ -71,11 +67,4 @@ public class RequiredCourseEvaluator implements RuleEvaluator {
         }
         return new RuleResult(rule.ruleName(), satisfied);
     }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private record Config(
-            List<String> courseCodes,
-            List<List<List<String>>> requiredCourseSets,
-            List<String> exemptEnglishLevels,
-            List<String> requiredEnglishLevels) {}
 }

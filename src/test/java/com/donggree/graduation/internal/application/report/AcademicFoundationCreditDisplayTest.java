@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.graduation.internal.application.evaluation.EvaluationInputMapper;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
 import java.math.BigDecimal;
@@ -25,7 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class AcademicFoundationCreditDisplayTest {
 
-    private final GraduationReportAssembler assembler = new GraduationReportAssembler();
+    private final GraduationReportAssembler assembler = EvaluationTestInputs.assembler();
 
     static Stream<Arguments> targets() {
         return Stream.of(
@@ -203,7 +205,8 @@ class AcademicFoundationCreditDisplayTest {
         var rules = List.of(
                 new GraduationRuleView(1L, "MIN_CREDITS", type, "전체15", "{\"minCredits\":15}"),
                 new GraduationRuleView(2L, "MIN_CREDITS", type, "영역18", "{\"areaNames\":[\"영역\"],\"minCredits\":18}"));
-        var detail = assembler.assembleAreaDetail(type, rules, rules, Map.of(), context(), Map.of(), List.of());
+        var detail = assembler.assembleAreaDetail(
+                type, rules, rules, Map.of(), context(), EvaluationInputMapper.classifications(Map.of()), List.of());
         assertThat(detail.creditStatus().targetCredits()).isEqualTo(15);
     }
 
@@ -218,12 +221,13 @@ class AcademicFoundationCreditDisplayTest {
                 rules,
                 results,
                 context(),
-                Map.of("A", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "수학", null, null)),
+                EvaluationInputMapper.classifications(
+                        Map.of("A", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "수학", null, null))),
                 List.of());
     }
 
     private EvaluationContext context() {
-        return EvaluationContext.report(
+        return EvaluationTestInputs.report(
                 transcript(),
                 Map.of("A", new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "수학", null, null)));
     }

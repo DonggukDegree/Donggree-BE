@@ -1,17 +1,15 @@
 package com.donggree.graduation.internal.domain.evaluator.qualification;
 
-import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
-import com.donggree.graduation.internal.domain.evaluator.RuleConfigParser;
-import com.donggree.transcript.CourseRecordView;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.donggree.graduation.internal.domain.evaluation.CourseClassification;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationCourse;
+import com.donggree.graduation.internal.domain.rule.EvaluationRule;
+import com.donggree.graduation.internal.domain.rule.RuleConfiguration;
 import java.util.List;
-import org.springframework.stereotype.Component;
 
 /**
  * 영어강의 이수 규칙 평가기.
@@ -28,7 +26,6 @@ import org.springframework.stereotype.Component;
  * SECOND_MAJOR를 직접 선택해도 복수1만 집계한다. 여러 이수구분은 합산하며 학점이 아닌 과목 수다.
  * 영어강의 여부는 과목명 내 "<영어>" 포함 여부로 식별한다.
  */
-@Component
 public class EnglishCourseEvaluator implements RuleEvaluator {
 
     @Override
@@ -37,8 +34,8 @@ public class EnglishCourseEvaluator implements RuleEvaluator {
     }
 
     @Override
-    public RuleResult evaluate(GraduationRuleView rule, EvaluationContext context) {
-        Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
+    public RuleResult evaluate(EvaluationRule rule, EvaluationContext context) {
+        RuleConfiguration.EnglishCourse config = rule.configuration(RuleConfiguration.EnglishCourse.class);
         var transcript = context.getTranscript();
 
         if (!transcript.englishCourseTarget()) {
@@ -50,7 +47,7 @@ public class EnglishCourseEvaluator implements RuleEvaluator {
 
         // 영어강의는 선택한 이수구분으로 범위를 정한다. 다른 전공 규칙용 목록 제한을 적용하지 않는다.
         long count = transcript.courseRecords().stream()
-                .filter(CourseRecordView::passed)
+                .filter(EvaluationCourse::passed)
                 .filter(cr -> isEnglishCourse(cr.courseName()))
                 .filter(cr -> matchesCourseTypes(cr, config.courseTypes(), context))
                 .count();
@@ -62,10 +59,10 @@ public class EnglishCourseEvaluator implements RuleEvaluator {
         return courseName != null && courseName.contains("<영어>");
     }
 
-    private boolean matchesCourseTypes(CourseRecordView cr, List<String> courseTypes, EvaluationContext context) {
+    private boolean matchesCourseTypes(EvaluationCourse cr, List<String> courseTypes, EvaluationContext context) {
         if (courseTypes == null) return true;
         // 같은 학수번호라도 PDF의 복수1 표기가 있으면 제2전공으로 해석한다.
-        CourseClassificationView cls = context.getClassification(cr);
+        CourseClassification cls = context.getClassification(cr);
         if (cls == null || cls.courseType() == null) return false;
         return courseTypes.stream().anyMatch(type -> {
             String effectiveType =
@@ -77,7 +74,4 @@ public class EnglishCourseEvaluator implements RuleEvaluator {
             return cls.courseType().name().equals(effectiveType);
         });
     }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private record Config(List<String> courseTypes, int minCount) {}
 }

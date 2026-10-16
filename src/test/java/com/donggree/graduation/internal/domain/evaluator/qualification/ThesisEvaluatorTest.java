@@ -3,9 +3,10 @@ package com.donggree.graduation.internal.domain.evaluator.qualification;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(6, 4.0, false, null, false, "단일", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -37,7 +41,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(6, 4.0, false, null, false, "단일", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -47,7 +54,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(6, 4.0, false, null, false, "단일", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -56,7 +66,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(6, 4.0, false, null, false, "단일", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -65,7 +78,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(3, 4.0, false, null, false, "단일", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -73,7 +89,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(0, 4.0, false, null, false, "학석사연계과정", "S1", List.of()));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -81,7 +100,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(0, 4.0, false, null, false, "단일", "S1", List.of()));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     // --- requiredCourseSets가 없으면 졸업논문심사(PDF) 결과로 판정 ---
@@ -91,7 +113,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(0, 4.0, false, null, true, "단일", "S1", List.of()));
 
-        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule("{}")), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -99,7 +124,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(0, 4.0, false, null, false, "단일", "S1", List.of()));
 
-        assertThat(evaluator.evaluate(rule("{}"), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule("{}")), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -108,7 +136,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(0, 4.0, false, null, false, "학석사연계과정", "S1", List.of()));
 
-        assertThat(evaluator.evaluate(rule(config), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(config)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     /** 지정 과목이 있는 규칙은 과목 이수만 본다 — 논문심사 결과에 영향받지 않는다. */
@@ -117,7 +148,10 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(0, 4.0, false, null, true, "단일", "S1", List.of()));
 
-        assertThat(evaluator.evaluate(rule(CONFIG), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     // --- 부분 면제: 면제 대상이어도 지정 과목만 이수한 것으로 간주한다 ---
@@ -137,7 +171,9 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(3, 4.0, false, null, false, "학석사연계과정", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(PARTIAL_EXEMPT_CONFIG)), ctx)
+                        .satisfied())
                 .isTrue();
     }
 
@@ -147,7 +183,9 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(0, 4.0, false, null, false, "학석사연계과정", "S1", List.of()));
 
-        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(PARTIAL_EXEMPT_CONFIG)), ctx)
+                        .satisfied())
                 .isFalse();
     }
 
@@ -157,7 +195,9 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(3, 4.0, false, null, false, "학석사연계과정", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(PARTIAL_EXEMPT_CONFIG)), ctx)
+                        .satisfied())
                 .isTrue();
     }
 
@@ -168,7 +208,9 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(3, 4.0, false, null, false, "단일", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(PARTIAL_EXEMPT_CONFIG)), ctx)
+                        .satisfied())
                 .isFalse();
     }
 
@@ -178,7 +220,9 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx =
                 contextNoClassification(transcriptWith(6, 4.0, false, null, false, "단일", "S1", records));
 
-        assertThat(evaluator.evaluate(rule(PARTIAL_EXEMPT_CONFIG), ctx).satisfied())
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(PARTIAL_EXEMPT_CONFIG)), ctx)
+                        .satisfied())
                 .isTrue();
     }
 
@@ -187,11 +231,15 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         var transcript = transcriptWithThesisStatuses(true, false, "학사과정", List.of());
 
         assertThat(evaluator
-                        .evaluate(rule("{}"), EvaluationContext.primary(transcript, Map.of(), MajorRole.DUAL_PRIMARY))
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{}")),
+                                EvaluationTestInputs.primary(transcript, Map.of(), MajorRole.DUAL_PRIMARY))
                         .satisfied())
                 .isTrue();
         assertThat(evaluator
-                        .evaluate(rule("{}"), EvaluationContext.secondary(transcript, Map.of(), "복수1"))
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{}")),
+                                EvaluationTestInputs.secondary(transcript, Map.of(), "복수1"))
                         .satisfied())
                 .isFalse();
     }
@@ -201,11 +249,15 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         var transcript = transcriptWithThesisStatuses(false, true, "학사과정", List.of());
 
         assertThat(evaluator
-                        .evaluate(rule("{}"), EvaluationContext.primary(transcript, Map.of(), MajorRole.DUAL_PRIMARY))
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{}")),
+                                EvaluationTestInputs.primary(transcript, Map.of(), MajorRole.DUAL_PRIMARY))
                         .satisfied())
                 .isFalse();
         assertThat(evaluator
-                        .evaluate(rule("{}"), EvaluationContext.secondary(transcript, Map.of(), "복수1"))
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("{}")),
+                                EvaluationTestInputs.secondary(transcript, Map.of(), "복수1"))
                         .satisfied())
                 .isTrue();
     }
@@ -219,18 +271,24 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
 
         for (CourseRecordView course : List.of(primaryCourse, dual2Course, secondaryCourse)) {
             var transcript = transcriptWithThesisStatuses(true, true, "학사과정", List.of(course));
-            var context = EvaluationContext.secondary(transcript, Map.of(), "복수1");
+            var context = EvaluationTestInputs.secondary(transcript, Map.of(), "복수1");
 
-            assertThat(evaluator.evaluate(configuredRule, context).satisfied()).isEqualTo(course == secondaryCourse);
+            assertThat(evaluator
+                            .evaluate(EvaluationTestInputs.rule(configuredRule), context)
+                            .satisfied())
+                    .isEqualTo(course == secondaryCourse);
         }
     }
 
     @Test
     void 복수전공에도_전체_면제를_적용한다() {
         var transcript = transcriptWithThesisStatuses(false, false, "학석사연계과정", List.of());
-        var context = EvaluationContext.secondary(transcript, Map.of(), "복수1");
+        var context = EvaluationTestInputs.secondary(transcript, Map.of(), "복수1");
 
-        assertThat(evaluator.evaluate(rule(CONFIG), context).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(rule(CONFIG)), context)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -240,13 +298,15 @@ class ThesisEvaluatorTest extends EvaluatorTestSupport {
         var withoutCourse = transcriptWithThesisStatuses(true, true, "학석사연계과정", List.of());
 
         assertThat(evaluator
-                        .evaluate(rule(PARTIAL_EXEMPT_CONFIG), EvaluationContext.secondary(withCourse, Map.of(), "복수1"))
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule(PARTIAL_EXEMPT_CONFIG)),
+                                EvaluationTestInputs.secondary(withCourse, Map.of(), "복수1"))
                         .satisfied())
                 .isTrue();
         assertThat(evaluator
                         .evaluate(
-                                rule(PARTIAL_EXEMPT_CONFIG),
-                                EvaluationContext.secondary(withoutCourse, Map.of(), "복수1"))
+                                EvaluationTestInputs.rule(rule(PARTIAL_EXEMPT_CONFIG)),
+                                EvaluationTestInputs.secondary(withoutCourse, Map.of(), "복수1"))
                         .satisfied())
                 .isFalse();
     }

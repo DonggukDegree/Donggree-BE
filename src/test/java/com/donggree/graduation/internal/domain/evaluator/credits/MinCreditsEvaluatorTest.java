@@ -5,9 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("PRI4002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리학"));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(experimentRule(), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(experimentRule()), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -34,7 +38,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("PRI4006", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "개론", "물리학"));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(experimentRule(), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(experimentRule()), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -43,7 +50,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("PRI4002", classification(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", "물리학"));
         EvaluationContext ctx = context(transcript(0, 0.0, records), cls);
 
-        assertThat(evaluator.evaluate(experimentRule(), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(experimentRule()), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -52,7 +62,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("RGC9999", classification(CourseType.COMMON_GENERAL, "문화", "실험", null));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(experimentRule(), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(experimentRule()), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     // --- areaName 선택자 + minCredits (여러 영역을 합쳐 최소 학점을 채우는 규칙) ---
@@ -65,7 +78,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "RGC1075", classification(CourseType.COMMON_GENERAL, "지역연구"));
         EvaluationContext ctx = context(transcript(2, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(multiAreaRule(), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(multiAreaRule()), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -74,7 +90,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("RGC1002", classification(CourseType.COMMON_GENERAL, "21세기시민"));
         EvaluationContext ctx = context(transcript(1, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(multiAreaRule(), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(multiAreaRule()), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -83,7 +102,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("RGC0005", classification(CourseType.COMMON_GENERAL, "글쓰기"));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(multiAreaRule(), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(multiAreaRule()), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -102,7 +124,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "교직선택·교직필수 4학점",
                 "{\"courseType\":\"FIRST_MAJOR\",\"pdfCourseTypeNames\":[\"직선\",\"직필\"],\"minCredits\":4}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
     }
 
     @Test
@@ -121,7 +144,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "교직 영역 4학점",
                 "{\"courseType\":\"FIRST_MAJOR\",\"areaNames\":[\"교직선택\",\"교직필수\"],\"minCredits\":4}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
     }
 
     @Test
@@ -134,7 +158,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 CourseType.FIRST_MAJOR,
                 "교직 17학점 이상",
                 "{\"creditSource\":\"TEACHING_SUMMARY\",\"minCredits\":17}");
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
 
         var higherThreshold = new GraduationRuleView(
                 102L,
@@ -142,7 +167,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 CourseType.FIRST_MAJOR,
                 "교직 22학점 이상",
                 "{\"creditSource\":\"TEACHING_SUMMARY\",\"minCredits\":22}");
-        assertThat(evaluator.evaluate(higherThreshold, ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(higherThreshold), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     // --- 이수구분 전체 최소학점 (구 MIN_AREA_CREDITS, areaNames=null) ---
@@ -160,7 +188,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(8, 4.0, records), cls);
         var rule = rule("{\"courseType\": \"COMMON_GENERAL\", \"areaNames\": null, \"minCredits\": 8}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
     }
 
     @Test
@@ -170,7 +199,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(2, 4.0, records), cls);
         var rule = rule("{\"courseType\": \"COMMON_GENERAL\", \"areaNames\": null, \"minCredits\": 17}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isFalse();
     }
 
     @Test
@@ -180,7 +210,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(0, 0.0, records), cls);
         var rule = rule("{\"courseType\": \"FIRST_MAJOR\", \"areaNames\": null, \"minCredits\": 3}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isFalse();
     }
 
     // --- pdfAreaName 선택자 (전공기초/전공전문 — course_classification 미등록 과목) ---
@@ -201,7 +232,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "CSE1001", classification(CourseType.FIRST_MAJOR));
         EvaluationContext ctx = context(transcript(9, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(majorAdvancedRule(6), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(majorAdvancedRule(6)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     @Test
@@ -212,7 +246,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "CSE1002", classification(CourseType.FIRST_MAJOR));
         EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(majorAdvancedRule(6), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(majorAdvancedRule(6)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     // --- pdfCourseTypeName 선택자 (전필 — PDF 이수구분 원문) ---
@@ -233,8 +270,14 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "CSE4029", classification(CourseType.FIRST_MAJOR));
         EvaluationContext ctx = context(transcript(9, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(majorRequiredRule(6), ctx).satisfied()).isTrue();
-        assertThat(evaluator.evaluate(majorRequiredRule(9), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(majorRequiredRule(6)), ctx)
+                        .satisfied())
+                .isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(majorRequiredRule(9)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -245,7 +288,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 "CSE3012", classification(CourseType.FIRST_MAJOR));
         EvaluationContext ctx = context(transcript(6, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(majorRequiredRule(3), ctx).satisfied()).isFalse();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(majorRequiredRule(3)), ctx)
+                        .satisfied())
+                .isFalse();
     }
 
     @Test
@@ -254,7 +300,10 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of("CSC2007", classification(CourseType.FIRST_MAJOR));
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
 
-        assertThat(evaluator.evaluate(majorAdvancedRule(3), ctx).satisfied()).isTrue();
+        assertThat(evaluator
+                        .evaluate(EvaluationTestInputs.rule(majorAdvancedRule(3)), ctx)
+                        .satisfied())
+                .isTrue();
     }
 
     // --- courseCode 선택자 ---
@@ -265,7 +314,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(3, 4.0, records), Map.of());
         var rule = rule("{\"courseCodes\": [\"DAI*\"], \"minCount\": 1}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
     }
 
     /**
@@ -283,13 +333,13 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
                 passed("CSE4066", "종합설계1", 3, "2024-1"),
                 passed("CSE1001", "컴퓨터과학개론", 3, "2022-1")); // 설계교과목이 아니므로 집계에서 빠진다
         assertThat(evaluator
-                        .evaluate(rule, context(transcript(12, 4.0, enough), Map.of()))
+                        .evaluate(EvaluationTestInputs.rule(rule), context(transcript(12, 4.0, enough), Map.of()))
                         .satisfied())
                 .isTrue();
 
         var notEnough = List.of(passed("CSE3001", "소프트웨어공학", 3, "2023-1"), passed("CSE1001", "컴퓨터과학개론", 3, "2022-1"));
         assertThat(evaluator
-                        .evaluate(rule, context(transcript(6, 4.0, notEnough), Map.of()))
+                        .evaluate(EvaluationTestInputs.rule(rule), context(transcript(6, 4.0, notEnough), Map.of()))
                         .satisfied())
                 .isFalse();
     }
@@ -314,11 +364,13 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var rule = rule(
                 "{\"courseType\":\"FIRST_MAJOR\",\"pdfCourseTypeNames\":[\"전필\"],\"pdfAreaNames\":[\"전문\"],\"minCredits\":3}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
 
         var stricter = rule(
                 "{\"courseType\":\"FIRST_MAJOR\",\"pdfCourseTypeNames\":[\"전필\"],\"pdfAreaNames\":[\"전문\"],\"minCredits\":6}");
-        assertThat(evaluator.evaluate(stricter, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(stricter), ctx).satisfied())
+                .isFalse();
     }
 
     @Test
@@ -333,11 +385,13 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var rule = rule(
                 "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"과학\"],\"subCategories\":[\"실험\"],\"minCount\":1,\"minCredits\":3}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
 
         var needsTwo = rule(
                 "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"과학\"],\"subCategories\":[\"실험\"],\"minCount\":2}");
-        assertThat(evaluator.evaluate(needsTwo, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(needsTwo), ctx).satisfied())
+                .isFalse();
     }
 
     @Test
@@ -346,7 +400,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(3, 4.0, records), Map.of());
         var rule = rule("{\"pdfCourseTypeNames\":[\"전필\"],\"areaNames\":[\"전공전문\"],\"minCredits\":3}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isFalse();
     }
 
     // --- 선택자·임계값 조합 ---
@@ -358,7 +413,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
         var rule = rule("{\"courseType\": \"COMMON_GENERAL\", \"minCredits\": 2}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
     }
 
     @Test
@@ -369,10 +425,11 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of(
                 "CSE1001", classification(CourseType.FIRST_MAJOR),
                 "DAI1001", classification(CourseType.FIRST_MAJOR));
-        EvaluationContext ctx = EvaluationContext.primary(transcript(6, 4.0, records), cls, MajorRole.DUAL_PRIMARY);
+        EvaluationContext ctx = EvaluationTestInputs.primary(transcript(6, 4.0, records), cls, MajorRole.DUAL_PRIMARY);
         var rule = rule("{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":6}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isFalse();
     }
 
     @Test
@@ -383,10 +440,11 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         var cls = Map.of(
                 "DAI1001", classification(CourseType.FIRST_MAJOR),
                 "BUS1001", classification(CourseType.FIRST_MAJOR));
-        EvaluationContext ctx = EvaluationContext.secondary(transcript(6, 4.0, records), cls, "복수1");
+        EvaluationContext ctx = EvaluationTestInputs.secondary(transcript(6, 4.0, records), cls, "복수1");
         var rule = rule("{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":6}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isFalse();
     }
 
     @Test
@@ -396,7 +454,8 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(3, 4.0, records), cls);
         var rule = rule("{\"areaNames\": [\"21세기시민\"], \"minCredits\": 2, \"minCount\": 2}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isFalse();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isFalse();
     }
 
     @Test
@@ -404,7 +463,7 @@ class MinCreditsEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(0, 0.0, List.of()), Map.of());
         var rule = rule("{\"areaNames\": [\"21세기시민\"]}");
 
-        assertThatThrownBy(() -> evaluator.evaluate(rule, ctx))
+        assertThatThrownBy(() -> evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("minCredits 또는 minCount");
     }

@@ -1,9 +1,7 @@
-package com.donggree.graduation.internal.domain;
+package com.donggree.graduation.internal.domain.evaluation;
 
-import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
-import com.donggree.transcript.CourseRecordView;
-import com.donggree.transcript.TranscriptView;
+import com.donggree.graduation.internal.domain.MajorRole;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -16,27 +14,25 @@ import java.util.Optional;
  */
 public class EvaluationContext {
 
-    private final TranscriptView transcript;
-    private final Map<String, CourseClassificationView> classificationByCourseCode;
+    private final EvaluationTranscript transcript;
+    private final Map<String, CourseClassification> classificationByCourseCode;
     private final MajorRole majorRole;
     private final String secondaryCourseTypeName;
     private final boolean includeAllMajorRoles;
 
     public EvaluationContext(
-            TranscriptView transcript, Map<String, CourseClassificationView> classificationByCourseCode) {
+            EvaluationTranscript transcript, Map<String, CourseClassification> classificationByCourseCode) {
         this(
                 transcript,
                 classificationByCourseCode,
-                transcript.dualMajor1Id() == null && transcript.dualMajor2Id() == null
-                        ? MajorRole.SINGLE_PRIMARY
-                        : MajorRole.DUAL_PRIMARY,
+                !transcript.hasResolvedDualMajor() ? MajorRole.SINGLE_PRIMARY : MajorRole.DUAL_PRIMARY,
                 null,
                 false);
     }
 
     private EvaluationContext(
-            TranscriptView transcript,
-            Map<String, CourseClassificationView> classificationByCourseCode,
+            EvaluationTranscript transcript,
+            Map<String, CourseClassification> classificationByCourseCode,
             MajorRole majorRole,
             String secondaryCourseTypeName,
             boolean includeAllMajorRoles) {
@@ -48,8 +44,8 @@ public class EvaluationContext {
     }
 
     public static EvaluationContext primary(
-            TranscriptView transcript,
-            Map<String, CourseClassificationView> classificationByCourseCode,
+            EvaluationTranscript transcript,
+            Map<String, CourseClassification> classificationByCourseCode,
             MajorRole majorRole) {
         if (!majorRole.isPrimary()) {
             throw new IllegalArgumentException("주전공 평가에는 주전공 역할이 필요합니다.");
@@ -58,8 +54,8 @@ public class EvaluationContext {
     }
 
     public static EvaluationContext secondary(
-            TranscriptView transcript,
-            Map<String, CourseClassificationView> classificationByCourseCode,
+            EvaluationTranscript transcript,
+            Map<String, CourseClassification> classificationByCourseCode,
             String secondaryCourseTypeName) {
         if (!"복수1".equals(secondaryCourseTypeName)) {
             throw new IllegalArgumentException("복수전공 평가에는 복수1 이수구분이 필요합니다.");
@@ -69,26 +65,26 @@ public class EvaluationContext {
     }
 
     public static EvaluationContext report(
-            TranscriptView transcript, Map<String, CourseClassificationView> classificationByCourseCode) {
+            EvaluationTranscript transcript, Map<String, CourseClassification> classificationByCourseCode) {
         return new EvaluationContext(transcript, classificationByCourseCode, MajorRole.SINGLE_PRIMARY, null, true);
     }
 
-    public TranscriptView getTranscript() {
+    public EvaluationTranscript getTranscript() {
         return transcript;
     }
 
-    public CourseClassificationView getClassification(String courseCode) {
+    public CourseClassification getClassification(String courseCode) {
         return classificationByCourseCode.get(courseCode);
     }
 
     /** 복수1·복수2 과목은 학수번호의 원래 분류와 무관하게 제2전공으로 해석한다. */
-    public CourseClassificationView getClassification(CourseRecordView record) {
-        CourseClassificationView classification = getClassification(record.courseCode());
+    public CourseClassification getClassification(EvaluationCourse record) {
+        CourseClassification classification = getClassification(record.courseCode());
         if (!isSecondaryCourseTypeName(record.courseTypeName())) {
             return classification;
         }
 
-        return new CourseClassificationView(
+        return new CourseClassification(
                 CourseType.SECOND_MAJOR,
                 classification != null && classification.areaName() != null
                         ? classification.areaName()
@@ -102,9 +98,9 @@ public class EvaluationContext {
     }
 
     /** 이수 처리된(F·NP 제외) 수강 이력 전체를 반환한다. */
-    public List<CourseRecordView> getPassedCourses() {
+    public List<EvaluationCourse> getPassedCourses() {
         return transcript.courseRecords().stream()
-                .filter(CourseRecordView::passed)
+                .filter(EvaluationCourse::passed)
                 .filter(this::belongsToEvaluationScope)
                 .toList();
     }
@@ -114,7 +110,7 @@ public class EvaluationContext {
      * 학문기초 규칙은 공통 이수 내역에서도 분류·학수번호로 선택하고,
      * 전공 규칙과 논문 과목 세트의 복수1 제한은 그대로 유지한다. 복수2는 평가 대상이 아니다.
      */
-    public List<CourseRecordView> getPassedCoursesForRule(CourseType ruleCourseType) {
+    public List<EvaluationCourse> getPassedCoursesForRule(CourseType ruleCourseType) {
         if (majorRole != MajorRole.SECONDARY || ruleCourseType != CourseType.ACADEMIC_FOUNDATION) {
             return getPassedCourses();
         }
@@ -122,25 +118,25 @@ public class EvaluationContext {
     }
 
     /** 공통교양 필수과목도 공통 이수 내역에서 찾되, 최소학점 규칙의 범위는 변경하지 않는다. */
-    public List<CourseRecordView> getPassedCoursesForRequiredCourse(CourseType ruleCourseType) {
+    public List<EvaluationCourse> getPassedCoursesForRequiredCourse(CourseType ruleCourseType) {
         if (majorRole == MajorRole.SECONDARY && ruleCourseType == CourseType.COMMON_GENERAL) {
             return getSharedPassedCourses();
         }
         return getPassedCoursesForRule(ruleCourseType);
     }
 
-    private List<CourseRecordView> getSharedPassedCourses() {
+    private List<EvaluationCourse> getSharedPassedCourses() {
         return transcript.courseRecords().stream()
-                .filter(CourseRecordView::passed)
+                .filter(EvaluationCourse::passed)
                 .filter(record -> !"복수2".equals(record.courseTypeName()))
                 .toList();
     }
 
     /** 특정 courseType의 이수 수강 이력을 반환한다. 분류가 없는 과목은 제외된다. */
-    public List<CourseRecordView> getPassedCoursesByType(CourseType courseType) {
+    public List<EvaluationCourse> getPassedCoursesByType(CourseType courseType) {
         return getPassedCourses().stream()
                 .filter(cr -> {
-                    CourseClassificationView cls = getClassification(cr);
+                    CourseClassification cls = getClassification(cr);
                     return cls != null && cls.courseType() == courseType;
                 })
                 .toList();
@@ -150,10 +146,10 @@ public class EvaluationContext {
      * 특정 courseType에서 지정한 areaName 목록에 속하는 이수 수강 이력을 반환한다.
      * areaNames가 null이면 영역 제한 없이 해당 courseType 전체를 반환한다.
      */
-    public List<CourseRecordView> getPassedCoursesByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
+    public List<EvaluationCourse> getPassedCoursesByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
         return getPassedCourses().stream()
                 .filter(cr -> {
-                    CourseClassificationView cls = getClassification(cr);
+                    CourseClassification cls = getClassification(cr);
                     if (cls == null || cls.courseType() != courseType) return false;
                     return areaNames == null || areaNames.contains(cls.areaName());
                 })
@@ -197,7 +193,7 @@ public class EvaluationContext {
     public Optional<String> getEarliestSemesterByAnyCourseCode(List<String> patterns) {
         return getPassedCourses().stream()
                 .filter(cr -> cr.courseCode() != null && matchesAny(cr.courseCode(), patterns))
-                .map(CourseRecordView::semester)
+                .map(EvaluationCourse::semester)
                 .min(Comparator.comparingInt(EvaluationContext::semesterOrdinal));
     }
 
@@ -208,7 +204,7 @@ public class EvaluationContext {
                         p.endsWith("*") ? courseCode.startsWith(p.substring(0, p.length() - 1)) : courseCode.equals(p));
     }
 
-    private boolean belongsToEvaluationScope(CourseRecordView record) {
+    private boolean belongsToEvaluationScope(EvaluationCourse record) {
         if (includeAllMajorRoles) return true;
         if (majorRole == MajorRole.SECONDARY) {
             return secondaryCourseTypeName.equals(record.courseTypeName());
@@ -223,14 +219,14 @@ public class EvaluationContext {
     /** 특정 courseType의 이수 학점 합계를 반환한다. */
     public int getTotalPassedCreditsByType(CourseType courseType) {
         return getPassedCoursesByType(courseType).stream()
-                .mapToInt(CourseRecordView::credits)
+                .mapToInt(EvaluationCourse::credits)
                 .sum();
     }
 
     /** 특정 courseType + areaName 목록의 이수 학점 합계를 반환한다. */
     public int getTotalPassedCreditsByTypeAndAreaNames(CourseType courseType, List<String> areaNames) {
         return getPassedCoursesByTypeAndAreaNames(courseType, areaNames).stream()
-                .mapToInt(CourseRecordView::credits)
+                .mapToInt(EvaluationCourse::credits)
                 .sum();
     }
 

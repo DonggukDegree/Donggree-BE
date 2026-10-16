@@ -3,9 +3,10 @@ package com.donggree.graduation.internal.domain.evaluator.credits;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.EvaluatorTestSupport;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ class GpaEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(0, 2.0, List.of()), Map.of());
         GraduationRuleView rule = rule("{\"minGpa\": 2.0}");
 
-        RuleResult result = evaluator.evaluate(rule, ctx);
+        RuleResult result = evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx);
 
         assertThat(result.satisfied()).isTrue();
     }
@@ -29,7 +30,7 @@ class GpaEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(0, 1.99, List.of()), Map.of());
         GraduationRuleView rule = rule("{\"minGpa\": 2.0}");
 
-        RuleResult result = evaluator.evaluate(rule, ctx);
+        RuleResult result = evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx);
 
         assertThat(result.satisfied()).isFalse();
     }
@@ -39,7 +40,8 @@ class GpaEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript(0, 4.5, List.of()), Map.of());
         GraduationRuleView rule = rule("{\"minGpa\": 2.0}");
 
-        assertThat(evaluator.evaluate(rule, ctx).satisfied()).isTrue();
+        assertThat(evaluator.evaluate(EvaluationTestInputs.rule(rule), ctx).satisfied())
+                .isTrue();
     }
 
     @Test
@@ -48,11 +50,11 @@ class GpaEvaluatorTest extends EvaluatorTestSupport {
         EvaluationContext ctx = context(transcript, Map.of());
 
         assertThat(evaluator
-                        .evaluate(rule("{\"minGpa\":2.75,\"gpaScope\":\"TEACHING\"}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"minGpa\":2.75,\"gpaScope\":\"TEACHING\"}")), ctx)
                         .satisfied())
                 .isTrue();
         assertThat(evaluator
-                        .evaluate(rule("{\"minGpa\":2.76,\"gpaScope\":\"TEACHING\"}"), ctx)
+                        .evaluate(EvaluationTestInputs.rule(rule("{\"minGpa\":2.76,\"gpaScope\":\"TEACHING\"}")), ctx)
                         .satisfied())
                 .isFalse();
     }

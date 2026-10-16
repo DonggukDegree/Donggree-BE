@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
 import java.math.BigDecimal;
@@ -18,7 +20,7 @@ class CreditAdjustmentCalculatorTest {
         EvaluationContext context = context(passed("ALT", true));
         GraduationRuleView rule = rule(adjustment("REQ1", "ALT", 3), adjustment("REQ2", "ALT", 3));
 
-        assertThat(CreditAdjustmentCalculator.adjustedTarget(rule, context, 12)).isEqualTo(9);
+        assertThat(EvaluationTestInputs.adjustedTarget(rule, context, 12)).isEqualTo(9);
     }
 
     @Test
@@ -26,7 +28,7 @@ class CreditAdjustmentCalculatorTest {
         EvaluationContext context = context(passed("ALT1", true), passed("ALT2", true));
         GraduationRuleView rule = rule(adjustment("REQ1", "ALT1", 3), adjustment("REQ2", "ALT2", 3));
 
-        assertThat(CreditAdjustmentCalculator.adjustedTarget(rule, context, 12)).isEqualTo(6);
+        assertThat(EvaluationTestInputs.adjustedTarget(rule, context, 12)).isEqualTo(6);
     }
 
     @Test
@@ -35,7 +37,7 @@ class CreditAdjustmentCalculatorTest {
         GraduationRuleView rule =
                 rule(adjustment("REQ1", List.of("ALT1", "ALT2"), 3), adjustment("REQ2", List.of("ALT1"), 6));
 
-        assertThat(CreditAdjustmentCalculator.adjustedTarget(rule, context, 20)).isEqualTo(11);
+        assertThat(EvaluationTestInputs.adjustedTarget(rule, context, 20)).isEqualTo(11);
     }
 
     @Test
@@ -43,7 +45,7 @@ class CreditAdjustmentCalculatorTest {
         EvaluationContext context = context(passed("REQ1", true));
         GraduationRuleView rule = rule(adjustment("REQ1", "ALT1", 3), adjustment("REQ2", "REQ1", 3));
 
-        assertThat(CreditAdjustmentCalculator.adjustedTarget(rule, context, 12)).isEqualTo(12);
+        assertThat(EvaluationTestInputs.adjustedTarget(rule, context, 12)).isEqualTo(12);
     }
 
     @Test
@@ -51,7 +53,7 @@ class CreditAdjustmentCalculatorTest {
         EvaluationContext context = context(passed("ALT1", false));
         GraduationRuleView rule = rule(adjustment("REQ1", "ALT1", 3));
 
-        assertThat(CreditAdjustmentCalculator.adjustedTarget(rule, context, 12)).isEqualTo(12);
+        assertThat(EvaluationTestInputs.adjustedTarget(rule, context, 12)).isEqualTo(12);
     }
 
     private static EvaluationContext context(CourseRecordView... records) {
@@ -78,7 +80,7 @@ class CreditAdjustmentCalculatorTest {
                 false,
                 false,
                 List.of(records));
-        return new EvaluationContext(transcript, Map.of());
+        return EvaluationTestInputs.context(transcript, Map.of());
     }
 
     private static CourseRecordView passed(String courseCode, boolean passed) {

@@ -5,9 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.graduation.internal.domain.evaluator.courses.RequiredCourseEvaluator;
 import com.donggree.graduation.internal.domain.evaluator.credits.MinCreditsEvaluator;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +34,12 @@ class SecondaryAcademicFoundationTest {
                 {"courseType":"ACADEMIC_FOUNDATION","areaNames":["수학"],"minCredits":3}
                 """;
 
-        assertThat(minCredits.evaluate(rule("MIN_CREDITS", config), context).satisfied())
+        assertThat(minCredits
+                        .evaluate(EvaluationTestInputs.rule(rule("MIN_CREDITS", config)), context)
+                        .satisfied())
                 .isTrue();
         assertThat(minCredits
-                        .evaluate(rule("MIN_CREDITS", config.replace(":3", ":6")), context)
+                        .evaluate(EvaluationTestInputs.rule(rule("MIN_CREDITS", config.replace(":3", ":6"))), context)
                         .satisfied())
                 .isFalse();
     }
@@ -47,7 +50,9 @@ class SecondaryAcademicFoundationTest {
         var context = context(record("MAT1001", pdfType, true));
 
         assertThat(requiredCourse
-                        .evaluate(rule("REQUIRED_COURSE", "{\"courseCodes\":[\"MAT*\"]}"), context)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("REQUIRED_COURSE", "{\"courseCodes\":[\"MAT*\"]}")),
+                                context)
                         .satisfied())
                 .isTrue();
     }
@@ -57,7 +62,9 @@ class SecondaryAcademicFoundationTest {
         var context = context(record("MAT1001", "학기", false), record("MAT1003", "복수2", true));
 
         assertThat(requiredCourse
-                        .evaluate(rule("REQUIRED_COURSE", "{\"courseCodes\":[\"MAT*\"]}"), context)
+                        .evaluate(
+                                EvaluationTestInputs.rule(rule("REQUIRED_COURSE", "{\"courseCodes\":[\"MAT*\"]}")),
+                                context)
                         .satisfied())
                 .isFalse();
     }
@@ -74,8 +81,14 @@ class SecondaryAcademicFoundationTest {
         var requiredRule = new GraduationRuleView(
                 2L, "REQUIRED_COURSE", CourseType.FIRST_MAJOR, "전공 필수", "{\"courseCodes\":[\"CSE1001\"]}");
 
-        assertThat(minCredits.evaluate(minRule, context).satisfied()).isFalse();
-        assertThat(requiredCourse.evaluate(requiredRule, context).satisfied()).isFalse();
+        assertThat(minCredits
+                        .evaluate(EvaluationTestInputs.rule(minRule), context)
+                        .satisfied())
+                .isFalse();
+        assertThat(requiredCourse
+                        .evaluate(EvaluationTestInputs.rule(requiredRule), context)
+                        .satisfied())
+                .isFalse();
     }
 
     private GraduationRuleView rule(String typeName, String config) {
@@ -94,6 +107,6 @@ class SecondaryAcademicFoundationTest {
                 "MAT1003", EvaluatorTestSupport.classification(CourseType.ACADEMIC_FOUNDATION, "수학"),
                 "PHY1001", EvaluatorTestSupport.classification(CourseType.ACADEMIC_FOUNDATION, "과학"),
                 "CSE1001", EvaluatorTestSupport.classification(CourseType.FIRST_MAJOR));
-        return EvaluationContext.secondary(transcript, classifications, "복수1");
+        return EvaluationTestInputs.secondary(transcript, classifications, "복수1");
     }
 }

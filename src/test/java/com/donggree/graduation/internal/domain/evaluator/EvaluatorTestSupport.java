@@ -2,7 +2,8 @@ package com.donggree.graduation.internal.domain.evaluator;
 
 import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
-import com.donggree.graduation.internal.domain.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
 import java.math.BigDecimal;
@@ -138,11 +139,11 @@ public abstract class EvaluatorTestSupport {
     }
 
     protected static EvaluationContext context(TranscriptView t, Map<String, CourseClassificationView> cls) {
-        return new EvaluationContext(t, cls);
+        return EvaluationTestInputs.context(t, cls);
     }
 
     protected static EvaluationContext contextNoClassification(TranscriptView t) {
-        return new EvaluationContext(t, Map.of());
+        return EvaluationTestInputs.context(t, Map.of());
     }
 
     protected static CourseClassificationView classification(

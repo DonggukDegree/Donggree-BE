@@ -306,4 +306,17 @@ class GraduationQueryServiceTest extends GraduationQueryTestSupport {
                         .isEqualTo(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
         verifyNoInteractions(transcriptLookupService);
     }
+
+    @org.junit.jupiter.api.Test
+    void 적용_역할에서_제외된_규칙의_판정_설정을_해석하지_않는다() {
+        givenTranscript();
+        givenNoClassification();
+        givenMinCreditsRule(
+                com.donggree.curriculum.CourseType.FIRST_MAJOR,
+                "복수전공 전용",
+                "{\"applicableMajorRoles\":[\"SECONDARY\"],\"minCredits\":{\"invalid\":true}}");
+        org.assertj.core.api.Assertions.assertThat(
+                        service.getReport(MEMBER_ID).summary().achievementRate())
+                .isZero();
+    }
 }

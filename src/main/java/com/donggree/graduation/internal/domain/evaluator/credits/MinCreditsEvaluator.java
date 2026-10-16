@@ -1,18 +1,16 @@
 package com.donggree.graduation.internal.domain.evaluator.credits;
 
-import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
-import com.donggree.graduation.internal.domain.evaluator.RuleConfigParser;
-import com.donggree.transcript.CourseRecordView;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.donggree.graduation.internal.domain.evaluation.CourseClassification;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationCourse;
+import com.donggree.graduation.internal.domain.rule.EvaluationRule;
+import com.donggree.graduation.internal.domain.rule.RuleConfiguration;
 import java.util.List;
-import org.springframework.stereotype.Component;
 
 /**
  * 최소 이수량 규칙 평가기.
@@ -46,7 +44,6 @@ import org.springframework.stereotype.Component;
  *
  * 임계값(minCredits·minCount): 지정된 것을 모두 만족해야 충족(AND)이다. 둘 다 없으면 설정 오류다.
  */
-@Component
 public class MinCreditsEvaluator implements RuleEvaluator {
 
     @Override
@@ -55,11 +52,11 @@ public class MinCreditsEvaluator implements RuleEvaluator {
     }
 
     @Override
-    public RuleResult evaluate(GraduationRuleView rule, EvaluationContext context) {
-        Config config = RuleConfigParser.parse(rule.ruleConfig(), Config.class);
+    public RuleResult evaluate(EvaluationRule rule, EvaluationContext context) {
+        RuleConfiguration.MinCredits config = rule.configuration(RuleConfiguration.MinCredits.class);
         if ("TEACHING_SUMMARY".equals(config.creditSource())) {
             if (config.minCredits() == null) {
-                throw new IllegalStateException("교직 요약 학점 규칙은 minCredits가 필요합니다: " + rule.ruleConfig());
+                throw new IllegalStateException("교직 요약 학점 규칙은 minCredits가 필요합니다: " + rule.ruleName());
             }
             int credits = context.getTranscript().teachingCredits() == null
                     ? 0
@@ -67,7 +64,7 @@ public class MinCreditsEvaluator implements RuleEvaluator {
             return new RuleResult(rule.ruleName(), credits >= config.minCredits());
         }
         if (config.minCredits() == null && config.minCount() == null) {
-            throw new IllegalStateException("MIN_CREDITS는 minCredits 또는 minCount가 필요합니다: " + rule.ruleConfig());
+            throw new IllegalStateException("MIN_CREDITS는 minCredits 또는 minCount가 필요합니다: " + rule.ruleName());
         }
         CourseType configuredCourseType = config.courseType() == null ? null : CourseType.valueOf(config.courseType());
         // 학과 세트의 기존 주전공 규칙을 복수전공 역할로 재사용한다.
@@ -76,15 +73,16 @@ public class MinCreditsEvaluator implements RuleEvaluator {
                         ? CourseType.SECOND_MAJOR
                         : configuredCourseType;
 
-        List<CourseRecordView> selected = context.getPassedCoursesForRule(rule.courseType()).stream()
+        List<EvaluationCourse> selected = context.getPassedCoursesForRule(rule.courseType()).stream()
                 .filter(record -> matches(record, courseType, config, context))
                 .toList();
 
         int earnedCredits =
-                selected.stream().mapToInt(CourseRecordView::credits).sum();
+                selected.stream().mapToInt(EvaluationCourse::credits).sum();
         int targetCredits = config.minCredits() == null
                 ? 0
-                : CreditAdjustmentCalculator.adjustedTarget(rule, context, config.minCredits());
+                : CreditAdjustmentCalculator.adjustedTarget(
+                        rule.courseType(), rule.creditAdjustments(), context, config.minCredits());
         boolean satisfied = (config.minCredits() == null || earnedCredits >= targetCredits)
                 && (config.minCount() == null || selected.size() >= config.minCount());
 
@@ -95,8 +93,12 @@ public class MinCreditsEvaluator implements RuleEvaluator {
      * 수강 이력 하나가 이 규칙의 대상 과목 묶음에 속하는지 판단한다.
      * 값을 쓴 조건은 모두 만족해야 하고(AND), 비어 있는 조건은 제약이 아니다.
      */
-    private boolean matches(CourseRecordView record, CourseType courseType, Config config, EvaluationContext context) {
-        CourseClassificationView classification = context.getClassification(record);
+    private boolean matches(
+            EvaluationCourse record,
+            CourseType courseType,
+            RuleConfiguration.MinCredits config,
+            EvaluationContext context) {
+        CourseClassification classification = context.getClassification(record);
         if (courseType != null && (classification == null || classification.courseType() != courseType)) {
             return false;
         }
@@ -114,23 +116,11 @@ public class MinCreditsEvaluator implements RuleEvaluator {
 
     /** 학수번호 선택자는 prefix 패턴("DAI*")을 지원하므로 별도로 매칭한다. */
     private static boolean matchesCourseCodes(
-            List<String> courseCodes, CourseRecordView record, EvaluationContext context) {
+            List<String> courseCodes, EvaluationCourse record, EvaluationContext context) {
         return isEmpty(courseCodes) || context.codeMatchesAny(record.courseCode(), courseCodes);
     }
 
     private static boolean isEmpty(List<String> values) {
         return values == null || values.isEmpty();
     }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private record Config(
-            String courseType,
-            List<String> areaNames,
-            List<String> subCategories,
-            List<String> pdfAreaNames,
-            List<String> pdfCourseTypeNames,
-            List<String> courseCodes,
-            String creditSource,
-            Integer minCredits,
-            Integer minCount) {}
 }

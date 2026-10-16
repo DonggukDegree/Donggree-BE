@@ -13,7 +13,6 @@ import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.CourseItem;
-import com.donggree.graduation.internal.application.report.GraduationReportAssembler;
 import com.donggree.graduation.internal.domain.evaluator.courses.PrerequisiteEvaluator;
 import com.donggree.graduation.internal.domain.evaluator.courses.RequiredCourseEvaluator;
 import com.donggree.graduation.internal.domain.evaluator.credits.GpaEvaluator;
@@ -21,6 +20,7 @@ import com.donggree.graduation.internal.domain.evaluator.credits.MinCreditsEvalu
 import com.donggree.graduation.internal.domain.evaluator.credits.TotalCreditsEvaluator;
 import com.donggree.graduation.internal.domain.evaluator.qualification.EnglishCourseEvaluator;
 import com.donggree.graduation.internal.domain.evaluator.qualification.ThesisEvaluator;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptLookupService;
 import com.donggree.transcript.TranscriptView;
@@ -61,7 +61,8 @@ abstract class GraduationQueryTestSupport {
                         new GpaEvaluator(),
                         new PrerequisiteEvaluator(),
                         new TotalCreditsEvaluator()),
-                new GraduationReportAssembler());
+                EvaluationTestInputs.assembler(),
+                EvaluationTestInputs.mapper());
     }
 
     void givenMinCreditsRule(CourseType courseType, String ruleName, String ruleConfig) {

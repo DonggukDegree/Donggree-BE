@@ -1,15 +1,11 @@
 package com.donggree.graduation.internal.application.report;
 
-import static com.donggree.graduation.internal.application.report.ReportCreditTargets.courseTypeKoreanName;
-import static com.donggree.graduation.internal.application.report.ReportCreditTargets.resolveTypeTargetCredits;
-import static com.donggree.graduation.internal.application.report.ReportRuleConfig.parseIntField;
-
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AreaOverview;
 import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.Summary;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.transcript.TranscriptView;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,9 +16,15 @@ import java.util.stream.Collectors;
 final class GraduationSummaryAssembler {
     private static final String MIN_CREDITS = "MIN_CREDITS";
 
-    private GraduationSummaryAssembler() {}
+    private final ReportRuleConfig config;
+    private final ReportCreditTargets creditTargets;
 
-    static Summary buildSummary(
+    GraduationSummaryAssembler(ReportRuleConfig config, ReportCreditTargets creditTargets) {
+        this.config = config;
+        this.creditTargets = creditTargets;
+    }
+
+    Summary buildSummary(
             TranscriptView transcript,
             List<GraduationRuleView> rules,
             List<GraduationRuleView> statusRules,
@@ -34,7 +36,7 @@ final class GraduationSummaryAssembler {
         int targetCredits = rules.stream()
                 .filter(r -> "TOTAL_CREDITS".equals(r.typeName()))
                 .findFirst()
-                .map(r -> parseIntField(r.ruleConfig(), "minCredits", 130))
+                .map(r -> config.parseIntField(r.ruleConfig(), "minCredits", 130))
                 .orElse(130);
 
         int earnedCredits = transcript.totalCredits();
@@ -65,7 +67,7 @@ final class GraduationSummaryAssembler {
                 unsatisfiedReasons);
     }
 
-    static List<AreaOverview> buildAreaOverviews(
+    List<AreaOverview> buildAreaOverviews(
             List<GraduationRuleView> rules,
             List<GraduationRuleView> statusRules,
             Map<Long, RuleResult> resultByRuleId,
@@ -104,7 +106,7 @@ final class GraduationSummaryAssembler {
                 .toList();
     }
 
-    static AreaOverview buildAreaOverview(
+    AreaOverview buildAreaOverview(
             CourseType courseType,
             Map<CourseType, List<GraduationRuleView>> rulesByCourseType,
             Map<CourseType, List<GraduationRuleView>> minAreaRulesByCourseType,
@@ -129,9 +131,14 @@ final class GraduationSummaryAssembler {
                 });
 
         int earnedCredits = context.getTotalPassedCreditsByType(courseType);
-        int remainingCredits = Math.max(0, resolveTypeTargetCredits(courseType, minAreaRules, context) - earnedCredits);
+        int remainingCredits =
+                Math.max(0, creditTargets.resolveTypeTargetCredits(courseType, minAreaRules, context) - earnedCredits);
 
         return new AreaOverview(
-                courseType.name(), courseTypeKoreanName(courseType), achievementRate, remainingCredits, satisfied);
+                courseType.name(),
+                ReportCreditTargets.courseTypeKoreanName(courseType),
+                achievementRate,
+                remainingCredits,
+                satisfied);
     }
 }

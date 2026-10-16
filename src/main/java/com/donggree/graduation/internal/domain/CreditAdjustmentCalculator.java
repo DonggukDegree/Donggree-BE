@@ -1,10 +1,9 @@
 package com.donggree.graduation.internal.domain;
 
-import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.transcript.CourseRecordView;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.ArrayList;
+import com.donggree.curriculum.CourseType;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationCourse;
+import com.donggree.graduation.internal.domain.rule.CreditAdjustment;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -13,68 +12,60 @@ import java.util.Set;
 /** 대체 과목 이수 시 MIN_CREDITS 목표 학점을 중복 없이 조정한다. */
 public final class CreditAdjustmentCalculator {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final long FORBIDDEN_COST = 1_000_000_000_000_000L;
 
     private CreditAdjustmentCalculator() {}
 
-    public static int adjustedTarget(GraduationRuleView rule, EvaluationContext context, int baseTarget) {
+    public static int adjustedTarget(
+            CourseType ruleCourseType, List<CreditAdjustment> adjustments, EvaluationContext context, int baseTarget) {
         if (baseTarget <= 0) return 0;
-        try {
-            JsonNode adjustments = MAPPER.readTree(rule.ruleConfig()).path("creditAdjustments");
-            List<Adjustment> allAdjustments = new ArrayList<>();
-            for (JsonNode adjustment : adjustments) {
-                List<String> requiredCodes = readCodes(adjustment.path("requiredCourseCodes"));
-                List<String> replacementCodes = readCodes(adjustment.path("replacementCourseCodes"));
-                int credits = adjustment.path("credits").asInt(0);
-                if (requiredCodes.isEmpty() || replacementCodes.isEmpty() || credits <= 0) continue;
+        List<CreditAdjustment> allAdjustments = adjustments.stream()
+                .filter(a -> !a.requiredCourseCodes().isEmpty()
+                        && !a.replacementCourseCodes().isEmpty()
+                        && a.credits() > 0)
+                .map(a -> new CreditAdjustment(
+                        a.requiredCourseCodes(), a.replacementCourseCodes(), Math.min(a.credits(), baseTarget)))
+                .toList();
+        if (allAdjustments.isEmpty()) return baseTarget;
 
-                allAdjustments.add(new Adjustment(requiredCodes, replacementCodes, Math.min(credits, baseTarget)));
+        List<String> passedCourseCodes = context.getPassedCoursesForRequiredCourse(ruleCourseType).stream()
+                .map(EvaluationCourse::courseCode)
+                .filter(code -> code != null && !code.isBlank())
+                .distinct()
+                .sorted()
+                .toList();
+        if (passedCourseCodes.isEmpty()) return baseTarget;
+
+        // 이미 원 필수과목으로 사용된 이수 과목은 다른 필수과목의 대체 과목으로도 쓰지 않는다.
+        Set<String> reservedCourseCodes = new HashSet<>();
+        for (String courseCode : passedCourseCodes) {
+            if (allAdjustments.stream()
+                    .anyMatch(adjustment -> context.codeMatchesAny(courseCode, adjustment.requiredCourseCodes()))) {
+                reservedCourseCodes.add(courseCode);
             }
-            if (allAdjustments.isEmpty()) return baseTarget;
-
-            List<String> passedCourseCodes = context.getPassedCoursesForRequiredCourse(rule.courseType()).stream()
-                    .map(CourseRecordView::courseCode)
-                    .filter(code -> code != null && !code.isBlank())
-                    .distinct()
-                    .sorted()
-                    .toList();
-            if (passedCourseCodes.isEmpty()) return baseTarget;
-
-            // 이미 원 필수과목으로 사용된 이수 과목은 다른 필수과목의 대체 과목으로도 쓰지 않는다.
-            Set<String> reservedCourseCodes = new HashSet<>();
-            for (String courseCode : passedCourseCodes) {
-                if (allAdjustments.stream()
-                        .anyMatch(adjustment -> context.codeMatchesAny(courseCode, adjustment.requiredCourseCodes()))) {
-                    reservedCourseCodes.add(courseCode);
-                }
-            }
-
-            List<Adjustment> unmetAdjustments = allAdjustments.stream()
-                    .filter(adjustment -> passedCourseCodes.stream()
-                            .noneMatch(
-                                    courseCode -> context.codeMatchesAny(courseCode, adjustment.requiredCourseCodes())))
-                    .toList();
-            if (unmetAdjustments.isEmpty()) return baseTarget;
-
-            List<String> replacementCandidates = passedCourseCodes.stream()
-                    .filter(courseCode -> !reservedCourseCodes.contains(courseCode))
-                    .filter(courseCode -> unmetAdjustments.stream()
-                            .anyMatch(adjustment ->
-                                    context.codeMatchesAny(courseCode, adjustment.replacementCourseCodes())))
-                    .toList();
-            if (replacementCandidates.isEmpty()) return baseTarget;
-
-            int reduction = maximumCreditReduction(unmetAdjustments, replacementCandidates, context, baseTarget);
-            return Math.max(0, baseTarget - reduction);
-        } catch (Exception ignored) {
-            return baseTarget;
         }
+
+        List<CreditAdjustment> unmetAdjustments = allAdjustments.stream()
+                .filter(adjustment -> passedCourseCodes.stream()
+                        .noneMatch(courseCode -> context.codeMatchesAny(courseCode, adjustment.requiredCourseCodes())))
+                .toList();
+        if (unmetAdjustments.isEmpty()) return baseTarget;
+
+        List<String> replacementCandidates = passedCourseCodes.stream()
+                .filter(courseCode -> !reservedCourseCodes.contains(courseCode))
+                .filter(courseCode -> unmetAdjustments.stream()
+                        .anyMatch(
+                                adjustment -> context.codeMatchesAny(courseCode, adjustment.replacementCourseCodes())))
+                .toList();
+        if (replacementCandidates.isEmpty()) return baseTarget;
+
+        int reduction = maximumCreditReduction(unmetAdjustments, replacementCandidates, context, baseTarget);
+        return Math.max(0, baseTarget - reduction);
     }
 
     /** 각 대체 과목을 최대 한 행에만 배정하고, 감면 학점 합계가 최대가 되는 조합을 선택한다. */
     private static int maximumCreditReduction(
-            List<Adjustment> adjustments,
+            List<CreditAdjustment> adjustments,
             List<String> replacementCandidates,
             EvaluationContext context,
             int baseTarget) {
@@ -84,7 +75,7 @@ public final class CreditAdjustmentCalculator {
         int columnCount = candidateCount + rowCount;
         long[][] costs = new long[rowCount][columnCount];
         for (int row = 0; row < rowCount; row++) {
-            Adjustment adjustment = adjustments.get(row);
+            CreditAdjustment adjustment = adjustments.get(row);
             for (int column = 0; column < candidateCount; column++) {
                 String courseCode = replacementCandidates.get(column);
                 costs[row][column] = context.codeMatchesAny(courseCode, adjustment.replacementCourseCodes())
@@ -165,16 +156,5 @@ public final class CreditAdjustmentCalculator {
             if (rowByColumn[column] != 0) assignedColumns[rowByColumn[column] - 1] = column - 1;
         }
         return assignedColumns;
-    }
-
-    private record Adjustment(List<String> requiredCourseCodes, List<String> replacementCourseCodes, int credits) {}
-
-    private static List<String> readCodes(JsonNode node) {
-        List<String> codes = new ArrayList<>();
-        if (!node.isArray()) return codes;
-        for (JsonNode value : node) {
-            if (value.isTextual() && !value.asText().isBlank()) codes.add(value.asText());
-        }
-        return codes;
     }
 }

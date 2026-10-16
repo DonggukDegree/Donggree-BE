@@ -1,102 +1,59 @@
 package com.donggree.graduation.internal.application.report;
 
 import com.donggree.curriculum.GraduationRuleView;
-import com.donggree.global.logging.RequestDiagnostics;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.donggree.graduation.internal.application.evaluation.RuleConfigurationReader;
+import com.donggree.graduation.internal.domain.CreditAdjustmentCalculator;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
-/** 리포트 표시용 설정 해석. 판정기의 엄격한 검증과 별도로 기존 기본값을 유지한다. */
+/** 표시 설정 조합. 저장 형식 해석은 출력 포트에 위임한다. */
+@RequiredArgsConstructor
 final class ReportRuleConfig {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private final ReportSettingsReader reader;
+    private final RuleConfigurationReader configurationReader;
 
-    private ReportRuleConfig() {}
-
-    static List<String> extractRequiredCodes(List<GraduationRuleView> rules) {
-        List<String> codes = new ArrayList<>();
-        for (GraduationRuleView rule : rules) {
-            if (!"REQUIRED_COURSE".equals(rule.typeName())) continue;
-            codes.addAll(requiredCodes(rule));
-        }
-        return codes;
+    List<String> extractRequiredCodes(List<GraduationRuleView> rules) {
+        return rules.stream()
+                .filter(r -> "REQUIRED_COURSE".equals(r.typeName()))
+                .flatMap(r -> requiredCodes(r).stream())
+                .toList();
     }
 
-    static List<String> requiredCodes(GraduationRuleView rule) {
-        try {
-            JsonNode config = MAPPER.readTree(rule.ruleConfig());
-            if (!config.hasNonNull("requiredCourseSets")) {
-                return parseStringList(rule.ruleConfig(), "courseCodes");
-            }
-            List<String> codes = new ArrayList<>();
-            for (JsonNode set : config.path("requiredCourseSets")) {
-                for (JsonNode group : set) {
-                    for (JsonNode code : group) {
-                        if (code.isTextual()) codes.add(code.asText());
-                    }
-                }
-            }
-            return codes.stream().distinct().toList();
-        } catch (JsonProcessingException | IllegalArgumentException e) {
-            RequestDiagnostics.fallback("report_required_courses", e);
-            return List.of();
-        }
+    List<String> requiredCodes(GraduationRuleView rule) {
+        return reader.requiredCodes(rule.ruleConfig());
     }
 
-    static List<GraduationRuleView> applicableRequiredRules(
-            List<GraduationRuleView> rules, String studentEnglishLevel) {
+    List<GraduationRuleView> applicableRequiredRules(List<GraduationRuleView> rules, String studentEnglishLevel) {
         List<GraduationRuleView> result = new ArrayList<>();
         for (GraduationRuleView rule : rules) {
             if (!"REQUIRED_COURSE".equals(rule.typeName())) continue;
             List<String> exemptLevels = parseStringList(rule.ruleConfig(), "exemptEnglishLevels");
-            if (!exemptLevels.isEmpty() && studentEnglishLevel != null && exemptLevels.contains(studentEnglishLevel)) {
+            if (!exemptLevels.isEmpty() && studentEnglishLevel != null && exemptLevels.contains(studentEnglishLevel))
                 continue;
-            }
             List<String> requiredLevels = parseStringList(rule.ruleConfig(), "requiredEnglishLevels");
             if (!requiredLevels.isEmpty()
-                    && (studentEnglishLevel == null || !requiredLevels.contains(studentEnglishLevel))) {
-                continue;
-            }
+                    && (studentEnglishLevel == null || !requiredLevels.contains(studentEnglishLevel))) continue;
             result.add(rule);
         }
         return result;
     }
 
-    static List<String> parseStringList(String json, String field) {
-        if (json == null) return List.of();
-        try {
-            JsonNode node = MAPPER.readTree(json);
-            JsonNode arr = node.path(field);
-            if (arr.isNull() || arr.isMissingNode() || !arr.isArray()) return List.of();
-            List<String> result = new ArrayList<>();
-            arr.forEach(n -> result.add(n.asText()));
-            return result;
-        } catch (JsonProcessingException e) {
-            RequestDiagnostics.fallback("report_rule_list", e);
-            return List.of();
-        }
+    List<String> parseStringList(String json, String field) {
+        return reader.stringList(json, field);
     }
 
-    static boolean hasNumberField(String ruleConfig, String fieldName) {
-        if (ruleConfig == null) return false;
-        try {
-            return MAPPER.readTree(ruleConfig).path(fieldName).isNumber();
-        } catch (JsonProcessingException e) {
-            RequestDiagnostics.fallback("report_rule_number", e);
-            return false;
-        }
+    boolean hasNumberField(String json, String field) {
+        return reader.hasNumber(json, field);
     }
 
-    static int parseIntField(String ruleConfig, String fieldName, int defaultValue) {
-        if (ruleConfig == null) return defaultValue;
-        try {
-            JsonNode node = MAPPER.readTree(ruleConfig);
-            JsonNode field = node.path(fieldName);
-            return field.isMissingNode() ? defaultValue : field.asInt(defaultValue);
-        } catch (JsonProcessingException e) {
-            RequestDiagnostics.fallback("report_rule_integer", e);
-            return defaultValue;
-        }
+    int parseIntField(String json, String field, int defaultValue) {
+        return reader.intValue(json, field, defaultValue);
+    }
+
+    int adjustedTarget(GraduationRuleView rule, EvaluationContext context, int baseTarget) {
+        return CreditAdjustmentCalculator.adjustedTarget(
+                rule.courseType(), configurationReader.readCreditAdjustments(rule.ruleConfig()), context, baseTarget);
     }
 }

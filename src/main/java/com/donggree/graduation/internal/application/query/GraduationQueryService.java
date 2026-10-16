@@ -6,17 +6,18 @@ import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.graduation.internal.application.evaluation.EvaluationInputMapper;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
 import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AdditionalNotice;
 import com.donggree.graduation.internal.application.readmodel.ReportPreviewReadModel;
 import com.donggree.graduation.internal.application.report.GraduationReportAssembler;
-import com.donggree.graduation.internal.domain.EvaluationContext;
 import com.donggree.graduation.internal.domain.MajorRole;
-import com.donggree.graduation.internal.domain.MajorRoleRuleMatcher;
 import com.donggree.graduation.internal.domain.RuleEvaluator;
 import com.donggree.graduation.internal.domain.RuleResult;
+import com.donggree.graduation.internal.domain.evaluation.CourseClassification;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptLookupService;
 import com.donggree.transcript.TranscriptView;
@@ -41,16 +42,19 @@ public class GraduationQueryService {
     private final TranscriptLookupService transcriptLookupService;
     private final CurriculumLookupService curriculumLookupService;
     private final GraduationReportAssembler reportAssembler;
+    private final EvaluationInputMapper inputMapper;
     private final Map<String, RuleEvaluator> evaluatorByTypeName;
 
     public GraduationQueryService(
             TranscriptLookupService transcriptLookupService,
             CurriculumLookupService curriculumLookupService,
             List<RuleEvaluator> evaluators,
-            GraduationReportAssembler reportAssembler) {
+            GraduationReportAssembler reportAssembler,
+            EvaluationInputMapper inputMapper) {
         this.transcriptLookupService = transcriptLookupService;
         this.curriculumLookupService = curriculumLookupService;
         this.reportAssembler = reportAssembler;
+        this.inputMapper = inputMapper;
         this.evaluatorByTypeName =
                 evaluators.stream().collect(Collectors.toMap(RuleEvaluator::supportedTypeName, Function.identity()));
     }
@@ -98,7 +102,9 @@ public class GraduationQueryService {
                 // 사유·탭 상태도 규칙의 이수구분을 사용한다. 전공만 역할별 제1·제2전공으로 구분한다.
                 rules,
                 evaluateScopes(scopes),
-                EvaluationContext.report(transcript, classifications),
+                EvaluationContext.report(
+                        EvaluationInputMapper.transcript(transcript),
+                        EvaluationInputMapper.classifications(classifications)),
                 requiresAccuracyWarning(transcript, resolved.dualMajor1Evaluated()),
                 resolved.additionalNotices());
     }
@@ -140,11 +146,12 @@ public class GraduationQueryService {
                 ? Map.of()
                 : curriculumLookupService.findCourseClassifications(requiredCodes, transcript.admissionYear());
 
-        Map<String, CourseClassificationView> allCls = new HashMap<>(supplementalCls);
+        Map<String, CourseClassification> allCls =
+                new HashMap<>(EvaluationInputMapper.classifications(supplementalCls));
         context.getPassedCoursesByType(courseType).stream()
                 .filter(cr -> cr.courseCode() != null)
                 .forEach(cr -> {
-                    CourseClassificationView cls = context.getClassification(cr);
+                    CourseClassification cls = context.getClassification(cr);
                     if (cls != null) allCls.put(cr.courseCode(), cls);
                 });
 
@@ -211,7 +218,7 @@ public class GraduationQueryService {
         for (GraduationRuleView rule : rules) {
             RuleEvaluator evaluator = evaluatorByTypeName.get(rule.typeName());
             if (evaluator != null) {
-                results.put(rule.id(), evaluator.evaluate(rule, context));
+                results.put(rule.id(), evaluator.evaluate(inputMapper.rule(rule), context));
             }
         }
         return results;
@@ -227,7 +234,12 @@ public class GraduationQueryService {
                 transcript.departmentId(), transcript.admissionYear(), transcript.engineeringCertified());
         addNotice(notices, primarySet);
         List<GraduationRuleView> primaryRules = filterRules(primarySet.id(), primaryRole);
-        scopes.add(new ScopedRules(primaryRules, EvaluationContext.primary(transcript, classifications, primaryRole)));
+        scopes.add(new ScopedRules(
+                primaryRules,
+                EvaluationContext.primary(
+                        EvaluationInputMapper.transcript(transcript),
+                        EvaluationInputMapper.classifications(classifications),
+                        primaryRole)));
 
         boolean dualMajor1Evaluated = addSecondaryScope(scopes, transcript, classifications, notices);
         return new ResolvedRules(scopes, dualMajor1Evaluated, List.copyOf(notices));
@@ -252,7 +264,12 @@ public class GraduationQueryService {
         if (secondaryRules.isEmpty()) return false;
 
         addNotice(notices, secondarySet);
-        scopes.add(new ScopedRules(secondaryRules, EvaluationContext.secondary(transcript, classifications, "복수1")));
+        scopes.add(new ScopedRules(
+                secondaryRules,
+                EvaluationContext.secondary(
+                        EvaluationInputMapper.transcript(transcript),
+                        EvaluationInputMapper.classifications(classifications),
+                        "복수1")));
         return true;
     }
 
@@ -276,7 +293,7 @@ public class GraduationQueryService {
 
     private List<GraduationRuleView> filterRules(Long requirementSetId, MajorRole role) {
         return curriculumLookupService.findGraduationRules(requirementSetId).stream()
-                .filter(rule -> MajorRoleRuleMatcher.applies(rule, role))
+                .filter(rule -> inputMapper.applies(rule, role))
                 .toList();
     }
 
