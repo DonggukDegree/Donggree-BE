@@ -57,6 +57,9 @@ dependencies {
 
 	runtimeOnly 'org.postgresql:postgresql'
 
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+
     implementation("org.apache.pdfbox:pdfbox:3.0.3")
     // Swagger가 가져오는 3.17.0으로 내려가지 않도록 현재 버전을 명시한다.
     implementation("org.apache.commons:commons-lang3:3.18.0")
@@ -103,6 +106,8 @@ spotless {
 
 tasks.named('test') {
 	useJUnitPlatform()
+    inputs.property('postgresMigrationTestsEnabled', providers.environmentVariable('DONGGREE_TEST_POSTGRES_URL')
+            .map { !it.isBlank() }.orElse(false))
 	outputs.dir snippetsDir
 }
 

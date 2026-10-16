@@ -8,6 +8,9 @@ server:
   forward-headers-strategy: framework
 
 spring:
+  flyway:
+    # 기존 DB의 명시적 baseline 등록·대조 후 운영 배포 환경에서 활성화한다.
+    enabled: ${FLYWAY_ENABLED:false}
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
@@ -16,7 +19,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
+      ddl-auto: validate
     show-sql: false
 
 # 운영에서는 API 명세(Swagger UI/OpenAPI JSON)를 노출하지 않는다.
