@@ -4,7 +4,7 @@ import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
-import com.donggree.graduation.internal.application.GraduationQueryService;
+import com.donggree.graduation.internal.application.query.GraduationQueryService;
 import com.donggree.graduation.internal.presentation.dto.AdminReportPreviewResponse;
 import com.donggree.transcript.TranscriptPreviewService;
 import io.swagger.v3.oas.annotations.Operation;

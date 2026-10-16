@@ -2,16 +2,18 @@ package com.donggree.transcript.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
-import com.donggree.transcript.internal.domain.CourseRecordData;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.Transcript;
-import com.donggree.transcript.internal.domain.TranscriptCreateData;
-import com.donggree.transcript.internal.domain.TranscriptRepository;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.transcript.internal.application.pdf.TranscriptPdfReader;
+import com.donggree.transcript.internal.application.query.TranscriptRecordGrouper;
+import com.donggree.transcript.internal.domain.transcript.CourseRecordData;
+import com.donggree.transcript.internal.domain.transcript.Transcript;
+import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
+import com.donggree.transcript.internal.domain.transcript.TranscriptRepository;
+import com.donggree.user.UserIdentityService;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +31,7 @@ public class TranscriptCommandService {
 
     private final TranscriptRepository transcriptRepository;
     private final TranscriptPdfReader pdfReader;
-    private final MemberIdentityService memberIdentityService;
+    private final UserIdentityService memberIdentityService;
 
     /** 일반 업로드와 관리자 미리보기의 동일한 파싱·변환 경로를 사용한다. */
     public TranscriptParseResult parseTranscript(byte[] pdfBytes) {

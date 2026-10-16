@@ -4,6 +4,7 @@ import com.donggree.global.apiPayload.code.BaseErrorCode;
 import lombok.Getter;
 
 @Getter
+@org.springframework.modulith.NamedInterface("api")
 public class GeneralException extends RuntimeException {
 
     private final BaseErrorCode code;

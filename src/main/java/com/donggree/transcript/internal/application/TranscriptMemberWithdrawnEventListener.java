@@ -1,6 +1,6 @@
 package com.donggree.transcript.internal.application;
 
-import com.donggree.transcript.internal.domain.TranscriptRepository;
+import com.donggree.transcript.internal.domain.transcript.TranscriptRepository;
 import com.donggree.user.event.MemberWithdrawnEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.modulith.events.ApplicationModuleListener;

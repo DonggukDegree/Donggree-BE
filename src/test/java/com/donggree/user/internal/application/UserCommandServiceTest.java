@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.event.MemberWithdrawnEvent;
 import com.donggree.user.internal.application.exception.UserErrorCode;
-import com.donggree.user.internal.application.projection.UserInfoProjection;
+import com.donggree.user.internal.application.readmodel.UserInfoReadModel;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
 import java.util.Optional;
@@ -92,7 +92,7 @@ class UserCommandServiceTest {
         Member member = createOnboardedMember(memberId, "2023123456", "하승연");
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
 
-        UserInfoProjection response = userCommandService.updateUserInfo(memberId, "2023123456", "하승연", "동동이");
+        UserInfoReadModel response = userCommandService.updateUserInfo(memberId, "2023123456", "하승연", "동동이");
 
         assertThat(response.nickname()).isEqualTo("동동이");
         assertThat(response.studentId()).isEqualTo("2023123456");

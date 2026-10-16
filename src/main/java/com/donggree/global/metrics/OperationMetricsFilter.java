@@ -1,5 +1,9 @@
 package com.donggree.global.metrics;
 
+import static com.donggree.global.metrics.OperationMetricsContext.ACTOR;
+import static com.donggree.global.metrics.OperationMetricsContext.CODE;
+import static com.donggree.global.metrics.OperationMetricsContext.OUTCOME;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.FilterChain;
@@ -14,9 +18,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /** 사용자 수가 아닌 서버 처리 횟수·시간. 보안 필터와 트랜잭션 완료까지 포함한다. */
 @RequiredArgsConstructor
 public class OperationMetricsFilter extends OncePerRequestFilter {
-    public static final String CODE = OperationMetricsFilter.class.getName() + ".code";
-    public static final String OUTCOME = OperationMetricsFilter.class.getName() + ".outcome";
-    public static final String ACTOR = OperationMetricsFilter.class.getName() + ".actor";
     private final MeterRegistry registry;
 
     @Override

@@ -1,6 +1,6 @@
 package com.donggree.global.auth;
 
-import com.donggree.global.metrics.OperationMetricsFilter;
+import com.donggree.global.metrics.OperationMetricsContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,7 +42,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(claims.memberId(), null, toAuthorities(claims.role()));
             // 고유 회원번호 대신 제한된 역할 분류만 운영 지표에 사용한다.
             request.setAttribute(
-                    OperationMetricsFilter.ACTOR,
+                    OperationMetricsContext.ACTOR,
                     "ADMIN".equals(claims.role()) || "SUPER_ADMIN".equals(claims.role())
                             ? "admin"
                             : "STUDENT".equals(claims.role()) ? "student" : "unknown");

@@ -1,11 +1,11 @@
 package com.donggree.curriculum.internal.presentation;
 
-import com.donggree.curriculum.internal.application.RequirementSetCommandService;
-import com.donggree.curriculum.internal.application.RequirementSetQueryService;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetResponse;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetSummaryResponse;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
+import com.donggree.curriculum.internal.application.requirementset.RequirementSetCommandService;
+import com.donggree.curriculum.internal.application.requirementset.RequirementSetQueryService;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetRequest;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetResponse;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetSummaryResponse;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetUpdateRequest;
 import com.donggree.curriculum.internal.presentation.swagger.AdminRequirementSetApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.graduation.support.EvaluationTestInputs;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -15,9 +16,9 @@ class MajorRoleRuleMatcherTest {
     void 역할_옵션이_없으면_단일전공_규칙으로_해석한다() {
         GraduationRuleView rule = rule("MIN_CREDITS", "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":72}");
 
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.DUAL_PRIMARY)).isFalse();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SECONDARY)).isFalse();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.DUAL_PRIMARY)).isFalse();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SECONDARY)).isFalse();
     }
 
     @Test
@@ -26,18 +27,18 @@ class MajorRoleRuleMatcherTest {
                 "REQUIRED_COURSE",
                 "{\"courseCodes\":[\"CSE1001\"],\"applicableMajorRoles\":[\"SINGLE_PRIMARY\",\"SECONDARY\"]}");
 
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.DUAL_PRIMARY)).isFalse();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SECONDARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.DUAL_PRIMARY)).isFalse();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SECONDARY)).isTrue();
     }
 
     @Test
     void 지원하지_않는_규칙_유형은_복수전공_학과에_재적용되지_않는다() {
         GraduationRuleView rule = rule("TOTAL_CREDITS", "{\"minCredits\":130}");
 
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SECONDARY)).isFalse();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SECONDARY)).isFalse();
     }
 
     @ParameterizedTest
@@ -45,9 +46,9 @@ class MajorRoleRuleMatcherTest {
     void 기존_THESIS는_두_주전공_역할을_유지하고_복수전공에는_적용하지_않는다(String config) {
         GraduationRuleView rule = rule("THESIS", config);
 
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SECONDARY)).isFalse();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SECONDARY)).isFalse();
     }
 
     @ParameterizedTest
@@ -56,7 +57,7 @@ class MajorRoleRuleMatcherTest {
         GraduationRuleView rule = rule("THESIS", "{\"applicableMajorRoles\":[\"" + selected.name() + "\"]}");
 
         for (MajorRole role : MajorRole.values()) {
-            assertThat(MajorRoleRuleMatcher.applies(rule, role)).isEqualTo(role == selected);
+            assertThat(EvaluationTestInputs.applies(rule, role)).isEqualTo(role == selected);
         }
     }
 
@@ -64,9 +65,9 @@ class MajorRoleRuleMatcherTest {
     void THESIS의_여러_역할_선택을_지원한다() {
         GraduationRuleView rule = rule("THESIS", "{\"applicableMajorRoles\":[\"DUAL_PRIMARY\",\"SECONDARY\"]}");
 
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SINGLE_PRIMARY)).isFalse();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SECONDARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SINGLE_PRIMARY)).isFalse();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SECONDARY)).isTrue();
     }
 
     private GraduationRuleView rule(String typeName, String config) {
@@ -78,9 +79,9 @@ class MajorRoleRuleMatcherTest {
     void 기존_영어강의는_두_주전공_역할에_유지하고_복수전공에는_추가하지_않는다(String config) {
         var rule = rule("ENGLISH_COURSE", config);
 
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
-        assertThat(MajorRoleRuleMatcher.applies(rule, MajorRole.SECONDARY)).isFalse();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SINGLE_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.DUAL_PRIMARY)).isTrue();
+        assertThat(EvaluationTestInputs.applies(rule, MajorRole.SECONDARY)).isFalse();
     }
 
     @ParameterizedTest
@@ -89,7 +90,7 @@ class MajorRoleRuleMatcherTest {
         var rule = rule("ENGLISH_COURSE", "{\"minCount\":4,\"applicableMajorRoles\":[\"" + selected.name() + "\"]}");
 
         for (MajorRole role : MajorRole.values()) {
-            assertThat(MajorRoleRuleMatcher.applies(rule, role)).isEqualTo(role == selected);
+            assertThat(EvaluationTestInputs.applies(rule, role)).isEqualTo(role == selected);
         }
     }
 
@@ -100,7 +101,7 @@ class MajorRoleRuleMatcherTest {
                 "{\"minCount\":4,\"applicableMajorRoles\":[\"SINGLE_PRIMARY\",\"DUAL_PRIMARY\",\"SECONDARY\"]}");
 
         for (MajorRole role : MajorRole.values()) {
-            assertThat(MajorRoleRuleMatcher.applies(rule, role)).isTrue();
+            assertThat(EvaluationTestInputs.applies(rule, role)).isTrue();
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.donggree.transcript.internal.application.command;
 
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawSemesterGroup;
 import java.math.BigDecimal;
 import java.util.List;
 

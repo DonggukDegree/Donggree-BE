@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.donggree.curriculum.internal.application.command.RequirementSetCommand;
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
+import com.donggree.curriculum.internal.application.requirementset.RequirementSetCommandService;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
 import com.donggree.curriculum.internal.domain.requirementset.RequirementSetRepository;

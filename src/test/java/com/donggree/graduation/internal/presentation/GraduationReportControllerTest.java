@@ -14,16 +14,16 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
-import com.donggree.graduation.internal.application.GraduationQueryService;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection.AreaSection;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CourseItem;
-import com.donggree.graduation.internal.application.projection.AreaDetailProjection.CreditStatus;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AdditionalNotice;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection.AreaOverview;
-import com.donggree.graduation.internal.application.projection.GraduationReportProjection.Summary;
+import com.donggree.graduation.internal.application.query.GraduationQueryService;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.AreaSection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.CourseItem;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.CreditStatus;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AdditionalNotice;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AreaOverview;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.Summary;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -72,7 +72,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
         given(graduationQueryService.getReport(memberId))
-                .willReturn(new GraduationReportProjection(
+                .willReturn(new GraduationReportReadModel(
                         summary,
                         areaOverviews,
                         false,
@@ -186,7 +186,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaSection("자기계발", 1, 0, true, 자기계발Items),
                 new AreaSection("지역연구", 1, 0, false, 지역연구Items));
 
-        AreaDetailProjection response = new AreaDetailProjection(
+        AreaDetailReadModel response = new AreaDetailReadModel(
                 areaSections, List.of("21세기시민·지역연구·미래위험사회와안전 중 2학점 이상 이수해야 합니다."), new CreditStatus(17, 17, 0));
 
         given(graduationQueryService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))

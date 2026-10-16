@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.support.internal.application.FaqQueryService;
-import com.donggree.support.internal.application.projection.FaqProjection;
+import com.donggree.support.internal.application.readmodel.FaqReadModel;
 import com.donggree.support.internal.domain.enums.FaqTag;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -31,8 +31,8 @@ class FaqControllerTest extends RestDocsSupport {
     void FAQ_목록을_전체_조회한다() throws Exception {
         given(faqQueryService.getFaqs(null))
                 .willReturn(List.of(
-                        new FaqProjection(2L, FaqTag.MAJOR, "복수전공은 지원하나요?", "지금은 주전공 기준으로만 판정하고 있어요."),
-                        new FaqProjection(1L, FaqTag.COMMON, "성적표는 어디서 받나요?", "nDRIMS에서 PDF로 내려받을 수 있어요.")));
+                        new FaqReadModel(2L, FaqTag.MAJOR, "복수전공은 지원하나요?", "지금은 주전공 기준으로만 판정하고 있어요."),
+                        new FaqReadModel(1L, FaqTag.COMMON, "성적표는 어디서 받나요?", "nDRIMS에서 PDF로 내려받을 수 있어요.")));
 
         mockMvc.perform(get("/api/faqs"))
                 .andExpect(status().isOk())
@@ -54,7 +54,7 @@ class FaqControllerTest extends RestDocsSupport {
     @Test
     void FAQ_목록을_태그로_걸러_조회한다() throws Exception {
         given(faqQueryService.getFaqs(FaqTag.MAJOR))
-                .willReturn(List.of(new FaqProjection(2L, FaqTag.MAJOR, "복수전공은 지원하나요?", "지금은 주전공 기준으로만 판정하고 있어요.")));
+                .willReturn(List.of(new FaqReadModel(2L, FaqTag.MAJOR, "복수전공은 지원하나요?", "지금은 주전공 기준으로만 판정하고 있어요.")));
 
         mockMvc.perform(get("/api/faqs").param("tag", "MAJOR"))
                 .andExpect(status().isOk())

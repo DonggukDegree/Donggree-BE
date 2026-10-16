@@ -2,7 +2,7 @@ package com.donggree.graduation.internal.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.donggree.transcript.TranscriptView;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -11,29 +11,21 @@ import org.junit.jupiter.api.Test;
 class EvaluationContextTest {
 
     private final EvaluationContext context = new EvaluationContext(
-            new TranscriptView(
-                    1L,
-                    1L,
-                    100L,
-                    null,
-                    null,
-                    null,
-                    null,
-                    2023,
+            new com.donggree.graduation.internal.domain.evaluation.EvaluationTranscript(
                     "단일",
-                    false,
                     0,
                     BigDecimal.valueOf(4.0),
                     "S1",
                     false,
                     null,
+                    false,
+                    false,
+                    false,
+                    List.of(),
                     null,
-                    false,
-                    false,
-                    false,
-                    false,
-                    false,
-                    List.of()),
+                    null,
+                    null,
+                    null),
             Map.of());
 
     @Test

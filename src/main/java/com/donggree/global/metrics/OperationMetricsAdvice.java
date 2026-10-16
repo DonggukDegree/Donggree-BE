@@ -29,10 +29,10 @@ public class OperationMetricsAdvice implements ResponseBodyAdvice<Object> {
         if (request instanceof ServletServerHttpRequest servlet
                 && body instanceof ApiResponse<?> api
                 && OperationMetricsFilter.operation(servlet.getServletRequest()) != null) {
-            servlet.getServletRequest().setAttribute(OperationMetricsFilter.CODE, api.getCode());
+            servlet.getServletRequest().setAttribute(OperationMetricsContext.CODE, api.getCode());
             servlet.getServletRequest()
                     .setAttribute(
-                            OperationMetricsFilter.OUTCOME,
+                            OperationMetricsContext.OUTCOME,
                             api.getCode().startsWith("COMMON2") ? "success" : "failure");
         }
         return body;

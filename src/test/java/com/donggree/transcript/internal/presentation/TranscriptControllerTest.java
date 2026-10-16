@@ -21,23 +21,23 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.transcript.internal.application.TranscriptCommandService;
-import com.donggree.transcript.internal.application.TranscriptPdfReader;
-import com.donggree.transcript.internal.application.TranscriptQueryService;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedCourse;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawCourseRecord;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawMeta;
-import com.donggree.transcript.internal.application.projection.TranscriptReportProjection.RawSemesterGroup;
-import com.donggree.transcript.internal.domain.ParsedCourse;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.TranscriptCreateData;
+import com.donggree.transcript.internal.application.pdf.TranscriptPdfReader;
+import com.donggree.transcript.internal.application.query.TranscriptQueryService;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawCourseRecord;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawMeta;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawSemesterGroup;
 import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest.CourseItem;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.user.UserIdentityService;
 import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -65,7 +65,7 @@ class TranscriptControllerTest extends RestDocsSupport {
     private final TranscriptQueryService transcriptQueryService = Mockito.mock(TranscriptQueryService.class);
     private final TranscriptCommandService transcriptCommandService = Mockito.mock(TranscriptCommandService.class);
     private final CurriculumLookupService curriculumLookupService = Mockito.mock(CurriculumLookupService.class);
-    private final MemberIdentityService memberIdentityService = Mockito.mock(MemberIdentityService.class);
+    private final UserIdentityService memberIdentityService = Mockito.mock(UserIdentityService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -113,8 +113,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                 LocalDateTime.of(2024, 3, 1, 9, 0, 0),
                 LocalDateTime.of(2024, 6, 1, 9, 0, 0));
         RawCourseRecord rawRecord = new RawCourseRecord(1L, "CSE1101", "프로그래밍기초", 3, null, "전공", "A+", false);
-        TranscriptReportProjection queryResult =
-                new TranscriptReportProjection(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
+        TranscriptReportReadModel queryResult =
+                new TranscriptReportReadModel(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
 
         given(transcriptQueryService.getTranscriptRawReport(memberId)).willReturn(queryResult);
         given(curriculumLookupService.findDepartmentNamesByIds(List.of(10L))).willReturn(Map.of(10L, "컴퓨터·AI학부"));
@@ -212,7 +212,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                 LocalDateTime.of(2024, 3, 1, 9, 0),
                 LocalDateTime.of(2024, 6, 1, 9, 0));
         given(transcriptQueryService.getTranscriptRawReport(1L))
-                .willReturn(new TranscriptReportProjection(rawMeta, List.of()));
+                .willReturn(new TranscriptReportReadModel(rawMeta, List.of()));
         given(curriculumLookupService.findDepartmentNamesByIds(List.of(10L, 20L)))
                 .willReturn(Map.of(10L, "주전공학과", 20L, "복수전공학과"));
 
@@ -310,7 +310,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         authenticate(1L);
         ParsedTranscriptData parsed = parsedForDepartment(department);
         String rawData = objectMapper.writeValueAsString(Map.of("meta", parsed.meta()));
-        TranscriptCreateData createData = new TranscriptPdfReader(null, objectMapper)
+        TranscriptCreateData createData = new TranscriptPdfReader(null, objectMapper, null)
                 .buildCreateData(1L, rawData, parsed, null, null, null, null, null);
         given(transcriptCommandService.parseTranscript(any(byte[].class)))
                 .willReturn(new TranscriptParseResult(parsed, rawData));
@@ -400,7 +400,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         RawCourseRecord course = new RawCourseRecord(1L, "CSE1", "과목", 3, "기초", "전공", "A+", false);
         given(transcriptQueryService.getTranscriptRawReport(7L))
                 .willReturn(
-                        new TranscriptReportProjection(meta, List.of(new RawSemesterGroup("2023-1", List.of(course)))));
+                        new TranscriptReportReadModel(meta, List.of(new RawSemesterGroup("2023-1", List.of(course)))));
         given(curriculumLookupService.findDepartmentNamesByIds(List.of())).willReturn(Map.of());
 
         mockMvc.perform(get("/api/users/me/reports"))

@@ -12,6 +12,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.HandlerMapping;
 
 /** 요청 원인 추적용 로그. 외부 입력·예외 메시지·본문 대신 코드, 예외 종류, 코드 위치만 기록한다. */
+@org.springframework.modulith.NamedInterface("diagnostics")
 public final class RequestDiagnostics {
     static final String FAILURE = RequestDiagnostics.class.getName() + ".failure";
     static final String LOGGED = RequestDiagnostics.class.getName() + ".logged";

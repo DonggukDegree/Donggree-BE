@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.curriculum.CourseType;
 import com.donggree.curriculum.internal.application.command.GraduationRuleCommand;
 import com.donggree.curriculum.internal.application.command.GraduationRuleUpsertCommand;
+import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
+import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleCommandService;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleType;
@@ -58,7 +60,7 @@ class GraduationRuleCommandIntegrationTest {
     void 배치_뒤쪽의_기존_규칙_중복이면_앞에서_저장한_규칙까지_롤백한다() {
         // 테스트 트랜잭션 대신 실제 서비스 트랜잭션의 롤백 경계를 검증한다.
         Long typeId = typeRepository
-                .save(RuleType.create("ROLLBACK_TEST", null, null))
+                .save(RuleType.create("TOTAL_CREDITS", null, null))
                 .getId();
         Long existingId = ruleRepository
                 .save(GraduationRule.create(typeId, "기존 규칙", "{}", null))
@@ -78,5 +80,17 @@ class GraduationRuleCommandIntegrationTest {
             ruleRepository.deleteById(existingId);
             typeRepository.deleteById(typeId);
         }
+    }
+
+    @Test
+    void 실제_저장소에_있는_미지원_규칙_종류도_저장_전에_거절한다() {
+        Long typeId =
+                typeRepository.save(RuleType.create("UNSUPPORTED", null, null)).getId();
+        assertThatThrownBy(() -> service.upsert(List.of(new GraduationRuleUpsertCommand(
+                        null, new GraduationRuleCommand(typeId, "미지원 규칙", "{}", null)))))
+                .isInstanceOfSatisfying(GeneralException.class, error -> assertThat(error.getCode())
+                        .isEqualTo(CurriculumErrorCode.UNSUPPORTED_RULE_TYPE));
+        assertThat(ruleRepository.findAllByRuleTypeIdAndRuleName(typeId, "미지원 규칙"))
+                .isEmpty();
     }
 }

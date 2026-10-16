@@ -71,11 +71,10 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    void 만료된_토큰은_검증에_실패한다() throws InterruptedException {
-        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(new JwtProperties(TEST_SECRET, 1L, 1L));
+    void 만료된_토큰은_검증에_실패한다() {
+        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(new JwtProperties(TEST_SECRET, -60_000L, -60_000L));
 
         String token = shortLivedProvider.generateAccessToken(1L, "STUDENT");
-        Thread.sleep(5);
 
         assertThat(shortLivedProvider.validateToken(token)).isFalse();
     }

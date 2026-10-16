@@ -3,7 +3,7 @@ package com.donggree.user.internal.application;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.event.MemberWithdrawnEvent;
 import com.donggree.user.internal.application.exception.UserErrorCode;
-import com.donggree.user.internal.application.projection.UserInfoProjection;
+import com.donggree.user.internal.application.readmodel.UserInfoReadModel;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +62,7 @@ public class UserCommandService {
      * @throws GeneralException 회원 미존재, 온보딩 미완료, 본인 인증 후 변경 불가, 학번 중복 시
      */
     @Transactional
-    public UserInfoProjection updateUserInfo(Long memberId, String studentId, String name, String nickname) {
+    public UserInfoReadModel updateUserInfo(Long memberId, String studentId, String name, String nickname) {
         String trimmedStudentId = studentId.trim();
         String trimmedName = name.trim();
         String trimmedNickname = nickname.trim();
@@ -88,7 +88,7 @@ public class UserCommandService {
 
         member.updateProfile(trimmedStudentId, trimmedName, trimmedNickname);
 
-        return UserInfoProjection.from(member);
+        return UserInfoReadModel.from(member);
     }
 
     /**

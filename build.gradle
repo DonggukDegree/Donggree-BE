@@ -58,15 +58,15 @@ dependencies {
 	runtimeOnly 'org.postgresql:postgresql'
 
     implementation("org.apache.pdfbox:pdfbox:3.0.3")
+    // Swagger가 가져오는 3.17.0으로 내려가지 않도록 현재 버전을 명시한다.
     implementation("org.apache.commons:commons-lang3:3.18.0")
 
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
     // 구조화(JSON) 로깅: Loki 에서 필드 파싱을 위해 (prod 프로파일에서만 사용)
-    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+    runtimeOnly 'net.logstash.logback:logstash-logback-encoder:8.0'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:2.8.8'
 
     implementation "io.github.openfeign.querydsl:querydsl-jpa:7.0"
     implementation "io.github.openfeign.querydsl:querydsl-core:7.0"
@@ -77,6 +77,7 @@ dependencies {
     asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'net.logstash.logback:logstash-logback-encoder:8.0'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
 	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
@@ -107,10 +108,8 @@ tasks.named('test') {
 
 asciidoctor {
 	inputs.dir snippetsDir
-	inputs.files(fileTree('build/spring-modulith').matching { include '**/*' })
 	configurations 'asciidoctorExt'
-	attributes 'snippets': snippetsDir,
-			   'modulith-docs': file('build/spring-modulith')
+	attributes 'snippets': snippetsDir
 	sources {
 		include '**/index.adoc'
 	}
@@ -135,11 +134,6 @@ sourceSets {
 }
 
 // 컴파일 시 생성 경로 지정
-tasks.withType(JavaCompile).configureEach {
+tasks.named('compileJava', JavaCompile) {
     options.generatedSourceOutputDirectory.set(querydslDir)
-}
-
-// clean 태스크에 생성 폴더 삭제 로직 추가
-clean.doLast {
-    file(querydslDir).deleteDir()
 }

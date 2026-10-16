@@ -31,7 +31,7 @@ class OperationMetricsFilterTest {
     void 저장_성공의_실제_HTTP_상태와_업무_코드를_구분한다() throws Exception {
         var request = new MockHttpServletRequest("PUT", "/api/users/me/reports");
         var response = new MockHttpServletResponse();
-        request.setAttribute(OperationMetricsFilter.ACTOR, "student");
+        request.setAttribute(OperationMetricsContext.ACTOR, "student");
         filter.doFilter(
                 request,
                 response,
@@ -63,7 +63,7 @@ class OperationMetricsFilterTest {
     void 업무_실패와_관리자_요청을_분류한다() throws Exception {
         var request = new MockHttpServletRequest("GET", "/api/reports/summary");
         var response = new MockHttpServletResponse();
-        request.setAttribute(OperationMetricsFilter.ACTOR, "admin");
+        request.setAttribute(OperationMetricsContext.ACTOR, "admin");
         filter.doFilter(request, response, (req, res) -> {
             response.setStatus(400);
             advice.beforeBodyWrite(
@@ -84,7 +84,7 @@ class OperationMetricsFilterTest {
     @Test
     void 저장_완료_후_트랜잭션_예외는_성공으로_세지_않는다() {
         var request = new MockHttpServletRequest("PUT", "/api/users/me/reports");
-        request.setAttribute(OperationMetricsFilter.CODE, "COMMON201_1");
+        request.setAttribute(OperationMetricsContext.CODE, "COMMON201_1");
         assertThatThrownBy(() -> filter.doFilter(request, new MockHttpServletResponse(), (req, res) -> {
                     throw new ServletException("회원번호나 원문을 포함할 수 있는 예외");
                 }))
@@ -115,9 +115,9 @@ class OperationMetricsFilterTest {
         var response = new MockHttpServletResponse();
         filter.doFilter(request, response, (req, res) -> {
             response.setStatus(302);
-            request.setAttribute(OperationMetricsFilter.OUTCOME, outcome);
+            request.setAttribute(OperationMetricsContext.OUTCOME, outcome);
             request.setAttribute(
-                    OperationMetricsFilter.CODE, outcome.equals("success") ? "LOGIN_SUCCESS" : "LOGIN_FAILURE");
+                    OperationMetricsContext.CODE, outcome.equals("success") ? "LOGIN_SUCCESS" : "LOGIN_FAILURE");
         });
         assertThat(registry.get("donggree.operation")
                         .tags("operation", "login", "http_status", "302", "outcome", outcome)

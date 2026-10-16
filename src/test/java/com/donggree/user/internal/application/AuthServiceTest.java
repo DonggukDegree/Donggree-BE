@@ -77,12 +77,11 @@ class AuthServiceTest {
     }
 
     @Test
-    void 만료된_리프레시_토큰이면_예외를_던진다() throws InterruptedException {
-        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(new JwtProperties(TEST_SECRET, 1L, 1L));
+    void 만료된_리프레시_토큰이면_예외를_던진다() {
+        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(new JwtProperties(TEST_SECRET, -60_000L, -60_000L));
         AuthService shortLivedAuthService = new AuthService(shortLivedProvider, memberRepository);
 
         String refreshToken = shortLivedProvider.generateRefreshToken(1L);
-        Thread.sleep(5);
 
         assertThatThrownBy(() -> shortLivedAuthService.refreshAccessToken(refreshToken))
                 .isInstanceOf(GeneralException.class)

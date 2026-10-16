@@ -1,11 +1,11 @@
 package com.donggree.curriculum.internal.presentation;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.internal.application.CourseClassificationCommandService;
-import com.donggree.curriculum.internal.application.CourseClassificationQueryService;
-import com.donggree.curriculum.internal.presentation.dto.AreaTypeResponse;
-import com.donggree.curriculum.internal.presentation.dto.CourseClassificationBatchRequest;
-import com.donggree.curriculum.internal.presentation.dto.CourseClassificationResponse;
+import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationCommandService;
+import com.donggree.curriculum.internal.application.courseclassification.CourseClassificationQueryService;
+import com.donggree.curriculum.internal.presentation.dto.courseclassification.AreaTypeResponse;
+import com.donggree.curriculum.internal.presentation.dto.courseclassification.CourseClassificationBatchRequest;
+import com.donggree.curriculum.internal.presentation.dto.courseclassification.CourseClassificationResponse;
 import com.donggree.curriculum.internal.presentation.swagger.AdminCurriculumApi;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;

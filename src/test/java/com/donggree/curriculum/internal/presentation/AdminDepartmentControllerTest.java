@@ -11,8 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.internal.application.DepartmentQueryService;
-import com.donggree.curriculum.internal.application.projection.CollegeProjection;
-import com.donggree.curriculum.internal.application.projection.DepartmentProjection;
+import com.donggree.curriculum.internal.application.readmodel.organization.CollegeReadModel;
+import com.donggree.curriculum.internal.application.readmodel.organization.DepartmentReadModel;
 import com.donggree.global.support.RestDocsSupport;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ class AdminDepartmentControllerTest extends RestDocsSupport {
     @Test
     void 단과대_목록을_조회한다() throws Exception {
         given(service.getColleges())
-                .willReturn(List.of(new CollegeProjection(1L, "공과대학"), new CollegeProjection(2L, "첨단융합대학")));
+                .willReturn(List.of(new CollegeReadModel(1L, "공과대학"), new CollegeReadModel(2L, "첨단융합대학")));
 
         mockMvc.perform(get("/api/admin/colleges"))
                 .andExpect(status().isOk())
@@ -48,7 +48,7 @@ class AdminDepartmentControllerTest extends RestDocsSupport {
 
     @Test
     void 학과_목록을_단과대ID로_조회한다() throws Exception {
-        given(service.getDepartments(2L)).willReturn(List.of(new DepartmentProjection(10L, 2L, "첨단융합대학", "컴퓨터·AI학부")));
+        given(service.getDepartments(2L)).willReturn(List.of(new DepartmentReadModel(10L, 2L, "첨단융합대학", "컴퓨터·AI학부")));
 
         mockMvc.perform(get("/api/admin/departments").param("collegeId", "2"))
                 .andExpect(status().isOk())

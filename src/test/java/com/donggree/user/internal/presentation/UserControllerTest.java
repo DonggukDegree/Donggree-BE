@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.user.internal.application.UserCommandService;
 import com.donggree.user.internal.application.UserQueryService;
-import com.donggree.user.internal.application.projection.UserInfoProjection;
+import com.donggree.user.internal.application.readmodel.UserInfoReadModel;
 import com.donggree.user.internal.presentation.dto.OnboardingRequest;
 import com.donggree.user.internal.presentation.dto.UserInfoUpdateRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -79,7 +79,7 @@ class UserControllerTest extends RestDocsSupport {
                 .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
         given(userQueryService.getUserInfo(memberId))
-                .willReturn(new UserInfoProjection("2023123456", "하승연", "하승연", false));
+                .willReturn(new UserInfoReadModel("2023123456", "하승연", "하승연", false));
 
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class UserControllerTest extends RestDocsSupport {
         UserInfoUpdateRequest request = new UserInfoUpdateRequest("2023123456", "하승연", "동동이");
 
         given(userCommandService.updateUserInfo(memberId, "2023123456", "하승연", "동동이"))
-                .willReturn(new UserInfoProjection("2023123456", "하승연", "동동이", false));
+                .willReturn(new UserInfoReadModel("2023123456", "하승연", "동동이", false));
 
         mockMvc.perform(patch("/api/users/me")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -13,14 +13,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.donggree.curriculum.internal.application.RequirementSetCommandService;
-import com.donggree.curriculum.internal.application.RequirementSetQueryService;
 import com.donggree.curriculum.internal.application.command.RequirementSetCommand;
-import com.donggree.curriculum.internal.application.projection.RequirementSetProjection;
-import com.donggree.curriculum.internal.application.projection.RequirementSetSummaryProjection;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetReadModel;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetSummaryReadModel;
+import com.donggree.curriculum.internal.application.requirementset.RequirementSetCommandService;
+import com.donggree.curriculum.internal.application.requirementset.RequirementSetQueryService;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetRequest;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetUpdateRequest;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -42,8 +42,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
         return new AdminRequirementSetController(requirementSetQueryService, requirementSetCommandService);
     }
 
-    private RequirementSetProjection sample() {
-        return new RequirementSetProjection(
+    private RequirementSetReadModel sample() {
+        return new RequirementSetReadModel(
                 1L,
                 10L,
                 "컴퓨터·AI학부",
@@ -57,8 +57,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                 List.of(1L, 2L));
     }
 
-    private RequirementSetSummaryProjection summarySample() {
-        return new RequirementSetSummaryProjection(
+    private RequirementSetSummaryReadModel summarySample() {
+        return new RequirementSetSummaryReadModel(
                 1L,
                 10L,
                 "컴퓨터·AI학부",

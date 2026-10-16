@@ -1,9 +1,9 @@
 package com.donggree.curriculum.internal.presentation.swagger;
 
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetResponse;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetSummaryResponse;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetRequest;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetResponse;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetSummaryResponse;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetUpdateRequest;
 import com.donggree.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
