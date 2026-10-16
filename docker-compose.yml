@@ -52,8 +52,8 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-donggree}
       DB_USER: ${POSTGRES_USER:-root}
       DB_PW: ${POSTGRES_PASSWORD:-1234}
-      # 최초 기동 시 스키마 자동 생성/갱신. 운영 안정화 후 validate 로 바꾸고 마이그레이션 도구 사용 권장.
-      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      # 빈 DB는 V1 적용. 기존 볼륨은 백업·구조 대조·명시적 baseline 등록 후 사용.
+      FLYWAY_ENABLED: ${FLYWAY_ENABLED:-true}
       # 앱 시크릿 — 반드시 .env 에서 주입 (없으면 앱이 뜨지 않음)
       JWT_SECRET: ${JWT_SECRET}
       KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY}
