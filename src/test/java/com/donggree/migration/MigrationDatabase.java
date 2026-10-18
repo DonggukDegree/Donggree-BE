@@ -110,9 +110,11 @@ abstract class MigrationDatabase {
         for (String table : TABLES) {
             snapshot.put(
                     table,
-                    scalar(
-                            "SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text), '[]'::jsonb)::text FROM public."
-                                    + table + " t"));
+                    scalar("SELECT coalesce(jsonb_agg("
+                            + (table.equals("member")
+                                    ? "to_jsonb(t) - 'school_email' - 'school_email_verified_at'"
+                                    : "to_jsonb(t)")
+                            + " ORDER BY to_jsonb(t)::text), '[]'::jsonb)::text FROM public." + table + " t"));
         }
         return snapshot;
     }
