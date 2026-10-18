@@ -201,7 +201,8 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
                     cc.getCourseType(),
                     cc.getAreaTypeId() != null ? areaNameById.get(cc.getAreaTypeId()) : null,
                     cc.getSubCategory(),
-                    cc.getSubjectDomain());
+                    cc.getSubjectDomain(),
+                    cc.getGradingSystem());
         }));
     }
 }

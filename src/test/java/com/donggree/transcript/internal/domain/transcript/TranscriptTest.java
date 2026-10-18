@@ -11,6 +11,20 @@ import org.junit.jupiter.api.Test;
 
 class TranscriptTest {
 
+    @Test
+    void 확인된_PF의_F만_평점에서_제외하고_일반_F는_분모에_포함한다() {
+        Transcript t = createFullTranscript();
+        t.replaceCourseRecords(
+                List.of(
+                        new CourseRecordData("2026-1", "전필", null, "AAA1001", "등급과목", 3, Grade.A_PLUS, false),
+                        new CourseRecordData("2026-1", "전선", null, "AAA1002", "일반실패", 3, Grade.F, false),
+                        new CourseRecordData("2026-1", "전선", null, "AAA1003", "PF실패", 2, Grade.F, false)),
+                java.util.Set.of("AAA1003"));
+        assertThat(t.getTotalCredits()).isEqualTo(3);
+        assertThat(t.getGpa()).isEqualByComparingTo("2.25");
+        assertThat(t.calculateMajorGpa(java.util.Set.of("AAA1003"))).isEqualByComparingTo("2.25");
+    }
+
     // --- Transcript 생성 테스트 ---
 
     @Test

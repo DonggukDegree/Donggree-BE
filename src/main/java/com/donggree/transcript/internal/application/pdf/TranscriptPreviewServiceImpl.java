@@ -45,15 +45,19 @@ public class TranscriptPreviewServiceImpl implements TranscriptPreviewService {
                 departmentId,
                 findDepartment(meta.get("부전공1"), parsed.parsedData().admissionYear()),
                 findDepartment(meta.get("부전공2"), parsed.parsedData().admissionYear()),
-                findDepartment(meta.get("복수1"), parsed.parsedData().admissionYear()),
-                findDepartment(meta.get("복수2"), parsed.parsedData().admissionYear()));
+                findDepartment(meta.get("복수1"), parsed.parsedData().admissionYear(), true),
+                findDepartment(meta.get("복수2"), parsed.parsedData().admissionYear(), true));
         return viewMapper.toPreview(data, parsed.parsedData().courses());
     }
 
     private Long findDepartment(String name, int admissionYear) {
+        return findDepartment(name, admissionYear, false);
+    }
+
+    private Long findDepartment(String name, int admissionYear, boolean advanced) {
         if (name == null || name.isBlank()) return null;
         return curriculumLookupService
-                .findDepartmentId(name, admissionYear, false, null)
+                .findDepartmentId(name, admissionYear, advanced, null)
                 .orElse(null);
     }
 }

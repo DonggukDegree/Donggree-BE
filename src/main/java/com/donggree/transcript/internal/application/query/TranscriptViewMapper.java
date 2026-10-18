@@ -3,6 +3,7 @@ package com.donggree.transcript.internal.application.query;
 import com.donggree.global.logging.RequestDiagnostics;
 import com.donggree.transcript.CourseRecordView;
 import com.donggree.transcript.TranscriptView;
+import com.donggree.transcript.internal.application.CourseGradingService;
 import com.donggree.transcript.internal.application.command.ParsedCourse;
 import com.donggree.transcript.internal.domain.enums.Grade;
 import com.donggree.transcript.internal.domain.transcript.CourseRecord;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TranscriptViewMapper {
     private final ObjectMapper objectMapper;
+    private final CourseGradingService grading;
+
+    public Set<String> passFailCodes(Transcript t) {
+        return grading.passFailCodes(
+                t.getCourseRecords().stream().map(CourseRecord::getCourseCode).toList(), t.getAdmissionYear());
+    }
 
     public TranscriptView toView(Transcript t) {
         JsonNode meta = readMeta(t.getId(), t.getRawData());
@@ -51,7 +59,7 @@ public class TranscriptViewMapper {
                 hasName(meta, "복수1") || hasName(meta, "복수2"),
                 unresolved(meta, t.getDualMajor1Id(), t.getDualMajor2Id(), t.getSubMajor1Id(), t.getSubMajor2Id()),
                 records,
-                t.calculateMajorGpa(),
+                t.calculateMajorGpa(passFailCodes(t)),
                 t.getTeachingAptitudeCount(),
                 parseInteger(meta, "교직총학점"),
                 parseDecimal(meta, "교직평점"));
@@ -138,7 +146,7 @@ public class TranscriptViewMapper {
                 hasName(meta, "복수1") || hasName(meta, "복수2"),
                 unresolved(meta, data.dualMajor1Id(), data.dualMajor2Id(), data.subMajor1Id(), data.subMajor2Id()),
                 records,
-                calculateMajorGpa(courses),
+                calculateMajorGpa(courses, data.admissionYear()),
                 parseTeachingAptitudeCount(meta),
                 parseInteger(meta, "교직총학점"),
                 parseDecimal(meta, "교직평점"));
@@ -175,13 +183,18 @@ public class TranscriptViewMapper {
     }
 
     /** 미저장 미리보기도 저장 성적표와 같은 전공·전필 평점 산식을 사용한다. */
-    private BigDecimal calculateMajorGpa(List<ParsedCourse> courses) {
+    private BigDecimal calculateMajorGpa(List<ParsedCourse> courses, int year) {
+        var previewPassFailCodes = grading.passFailCodes(
+                courses.stream().map(ParsedCourse::courseCode).toList(), year);
         return GpaCalculator.calculate(
                 courses.stream()
-                        .filter(course -> "전공".equals(course.category()) || "전필".equals(course.category()))
+                        .filter(course -> "전공".equals(course.category())
+                                || "전필".equals(course.category())
+                                || "전선".equals(course.category()))
                         .toList(),
                 ParsedCourse::credits,
-                course -> Grade.fromValue(course.grade()));
+                course -> Grade.fromValue(course.grade()),
+                course -> previewPassFailCodes.contains(course.courseCode()));
     }
 
     private boolean isPassed(Grade grade) {

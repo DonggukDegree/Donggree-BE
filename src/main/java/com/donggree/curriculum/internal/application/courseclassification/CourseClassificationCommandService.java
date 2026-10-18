@@ -64,6 +64,7 @@ public class CourseClassificationCommandService {
                 command.subCategory(),
                 command.subjectDomain(),
                 command.tag()));
+        if (command.gradingSystem() != null) saved.changeGradingSystem(command.gradingSystem());
         return saved.getId();
     }
 
@@ -89,6 +90,7 @@ public class CourseClassificationCommandService {
                 command.subCategory(),
                 command.subjectDomain(),
                 command.tag());
+        if (command.gradingSystem() != null) classification.changeGradingSystem(command.gradingSystem());
         return id;
     }
 

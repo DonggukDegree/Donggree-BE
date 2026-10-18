@@ -1,6 +1,7 @@
 package com.donggree.curriculum.internal.presentation.dto.courseclassification;
 
 import com.donggree.curriculum.CourseType;
+import com.donggree.curriculum.GradingSystem;
 import com.donggree.curriculum.internal.application.command.CourseClassificationCommand;
 import com.donggree.curriculum.internal.application.command.CourseClassificationUpsertCommand;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -42,7 +43,30 @@ public record CourseClassificationBatchRequest(@NotEmpty(message = "items는 비
             @NotNull(message = "이수구분은 필수입니다.") @Schema(example = "FIRST_MAJOR") CourseType courseType,
             @Schema(example = "10", description = "이수 영역 ID (없으면 null)") Long areaTypeId,
             @Size(max = 20, message = "소분류는 20자 이하여야 합니다.") @Schema(example = "개론") String subCategory,
-            @Size(max = 20, message = "세부도메인은 20자 이하여야 합니다.") @Schema(example = "물리") String subjectDomain) {
+            @Size(max = 20, message = "세부도메인은 20자 이하여야 합니다.") @Schema(example = "물리") String subjectDomain,
+            GradingSystem gradingSystem) {
+        public Item(
+                Long id,
+                String courseCode,
+                String tag,
+                int studentYearStart,
+                int studentYearEnd,
+                CourseType courseType,
+                Long areaTypeId,
+                String subCategory,
+                String subjectDomain) {
+            this(
+                    id,
+                    courseCode,
+                    tag,
+                    studentYearStart,
+                    studentYearEnd,
+                    courseType,
+                    areaTypeId,
+                    subCategory,
+                    subjectDomain,
+                    null);
+        }
 
         @JsonIgnore
         @AssertTrue(message = "적용 시작년도는 종료년도보다 클 수 없습니다.")
@@ -62,7 +86,8 @@ public record CourseClassificationBatchRequest(@NotEmpty(message = "items는 비
                             courseType,
                             areaTypeId,
                             subCategory,
-                            subjectDomain));
+                            subjectDomain,
+                            gradingSystem));
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.donggree.curriculum.internal.presentation.dto.courseclassification;
 
 import com.donggree.curriculum.CourseType;
+import com.donggree.curriculum.GradingSystem;
 import com.donggree.curriculum.internal.application.readmodel.CourseClassificationReadModel;
 
 /**
@@ -16,7 +17,33 @@ public record CourseClassificationResponse(
         Long areaTypeId,
         String areaName,
         String subCategory,
-        String subjectDomain) {
+        String subjectDomain,
+        GradingSystem gradingSystem) {
+    public CourseClassificationResponse(
+            Long id,
+            String courseCode,
+            String tag,
+            int studentYearStart,
+            int studentYearEnd,
+            CourseType courseType,
+            Long areaTypeId,
+            String areaName,
+            String subCategory,
+            String subjectDomain) {
+        this(
+                id,
+                courseCode,
+                tag,
+                studentYearStart,
+                studentYearEnd,
+                courseType,
+                areaTypeId,
+                areaName,
+                subCategory,
+                subjectDomain,
+                GradingSystem.UNKNOWN);
+    }
+
     public static CourseClassificationResponse from(CourseClassificationReadModel p) {
         return new CourseClassificationResponse(
                 p.id(),
@@ -28,6 +55,7 @@ public record CourseClassificationResponse(
                 p.areaTypeId(),
                 p.areaName(),
                 p.subCategory(),
-                p.subjectDomain());
+                p.subjectDomain(),
+                p.gradingSystem());
     }
 }

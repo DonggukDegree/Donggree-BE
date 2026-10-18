@@ -21,8 +21,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 class TranscriptQueryServiceTest {
 
     private final TranscriptRepository repository = mock(TranscriptRepository.class);
-    private final TranscriptQueryService service =
-            new TranscriptQueryService(repository, new TranscriptViewMapper(new ObjectMapper()));
+    private final TranscriptQueryService service = new TranscriptQueryService(
+            repository,
+            new TranscriptViewMapper(
+                    new ObjectMapper(),
+                    new com.donggree.transcript.internal.application.CourseGradingService(
+                            org.mockito.Mockito.mock(com.donggree.curriculum.CurriculumLookupService.class))));
 
     @Test
     void PDF_요약값이_아닌_현재_과목의_전공별_평점을_조회하고_저장하지_않는다() {

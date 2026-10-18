@@ -33,14 +33,17 @@ class TranscriptPreviewServiceImplTest {
     private final UserIdentityService identity = mock(UserIdentityService.class);
     private final TranscriptPdfReader reader =
             new TranscriptPdfReader(extractor, new ObjectMapper(), new PdfTranscriptTextParser());
-    private final TranscriptViewMapper mapper = new TranscriptViewMapper(new ObjectMapper());
+    private final TranscriptViewMapper mapper = new TranscriptViewMapper(
+            new ObjectMapper(),
+            new com.donggree.transcript.internal.application.CourseGradingService(
+                    org.mockito.Mockito.mock(com.donggree.curriculum.CurriculumLookupService.class)));
     private final TranscriptPreviewServiceImpl service = new TranscriptPreviewServiceImpl(reader, mapper, curriculum);
 
     @BeforeEach
     void setUp() {
         given(curriculum.findDepartmentId("테스트학부", 2023, false, "공과대학")).willReturn(Optional.of(10L));
         given(curriculum.findDepartmentId("테스트주전공", 2022, true, "공과대학")).willReturn(Optional.of(10L));
-        given(curriculum.findDepartmentId("테스트복수전공", 2022, false, null)).willReturn(Optional.of(20L));
+        given(curriculum.findDepartmentId("테스트복수전공", 2022, true, null)).willReturn(Optional.of(20L));
     }
 
     @ParameterizedTest
@@ -48,7 +51,11 @@ class TranscriptPreviewServiceImplTest {
     void 저장_경로와_같은_파서와_판정_입력_사용(String fixture) throws Exception {
         given(extractor.extract(pdf)).willReturn(fixture(fixture));
         var preview = service.preview(pdf);
-        var command = new TranscriptCommandService(repository, reader, identity);
+        var command = new TranscriptCommandService(
+                repository,
+                reader,
+                identity,
+                new com.donggree.transcript.internal.application.CourseGradingService(curriculum));
         var parsed = command.parseTranscript(pdf);
         var data = command.buildCreateData(
                 1L,
@@ -121,14 +128,14 @@ class TranscriptPreviewServiceImplTest {
     @Test
     void 복수전공_학과가_구분되지_않아도_복수전공자_상태와_경고_보존() throws Exception {
         given(extractor.extract(pdf)).willReturn(fixture("transcript-dual-major-fixture.txt"));
-        given(curriculum.findDepartmentId("테스트복수전공", 2022, false, null)).willReturn(Optional.empty());
+        given(curriculum.findDepartmentId("테스트복수전공", 2022, true, null)).willReturn(Optional.empty());
 
         var view = service.preview(pdf);
 
         assertThat(view.dualMajor1Id()).isNull();
         assertThat(view.dualMajorDeclared()).isTrue();
         assertThat(view.unresolvedAdditionalMajor()).isTrue();
-        org.mockito.Mockito.verify(curriculum).findDepartmentId("테스트복수전공", 2022, false, null);
+        org.mockito.Mockito.verify(curriculum).findDepartmentId("테스트복수전공", 2022, true, null);
     }
 
     @Test

@@ -20,6 +20,23 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 @EnabledIfEnvironmentVariable(named = "DONGGREE_TEST_POSTGRES_URL", matches = ".+")
 class SchemaMappingTest extends MigrationDatabase {
     @Test
+    void 기존_분류의_평가방식은_미확인으로_유지하고_허용값을_검증한다() throws Exception {
+        createExistingSchema();
+        execute(
+                "INSERT INTO course_classification (course_code,course_type,student_year_start,student_year_end) VALUES ('TEST1001','COMMON_GENERAL',2021,2026)");
+        var flyway = flyway();
+        flyway.baseline();
+        flyway.migrate();
+        assertThat(scalar("SELECT grading_system FROM course_classification WHERE course_code='TEST1001'"))
+                .isEqualTo("UNKNOWN");
+        execute("UPDATE course_classification SET grading_system='PASS_FAIL' WHERE course_code='TEST1001'");
+        assertThat(scalar("SELECT grading_system FROM course_classification WHERE course_code='TEST1001'"))
+                .isEqualTo("PASS_FAIL");
+        assertThatThrownBy(() -> execute("UPDATE course_classification SET grading_system='INVALID'"))
+                .isInstanceOf(SQLException.class);
+    }
+
+    @Test
     void Flyway_적용_직후_전체_엔티티와_이벤트_매핑을_validate한다() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
@@ -47,7 +64,7 @@ class SchemaMappingTest extends MigrationDatabase {
                                     .current()
                                     .getVersion()
                                     .getVersion())
-                            .isEqualTo("1");
+                            .isEqualTo("4");
                 });
     }
 

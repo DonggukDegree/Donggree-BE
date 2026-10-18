@@ -43,7 +43,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(new GraduationRuleView(
                         3L,
@@ -81,7 +81,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
                 .willReturn(List.of(singleOnly, dualPrimary));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         GraduationRuleView secondary = new GraduationRuleView(
                 3L,
                 "MIN_CREDITS",
@@ -111,7 +111,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         givenTranscriptWithMajors(200L, null, null, null);
         willReturn(Optional.empty())
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         givenNoClassification();
 
         assertThat(service.getReport(MEMBER_ID).hasUnsupportedMajor()).isTrue();
@@ -189,7 +189,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
                         new GraduationRuleView(2L, "TOTAL_CREDITS", null, "총학점 3 이상", "{\"minCredits\":3}")));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         // 같은 이름·ID여도 두 전공을 독립 판정하고, 요약의 동일한 문구만 한 번 표시한다.
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(
@@ -256,7 +256,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
                         new GraduationRuleView(3L, "TOTAL_CREDITS", null, "총학점 3 이상", "{\"minCredits\":3}")));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(
                         foundationMin,
@@ -324,7 +324,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(new GraduationRuleView(
                         1L,
@@ -369,7 +369,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
                                 + "}")));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(
                         List.of(
@@ -431,7 +431,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
                                 + ",\"applicableMajorRoles\":[\"DUAL_PRIMARY\"]}")));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(new GraduationRuleView(
                         2L,
@@ -468,7 +468,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(new GraduationRuleView(
                         1L,
@@ -531,7 +531,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
                                         "{\"courseType\":\"ACADEMIC_FOUNDATION\",\"areaNames\":[\"기본소양\"],\"minCredits\":6,\"applicableMajorRoles\":[\"DUAL_PRIMARY\"]}")));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(
                         List.of(
@@ -570,7 +570,7 @@ class GraduationMajorScopeTest extends GraduationQueryTestSupport {
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID)).willReturn(List.of());
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         GraduationRuleView secondaryRequired = new GraduationRuleView(
                 3L,
                 "REQUIRED_COURSE",

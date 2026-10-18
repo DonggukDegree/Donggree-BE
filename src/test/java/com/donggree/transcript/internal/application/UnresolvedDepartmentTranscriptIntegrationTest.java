@@ -55,6 +55,9 @@ class UnresolvedDepartmentTranscriptIntegrationTest {
     private EntityManager entityManager;
 
     @MockitoBean
+    private CourseGradingService grading;
+
+    @MockitoBean
     private UserIdentityService memberIdentityService;
 
     @Test

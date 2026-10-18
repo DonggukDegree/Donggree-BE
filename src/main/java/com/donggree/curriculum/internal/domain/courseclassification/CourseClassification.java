@@ -1,6 +1,7 @@
 package com.donggree.curriculum.internal.domain.courseclassification;
 
 import com.donggree.curriculum.CourseType;
+import com.donggree.curriculum.GradingSystem;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -58,6 +59,14 @@ public class CourseClassification {
 
     @Column(name = "subject_domain", length = 20)
     private String subjectDomain;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grading_system", nullable = false, length = 20)
+    private GradingSystem gradingSystem = GradingSystem.UNKNOWN;
+
+    public void changeGradingSystem(GradingSystem gradingSystem) {
+        this.gradingSystem = java.util.Objects.requireNonNull(gradingSystem);
+    }
 
     private CourseClassification(
             String courseCode,

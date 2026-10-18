@@ -134,10 +134,10 @@ public class TranscriptController implements TranscriptApi {
                     .findDepartmentId(meta.get("부전공2"), parsed.admissionYear(), false, null)
                     .orElse(null);
             Long dual1Id = curriculumLookupService
-                    .findDepartmentId(meta.get("복수1"), parsed.admissionYear(), false, null)
+                    .findDepartmentId(meta.get("복수1"), parsed.admissionYear(), true, null)
                     .orElse(null);
             Long dual2Id = curriculumLookupService
-                    .findDepartmentId(meta.get("복수2"), parsed.admissionYear(), false, null)
+                    .findDepartmentId(meta.get("복수2"), parsed.admissionYear(), true, null)
                     .orElse(null);
 
             TranscriptCreateData createData = transcriptCommandService.buildCreateData(

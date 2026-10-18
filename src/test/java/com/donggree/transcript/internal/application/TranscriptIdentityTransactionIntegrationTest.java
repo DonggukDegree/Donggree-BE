@@ -46,6 +46,9 @@ class TranscriptIdentityTransactionIntegrationTest {
     private PlatformTransactionManager transactionManager;
 
     @MockitoBean
+    private CourseGradingService grading;
+
+    @MockitoBean
     private TranscriptPdfReader pdfReader;
 
     private Long memberId;

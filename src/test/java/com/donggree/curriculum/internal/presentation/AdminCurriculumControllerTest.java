@@ -75,6 +75,7 @@ class AdminCurriculumControllerTest extends RestDocsSupport {
                                 fieldWithPath("result[].areaTypeId").description("이수 영역 ID (편집용, 없으면 null)"),
                                 fieldWithPath("result[].areaName").description("이수 영역 이름 (없으면 null)"),
                                 fieldWithPath("result[].subCategory").description("소분류 (없으면 null)"),
+                                fieldWithPath("result[].gradingSystem").description("평가방식: UNKNOWN/GRADED/PASS_FAIL"),
                                 fieldWithPath("result[].subjectDomain").description("세부도메인 (없으면 null)"))));
     }
 
@@ -105,6 +106,9 @@ class AdminCurriculumControllerTest extends RestDocsSupport {
                                 fieldWithPath("items[].courseType").description("이수구분"),
                                 fieldWithPath("items[].areaTypeId").optional().description("이수 영역 ID (선택)"),
                                 fieldWithPath("items[].subCategory").optional().description("소분류 (선택)"),
+                                fieldWithPath("items[].gradingSystem")
+                                        .optional()
+                                        .description("평가방식 (생략 시 기존 값 유지)"),
                                 fieldWithPath("items[].subjectDomain")
                                         .optional()
                                         .description("세부도메인 (선택)")),

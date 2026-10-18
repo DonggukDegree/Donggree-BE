@@ -272,7 +272,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         given(transcriptCommandService.parseTranscript(any(byte[].class))).willReturn(parseResult);
         given(curriculumLookupService.findDepartmentId("컴퓨터·AI학부", 2023, false, null))
                 .willReturn(Optional.of(10L));
-        given(curriculumLookupService.findDepartmentId("전자전기공학부", 2023, false, null))
+        given(curriculumLookupService.findDepartmentId("전자전기공학부", 2023, true, null))
                 .willReturn(Optional.of(20L));
         given(transcriptCommandService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(createData);
