@@ -32,6 +32,12 @@ class UserCommandServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private SchoolEmailVerificationStore schoolEmailVerifications;
+
+    @Mock
+    private SchoolEmailMailQueue mailQueue;
+
     @Test
     void 온보딩을_완료하면_학번과_이름이_저장된다() {
         Long memberId = 1L;
@@ -170,7 +176,7 @@ class UserCommandServiceTest {
         Member member = Member.registerKakaoMember("kakao-123", "alice@example.com");
         member.completeOnboarding("2023123456", "하승연");
         ReflectionTestUtils.setField(member, "id", memberId);
-        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
+        given(memberRepository.findByIdForUpdate(memberId)).willReturn(Optional.of(member));
 
         userCommandService.deleteUser(memberId);
 
@@ -183,7 +189,7 @@ class UserCommandServiceTest {
     @Test
     void 탈퇴_시_존재하지_않는_회원이면_MEMBER_NOT_FOUND_예외가_발생한다() {
         Long memberId = 999L;
-        given(memberRepository.findById(memberId)).willReturn(Optional.empty());
+        given(memberRepository.findByIdForUpdate(memberId)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> userCommandService.deleteUser(memberId))
                 .isInstanceOf(GeneralException.class)

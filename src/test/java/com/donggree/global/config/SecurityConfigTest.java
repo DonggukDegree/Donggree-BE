@@ -98,6 +98,38 @@ class SecurityConfigTest {
     private UserCommandService userCommandService;
 
     @MockitoBean
+    private com.donggree.user.internal.application.SchoolEmailVerificationCommandService schoolEmailVerifications;
+
+    @Test
+    void 학교이메일_인증_API는_로그인이_필요하다() throws Exception {
+        String endpoint = "/api/users/me/school-email-verification";
+        mockMvc.perform(get(endpoint)).andExpect(status().isUnauthorized());
+        mockMvc.perform(post(endpoint + "/codes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"localPart\":\"student\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post(endpoint + "/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"localPart\":\"student\",\"code\":\"012345\"}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(schoolEmailVerifications);
+    }
+
+    @Test
+    void 학교이메일_코드요청은_토큰의_회원에게_연결한다() throws Exception {
+        var command = new com.donggree.user.internal.application.command.RequestSchoolEmailCodeCommand("student");
+        given(schoolEmailVerifications.requestCode(999L, command))
+                .willReturn(new com.donggree.user.internal.application.command.SchoolEmailCodeRequestResult(
+                        "student@dgu.ac.kr", 300, 60));
+        mockMvc.perform(post("/api/users/me/school-email-verification/codes")
+                        .header("Authorization", "Bearer " + jwtTokenProvider.generateAccessToken(999L, "STUDENT"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"localPart\":\"student\",\"memberId\":1}"))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(schoolEmailVerifications).requestCode(999L, command);
+    }
+
+    @MockitoBean
     private TranscriptQueryService transcriptQueryService;
 
     @MockitoBean
