@@ -25,9 +25,11 @@ class SchoolEmailVerificationTest {
         for (int index = 0; index < 10; index++) {
             verification.issue(SchoolEmailAddress.fromLocalPart("student" + index), "hash", now.plusMinutes(index));
         }
-        assertThatThrownBy(() ->
-                        verification.issue(SchoolEmailAddress.fromLocalPart("other"), "hash", now.plusMinutes(10)))
+        var anotherAddress = SchoolEmailAddress.fromLocalPart("another");
+        assertThat(verification.reachedDailyLimit(now.plusMinutes(10))).isTrue();
+        assertThatThrownBy(() -> verification.issue(anotherAddress, "hash", now.plusMinutes(10)))
                 .isInstanceOf(IllegalStateException.class);
+        assertThat(verification.getDailySends()).isEqualTo(10);
         verification.issue(SchoolEmailAddress.fromLocalPart("student"), "new-hash", now.plusDays(1));
         assertThat(verification.getDailySends()).isEqualTo(1);
     }
