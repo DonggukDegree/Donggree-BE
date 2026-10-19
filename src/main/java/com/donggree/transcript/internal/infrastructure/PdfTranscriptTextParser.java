@@ -20,23 +20,29 @@ import java.util.regex.Pattern;
 public class PdfTranscriptTextParser implements TranscriptTextParser {
 
     /** 이수구분별 유효 영역 매핑 */
-    private static final Map<String, Set<String>> AREA_BY_CATEGORY = Map.of(
-            "공교", Set.of("자아", "동국", "시민", "대학", "리더", "명작", "사고", "미래", "창의", "자기", "영어", "글", "SW", "한국"),
-            "전공", Set.of("기초", "전문"),
-            "전필", Set.of("기초", "전문"),
-            "복수1", Set.of("기초", "전문"),
-            "복수2", Set.of("기초", "전문"),
-            "일교", Set.of("1", "2", "3", "4", "5", "6"),
-            "학기", Set.of("1", "2", "3", "4", "5", "6"),
-            "자선", Set.of("기초", "전문"));
+    private static final Map<String, Set<String>> AREA_BY_CATEGORY = Map.ofEntries(
+            Map.entry(
+                    "공교",
+                    Set.of(
+                            "자아", "동국", "시민", "대학", "리더", "명작", "사고", "미래", "창의", "자기", "영어", "글", "SW", "한국", "디지",
+                            "AI", "지역", "지구", "진로", "문화")),
+            Map.entry("전공", Set.of("기초", "전문")),
+            Map.entry("전필", Set.of("기초", "전문")),
+            Map.entry("전선", Set.of("기초", "전문")),
+            Map.entry("나노", Set.of("이론", "실습")),
+            Map.entry("복수1", Set.of("기초", "전문")),
+            Map.entry("복수2", Set.of("기초", "전문")),
+            Map.entry("일교", Set.of("1", "2", "3", "4", "5", "6", "자기")),
+            Map.entry("학기", Set.of("1", "2", "3", "4", "5", "6")),
+            Map.entry("자선", Set.of("기초", "전문")));
 
     // ====== 정규표현식 구성 요소 ======
 
     private static final String GRADE_RE = "(?:A[+0]|B[+0]|C[+0]|D[+0]|[A-DF]|NP|P)";
     private static final String AREA_RE = "(?:[가-힣]{1,2}|[A-Za-z]{2}|\\d)";
     private static final String SEMESTER_RE = "\\d{4}-(?:[12]|여름|겨울|공통)";
-    private static final String CATEGORY_RE = "공교|전공|전필|직선|직필|복수1|복수2|일교|학기|자선";
-    private static final String CODE_RE = "[A-Z]{2,3}\\d{3,5}|\\d{6}";
+    private static final String CATEGORY_RE = "공교|전공|전필|전선|직선|직필|복수1|복수2|일교|학기|자선|대기|나노";
+    private static final String CODE_RE = "[A-Z]{2,3}\\d{3,5}|\\d{6,8}";
 
     /** 과목 행 시작 패턴: 학기 학년 이수구분 과목코드 */
     private static final Pattern COURSE_START =
@@ -49,6 +55,11 @@ public class PdfTranscriptTextParser implements TranscriptTextParser {
      */
     private static final Pattern TAIL =
             Pattern.compile("\\s+(\\d{1,2})\\s+(" + GRADE_RE + ")(?:\\s*(" + AREA_RE + ")(?=\\s|$))?(?:\\s+(R))?");
+
+    /** 열 순서로 추출된 원문에서 아직 취득하지 않은 수강신청·현장실습 신청 구역만 제외한다. */
+    private static String completedText(String text) {
+        return text.replaceAll("(?s)<<수강신청>>.*?(?=<<|\\z)", "\n").replaceAll("(?s)<<현장실습\\(수강\\)>>.*?(?=<<|\\z)", "\n");
+    }
 
     // ====== 메타 파싱용 키 목록 ======
 
@@ -123,8 +134,9 @@ public class PdfTranscriptTextParser implements TranscriptTextParser {
         if (pdfText == null) {
             throw new IllegalArgumentException("pdfText must not be null");
         }
-        Map<String, String> meta = parseMeta(pdfText);
-        List<ParsedCourse> courses = parseCourses(pdfText);
+        String completedText = completedText(pdfText);
+        Map<String, String> meta = parseMeta(completedText);
+        List<ParsedCourse> courses = parseCourses(completedText);
         return new ParsedTranscriptData(meta, courses);
     }
 

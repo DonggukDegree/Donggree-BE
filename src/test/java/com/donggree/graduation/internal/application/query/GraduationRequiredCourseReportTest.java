@@ -44,7 +44,7 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
         if (dualMajor) {
             willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                     .given(curriculumLookupService)
-                    .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                    .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
             given(curriculumLookupService.findGraduationRules(20L)).willReturn(List.of(rule));
         }
         var classification = new CourseClassificationView(CourseType.ACADEMIC_FOUNDATION, "과학", "실험", null);
@@ -202,7 +202,7 @@ class GraduationRequiredCourseReportTest extends GraduationQueryTestSupport {
         if (dualPrimary) {
             willReturn(Optional.empty())
                     .given(curriculumLookupService)
-                    .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                    .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         }
         String roles = "\"applicableMajorRoles\":[\"SINGLE_PRIMARY\",\"DUAL_PRIMARY\",\"SECONDARY\"]";
         String creditReason = type == CourseType.ACADEMIC_FOUNDATION ? "기본소양 6학점 이상 이수" : "공통교양 6학점 이상 이수";

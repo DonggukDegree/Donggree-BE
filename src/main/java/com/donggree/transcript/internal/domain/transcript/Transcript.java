@@ -227,7 +227,9 @@ public class Transcript extends BaseEntity {
     /** 현재 수강 이력의 전공·전필 평점. 평가 가능한 학점이 없으면 0점과 구별하기 위해 null을 반환한다. */
     public BigDecimal calculateMajorGpa() {
         return calculateGpa(courseRecords.stream()
-                .filter(r -> "전공".equals(r.getCourseTypeName()) || "전필".equals(r.getCourseTypeName()))
+                .filter(r -> "전공".equals(r.getCourseTypeName())
+                        || "전필".equals(r.getCourseTypeName())
+                        || "전선".equals(r.getCourseTypeName()))
                 .toList());
     }
 
@@ -254,16 +256,19 @@ public class Transcript extends BaseEntity {
     }
 
     /**
-     * 보유한 수강 이력(CourseRecord)들의 학점 합을 반환한다.
+     * 보유한 수강 이력 중 이수에 성공한 학점 합을 반환한다. P는 포함하고 F·NP는 제외한다.
      */
     public int recordedCredits() {
-        return courseRecords.stream().mapToInt(CourseRecord::getCredits).sum();
+        return courseRecords.stream()
+                .filter(r -> r.getGrade() != Grade.F && r.getGrade() != Grade.NP)
+                .mapToInt(CourseRecord::getCredits)
+                .sum();
     }
 
     /**
-     * 총취득학점과 수강 이력 학점 합의 차이를 반환한다.
+     * 원문 총취득학점과 파싱된 취득학점 합의 차이를 반환한다.
      * 양수면 PDF에 기재된 총취득학점보다 파싱된 과목 학점이 적어 이수 이력을 더 추가해야 함을,
-     * 음수면 재수강·P/F 등으로 과목 학점 합이 총취득학점보다 많음을 의미한다.
+     * 음수면 파싱된 취득학점 합이 원문 총취득학점보다 많음을 의미한다.
      * 0이면 PDF 파싱 결과와 총취득학점이 정합함을 뜻한다.
      */
     public int creditGap() {

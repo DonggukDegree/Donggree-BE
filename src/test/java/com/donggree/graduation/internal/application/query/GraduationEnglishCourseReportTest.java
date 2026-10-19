@@ -51,7 +51,7 @@ class GraduationEnglishCourseReportTest extends GraduationQueryTestSupport {
                 .findActiveRequirementSet(DEPARTMENT_ID, ADMISSION_YEAR, false);
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         String reason = "영어강의를 총 4개 과목 이상 수강해야 합니다.";
         // 서로 다른 규칙 ID여도 문구는 한 번만 표시하며, PDF 충족 표시는 주전공에만 적용한다.
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
@@ -97,7 +97,7 @@ class GraduationEnglishCourseReportTest extends GraduationQueryTestSupport {
         if (dualPrimary) {
             willReturn(Optional.empty())
                     .given(curriculumLookupService)
-                    .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                    .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         }
         given(curriculumLookupService.findGraduationRules(REQUIREMENT_SET_ID))
                 .willReturn(List.of(new GraduationRuleView(

@@ -225,6 +225,17 @@ class TranscriptTest {
     // --- 학점 정합성 테스트 ---
 
     @Test
+    void 취득학점_비교는_P를_포함하고_F와_NP를_제외한다() {
+        Transcript transcript = createTranscript();
+        transcript.addCourseRecord("2023-1", "전공", null, "AAA1", "성적", 3, Grade.A_ZERO, false);
+        transcript.addCourseRecord("2023-1", "공교", null, "AAA2", "패스", 2, Grade.P, false);
+        transcript.addCourseRecord("2023-1", "공교", null, "AAA3", "일반F", 1, Grade.F, false);
+        transcript.addCourseRecord("2023-1", "공교", null, "AAA4", "PFF", 1, Grade.NP, false);
+        assertThat(transcript.recordedCredits()).isEqualTo(5);
+        assertThat(transcript.creditGap()).isEqualTo(-5);
+    }
+
+    @Test
     void recordedCredits는_수강_이력_학점의_합을_반환한다() {
         Transcript transcript = createTranscript();
         transcript.addCourseRecord("2023-1", "전공", "전문", "CSE1101", "컴퓨터프로그래밍", 3, Grade.A_PLUS, false);

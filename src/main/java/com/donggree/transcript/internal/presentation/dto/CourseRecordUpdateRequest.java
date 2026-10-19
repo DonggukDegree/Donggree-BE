@@ -4,8 +4,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * PATCH /api/users/me/reports 요청 DTO.
@@ -18,9 +20,13 @@ public record CourseRecordUpdateRequest(@NotEmpty List<@Valid CourseItem> course
             @NotBlank String semester,
             @NotBlank String courseType,
             String areaName,
-            @NotBlank String courseCode,
+            @NotBlank @Pattern(regexp = "[A-Z0-9]{1,8}") String courseCode,
             @NotBlank String courseName,
             @NotNull @PositiveOrZero Integer credits,
             @NotBlank String grade,
-            boolean retake) {}
+            boolean retake) {
+        public CourseItem {
+            if (courseCode != null) courseCode = courseCode.trim().toUpperCase(Locale.ROOT);
+        }
+    }
 }

@@ -242,7 +242,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                 "성명", "홍길동");
         ParsedTranscriptData parsedData = new ParsedTranscriptData(
                 meta, List.of(new ParsedCourse("2023-1", 1, "전공", "CSE1101", "프로그래밍기초", 3, "A+", null, false)));
-        TranscriptParseResult parseResult = new TranscriptParseResult(parsedData, "{}");
+        TranscriptParseResult parseResult = new TranscriptParseResult(
+                parsedData, "{}", List.of(new TranscriptParseResult.GradeReviewCourse("2023-2", "RGC0017", "자아와명상1")));
 
         TranscriptCreateData createData = new TranscriptCreateData(
                 memberId,
@@ -272,7 +273,7 @@ class TranscriptControllerTest extends RestDocsSupport {
         given(transcriptCommandService.parseTranscript(any(byte[].class))).willReturn(parseResult);
         given(curriculumLookupService.findDepartmentId("컴퓨터·AI학부", 2023, false, null))
                 .willReturn(Optional.of(10L));
-        given(curriculumLookupService.findDepartmentId("전자전기공학부", 2023, false, null))
+        given(curriculumLookupService.findDepartmentId("전자전기공학부", 2023, true, null))
                 .willReturn(Optional.of(20L));
         given(transcriptCommandService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(createData);
@@ -288,6 +289,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.result.totalCredits").value(60))
                 .andExpect(jsonPath("$.result.recordedCredits").value(54))
                 .andExpect(jsonPath("$.result.creditGap").value(6))
+                .andExpect(jsonPath("$.result.gradeReviewCourses[0].courseCode").value("RGC0017"))
+                .andExpect(jsonPath("$.result.gradeReviewCourses[0].semester").value("2023-2"))
                 .andDo(document(
                         "transcript-create",
                         requestParts(partWithName("file").description("성적표 PDF 파일 (nDRIMS '취득교과목 영역별 분류표')")),
@@ -296,9 +299,15 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
                                 fieldWithPath("result.totalCredits").description("PDF에 기재된 총취득학점"),
-                                fieldWithPath("result.recordedCredits").description("등록된 수강 이력 학점의 합"),
-                                fieldWithPath("result.creditGap")
-                                        .description("총취득학점 - 과목 학점 합. 0이 아니면 불일치(양수: 이수 이력 추가 필요, 음수: 과목 합이 더 많음)"))));
+                                fieldWithPath("result.recordedCredits").description("등록된 취득학점 합 (P 포함, F·NP 제외)"),
+                                fieldWithPath("result.creditGap").description("총취득학점 - 등록된 취득학점 합 (양수: 누락, 음수: 초과)"),
+                                fieldWithPath("result.gradeReviewCourses").description("F 평가방식 확인 대상. 없으면 빈 배열"),
+                                fieldWithPath("result.gradeReviewCourses[].semester")
+                                        .description("이수 학기"),
+                                fieldWithPath("result.gradeReviewCourses[].courseCode")
+                                        .description("학수번호"),
+                                fieldWithPath("result.gradeReviewCourses[].courseName")
+                                        .description("교과목명"))));
 
         then(transcriptCommandService).should().buildCreateData(memberId, "{}", parsedData, 10L, null, null, 20L, null);
     }

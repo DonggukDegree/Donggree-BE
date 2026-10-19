@@ -178,7 +178,9 @@ public class TranscriptViewMapper {
     private BigDecimal calculateMajorGpa(List<ParsedCourse> courses) {
         return GpaCalculator.calculate(
                 courses.stream()
-                        .filter(course -> "전공".equals(course.category()) || "전필".equals(course.category()))
+                        .filter(course -> "전공".equals(course.category())
+                                || "전필".equals(course.category())
+                                || "전선".equals(course.category()))
                         .toList(),
                 ParsedCourse::credits,
                 course -> Grade.fromValue(course.grade()));

@@ -40,7 +40,7 @@ class TranscriptPreviewServiceImplTest {
     void setUp() {
         given(curriculum.findDepartmentId("테스트학부", 2023, false, "공과대학")).willReturn(Optional.of(10L));
         given(curriculum.findDepartmentId("테스트주전공", 2022, true, "공과대학")).willReturn(Optional.of(10L));
-        given(curriculum.findDepartmentId("테스트복수전공", 2022, false, null)).willReturn(Optional.of(20L));
+        given(curriculum.findDepartmentId("테스트복수전공", 2022, true, null)).willReturn(Optional.of(20L));
     }
 
     @ParameterizedTest
@@ -121,14 +121,14 @@ class TranscriptPreviewServiceImplTest {
     @Test
     void 복수전공_학과가_구분되지_않아도_복수전공자_상태와_경고_보존() throws Exception {
         given(extractor.extract(pdf)).willReturn(fixture("transcript-dual-major-fixture.txt"));
-        given(curriculum.findDepartmentId("테스트복수전공", 2022, false, null)).willReturn(Optional.empty());
+        given(curriculum.findDepartmentId("테스트복수전공", 2022, true, null)).willReturn(Optional.empty());
 
         var view = service.preview(pdf);
 
         assertThat(view.dualMajor1Id()).isNull();
         assertThat(view.dualMajorDeclared()).isTrue();
         assertThat(view.unresolvedAdditionalMajor()).isTrue();
-        org.mockito.Mockito.verify(curriculum).findDepartmentId("테스트복수전공", 2022, false, null);
+        org.mockito.Mockito.verify(curriculum).findDepartmentId("테스트복수전공", 2022, true, null);
     }
 
     @Test

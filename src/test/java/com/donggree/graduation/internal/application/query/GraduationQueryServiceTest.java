@@ -106,7 +106,7 @@ class GraduationQueryServiceTest extends GraduationQueryTestSupport {
                                 "{\"minCount\":99,\"applicableMajorRoles\":[\"SINGLE_PRIMARY\"]}")));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(
                         new GraduationRuleView(
@@ -210,7 +210,7 @@ class GraduationQueryServiceTest extends GraduationQueryTestSupport {
                                 "{\"courseType\":\"FIRST_MAJOR\",\"minCredits\":3," + roles + "}")));
         willReturn(Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)))
                 .given(curriculumLookupService)
-                .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         given(curriculumLookupService.findGraduationRules(20L))
                 .willReturn(List.of(
                         foundation,
@@ -268,7 +268,7 @@ class GraduationQueryServiceTest extends GraduationQueryTestSupport {
         if (dual) {
             willReturn(secondarySet ? Optional.of(new RequirementSetView(20L, 200L, 2020, 2025)) : Optional.empty())
                     .given(curriculumLookupService)
-                    .findActiveRequirementSet(200L, ADMISSION_YEAR, false);
+                    .findActiveRequirementSet(200L, ADMISSION_YEAR, true);
         }
         if (secondarySet) {
             given(curriculumLookupService.findGraduationRules(20L))
