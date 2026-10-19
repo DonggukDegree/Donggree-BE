@@ -7,8 +7,4 @@ package com.donggree.curriculum;
  * 미등록 과목은 PDF course_type_name으로 courseType만 추론한 뒤 나머지는 null이다.
  */
 public record CourseClassificationView(
-        CourseType courseType, String areaName, String subCategory, String subjectDomain, GradingSystem gradingSystem) {
-    public CourseClassificationView(CourseType courseType, String areaName, String subCategory, String subjectDomain) {
-        this(courseType, areaName, subCategory, subjectDomain, GradingSystem.UNKNOWN);
-    }
-}
+        CourseType courseType, String areaName, String subCategory, String subjectDomain) {}

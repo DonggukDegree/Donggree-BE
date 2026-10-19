@@ -1,7 +1,6 @@
 package com.donggree.curriculum.internal.application.readmodel;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.GradingSystem;
 
 /**
  * 관리자 대시보드용 과목 분류 조회 응답.
@@ -18,30 +17,4 @@ public record CourseClassificationReadModel(
         Long areaTypeId,
         String areaName,
         String subCategory,
-        String subjectDomain,
-        GradingSystem gradingSystem) {
-    public CourseClassificationReadModel(
-            Long id,
-            String courseCode,
-            String tag,
-            int studentYearStart,
-            int studentYearEnd,
-            CourseType courseType,
-            Long areaTypeId,
-            String areaName,
-            String subCategory,
-            String subjectDomain) {
-        this(
-                id,
-                courseCode,
-                tag,
-                studentYearStart,
-                studentYearEnd,
-                courseType,
-                areaTypeId,
-                areaName,
-                subCategory,
-                subjectDomain,
-                GradingSystem.UNKNOWN);
-    }
-}
+        String subjectDomain) {}

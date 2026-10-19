@@ -40,8 +40,7 @@ public class QuerydslCourseClassificationQueries implements CourseClassification
                         cc.areaTypeId,
                         at.areaName,
                         cc.subCategory,
-                        cc.subjectDomain,
-                        cc.gradingSystem))
+                        cc.subjectDomain))
                 .from(cc)
                 .leftJoin(at)
                 .on(at.id.eq(cc.areaTypeId))

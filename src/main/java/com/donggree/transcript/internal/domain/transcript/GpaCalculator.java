@@ -13,19 +13,11 @@ public final class GpaCalculator {
 
     /** P·NP는 제외하고 F는 분모에 포함한다. 평가 가능한 학점이 없으면 null을 반환한다. */
     public static <T> BigDecimal calculate(List<T> records, ToIntFunction<T> creditsOf, Function<T, Grade> gradeOf) {
-        return calculate(records, creditsOf, gradeOf, record -> false);
-    }
-
-    public static <T> BigDecimal calculate(
-            List<T> records,
-            ToIntFunction<T> creditsOf,
-            Function<T, Grade> gradeOf,
-            java.util.function.Predicate<T> passFailCourse) {
         int denominator = 0;
         BigDecimal weightedSum = BigDecimal.ZERO;
         for (T record : records) {
             Grade grade = gradeOf.apply(record);
-            if (passFailCourse.test(record) || grade == Grade.P || grade == Grade.NP) continue;
+            if (grade == Grade.P || grade == Grade.NP) continue;
             int credits = creditsOf.applyAsInt(record);
             denominator += credits;
             weightedSum = weightedSum.add(grade.getGradePoint().multiply(BigDecimal.valueOf(credits)));

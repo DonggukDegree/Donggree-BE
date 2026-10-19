@@ -36,7 +36,6 @@ public class TranscriptQueryService {
                 .orElseThrow(() -> new GeneralException(TranscriptErrorCode.TRANSCRIPT_NOT_FOUND));
         JsonNode pdfMeta = viewMapper.readMeta(transcript.getId(), transcript.getRawData());
 
-        var passFailCodes = viewMapper.passFailCodes(transcript);
         RawMeta meta = new RawMeta(
                 transcript.getAdmissionYear(),
                 transcript.getDepartmentId(),
@@ -49,8 +48,8 @@ public class TranscriptQueryService {
                 transcript.getAcademicStatus(),
                 transcript.getTotalCredits(),
                 transcript.getGpa(),
-                transcript.calculateMajorGpa(passFailCodes),
-                transcript.calculateDualMajor1Gpa(passFailCodes),
+                transcript.calculateMajorGpa(),
+                transcript.calculateDualMajor1Gpa(),
                 transcript.getCompletedSemesters(),
                 transcript.getCreatedAt(),
                 transcript.getUpdatedAt());

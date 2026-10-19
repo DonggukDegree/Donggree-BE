@@ -159,7 +159,14 @@ public class TranscriptController implements TranscriptApi {
                     transcriptCommandService.createTranscript(createData, courses, pdfStudentId, pdfName);
             return ApiResponse.onSuccess(
                     GeneralSuccessCode.CREATED,
-                    new TranscriptCreateResponse(result.totalCredits(), result.recordedCredits(), result.creditGap()));
+                    new TranscriptCreateResponse(
+                            result.totalCredits(),
+                            result.recordedCredits(),
+                            result.creditGap(),
+                            parseResult.gradeReviewCourses().stream()
+                                    .map(c -> new TranscriptCreateResponse.GradeReviewCourse(
+                                            c.semester(), c.courseCode(), c.courseName()))
+                                    .toList()));
 
         } catch (IOException e) {
             throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE, e, "pdf_upload_read");

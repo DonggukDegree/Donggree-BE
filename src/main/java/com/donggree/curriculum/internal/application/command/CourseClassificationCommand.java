@@ -1,7 +1,6 @@
 package com.donggree.curriculum.internal.application.command;
 
 import com.donggree.curriculum.CourseType;
-import com.donggree.curriculum.GradingSystem;
 
 /**
  * 과목 분류 등록/수정 입력 커맨드. 컨트롤러의 요청 DTO를 응용 계층 입력으로 변환한 값이다.
@@ -15,26 +14,4 @@ public record CourseClassificationCommand(
         CourseType courseType,
         Long areaTypeId,
         String subCategory,
-        String subjectDomain,
-        GradingSystem gradingSystem) {
-    public CourseClassificationCommand(
-            String courseCode,
-            String tag,
-            int studentYearStart,
-            int studentYearEnd,
-            CourseType courseType,
-            Long areaTypeId,
-            String subCategory,
-            String subjectDomain) {
-        this(
-                courseCode,
-                tag,
-                studentYearStart,
-                studentYearEnd,
-                courseType,
-                areaTypeId,
-                subCategory,
-                subjectDomain,
-                GradingSystem.UNKNOWN);
-    }
-}
+        String subjectDomain) {}

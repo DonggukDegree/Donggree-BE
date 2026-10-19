@@ -11,20 +11,6 @@ import org.junit.jupiter.api.Test;
 
 class TranscriptTest {
 
-    @Test
-    void 확인된_PF의_F만_평점에서_제외하고_일반_F는_분모에_포함한다() {
-        Transcript t = createFullTranscript();
-        t.replaceCourseRecords(
-                List.of(
-                        new CourseRecordData("2026-1", "전필", null, "AAA1001", "등급과목", 3, Grade.A_PLUS, false),
-                        new CourseRecordData("2026-1", "전선", null, "AAA1002", "일반실패", 3, Grade.F, false),
-                        new CourseRecordData("2026-1", "전선", null, "AAA1003", "PF실패", 2, Grade.F, false)),
-                java.util.Set.of("AAA1003"));
-        assertThat(t.getTotalCredits()).isEqualTo(3);
-        assertThat(t.getGpa()).isEqualByComparingTo("2.25");
-        assertThat(t.calculateMajorGpa(java.util.Set.of("AAA1003"))).isEqualByComparingTo("2.25");
-    }
-
     // --- Transcript 생성 테스트 ---
 
     @Test
@@ -237,6 +223,17 @@ class TranscriptTest {
     }
 
     // --- 학점 정합성 테스트 ---
+
+    @Test
+    void 취득학점_비교는_P를_포함하고_F와_NP를_제외한다() {
+        Transcript transcript = createTranscript();
+        transcript.addCourseRecord("2023-1", "전공", null, "AAA1", "성적", 3, Grade.A_ZERO, false);
+        transcript.addCourseRecord("2023-1", "공교", null, "AAA2", "패스", 2, Grade.P, false);
+        transcript.addCourseRecord("2023-1", "공교", null, "AAA3", "일반F", 1, Grade.F, false);
+        transcript.addCourseRecord("2023-1", "공교", null, "AAA4", "PFF", 1, Grade.NP, false);
+        assertThat(transcript.recordedCredits()).isEqualTo(5);
+        assertThat(transcript.creditGap()).isEqualTo(-5);
+    }
 
     @Test
     void recordedCredits는_수강_이력_학점의_합을_반환한다() {

@@ -3,16 +3,23 @@ package com.donggree.transcript.internal.application.pdf;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.logging.RequestDiagnostics;
+import com.donggree.transcript.internal.application.command.ParsedCourse;
 import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptParseResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
+import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.domain.transcript.CourseRecordData;
+import com.donggree.transcript.internal.domain.transcript.FailGradeInference;
 import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -31,8 +38,62 @@ public class TranscriptPdfReader {
     public TranscriptParseResult parseTranscript(byte[] pdfBytes) {
         String pdfText = extractText(pdfBytes);
         ParsedTranscriptData parsedData = parser.parse(pdfText);
+        // 보정 전에 원문 성적을 보존한다. 정규화된 NP를 PDF 원문에 덮어쓰지 않는다.
         String rawDataJson = buildRawDataJson(pdfText, parsedData);
-        return new TranscriptParseResult(parsedData, rawDataJson);
+        return inferFailGrades(parsedData, rawDataJson);
+    }
+
+    private TranscriptParseResult inferFailGrades(ParsedTranscriptData source, String rawDataJson) {
+        var courses = source.courses().stream()
+                .map(c -> new CourseRecordData(
+                        c.semester(),
+                        c.category(),
+                        c.area(),
+                        c.courseCode(),
+                        c.courseName(),
+                        c.credits(),
+                        Grade.fromValue(c.grade()),
+                        c.retake()))
+                .toList();
+        var meta = source.meta();
+        var total = summary(meta, "총취득학점", "평점평균", Set.of());
+        var result = FailGradeInference.resolve(
+                courses,
+                total,
+                List.of(
+                        summary(meta, "제1전공총학점", "제1전공평점", Set.of("전공", "전필", "전선")),
+                        summary(meta, "복수1총학점", "복수1평점", Set.of("복수1")),
+                        summary(meta, "복수2총학점", "복수2평점", Set.of("복수2")),
+                        summary(meta, "교직총학점", "교직평점", Set.of("직선", "직필"))));
+        List<ParsedCourse> normalized = new ArrayList<>(source.courses());
+        for (int i = 0; i < normalized.size(); i++) {
+            var c = normalized.get(i);
+            normalized.set(
+                    i,
+                    new ParsedCourse(
+                            c.semester(),
+                            c.year(),
+                            c.category(),
+                            c.courseCode(),
+                            c.courseName(),
+                            c.credits(),
+                            result.grades().get(i).getValue(),
+                            c.area(),
+                            c.retake()));
+        }
+        var review = result.reviewIndices().stream()
+                .map(i -> {
+                    var c = source.courses().get(i);
+                    return new TranscriptParseResult.GradeReviewCourse(c.semester(), c.courseCode(), c.courseName());
+                })
+                .toList();
+        return new TranscriptParseResult(new ParsedTranscriptData(meta, List.copyOf(normalized)), rawDataJson, review);
+    }
+
+    private FailGradeInference.Summary summary(
+            Map<String, String> meta, String creditsKey, String gpaKey, Set<String> types) {
+        return new FailGradeInference.Summary(
+                parseIntOrNull(meta.get(creditsKey)), parseBigDecimalOrDefault(meta.get(gpaKey), null), types);
     }
 
     /**

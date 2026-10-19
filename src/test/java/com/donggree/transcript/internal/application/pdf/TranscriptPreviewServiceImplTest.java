@@ -33,10 +33,7 @@ class TranscriptPreviewServiceImplTest {
     private final UserIdentityService identity = mock(UserIdentityService.class);
     private final TranscriptPdfReader reader =
             new TranscriptPdfReader(extractor, new ObjectMapper(), new PdfTranscriptTextParser());
-    private final TranscriptViewMapper mapper = new TranscriptViewMapper(
-            new ObjectMapper(),
-            new com.donggree.transcript.internal.application.CourseGradingService(
-                    org.mockito.Mockito.mock(com.donggree.curriculum.CurriculumLookupService.class)));
+    private final TranscriptViewMapper mapper = new TranscriptViewMapper(new ObjectMapper());
     private final TranscriptPreviewServiceImpl service = new TranscriptPreviewServiceImpl(reader, mapper, curriculum);
 
     @BeforeEach
@@ -51,11 +48,7 @@ class TranscriptPreviewServiceImplTest {
     void 저장_경로와_같은_파서와_판정_입력_사용(String fixture) throws Exception {
         given(extractor.extract(pdf)).willReturn(fixture(fixture));
         var preview = service.preview(pdf);
-        var command = new TranscriptCommandService(
-                repository,
-                reader,
-                identity,
-                new com.donggree.transcript.internal.application.CourseGradingService(curriculum));
+        var command = new TranscriptCommandService(repository, reader, identity);
         var parsed = command.parseTranscript(pdf);
         var data = command.buildCreateData(
                 1L,

@@ -189,10 +189,6 @@ public class Transcript extends BaseEntity {
      * 치환 후 학점 수와 평점 평균을 재계산하여 메타 값을 갱신한다.
      */
     public void replaceCourseRecords(List<CourseRecordData> newRecords) {
-        replaceCourseRecords(newRecords, java.util.Set.of());
-    }
-
-    public void replaceCourseRecords(List<CourseRecordData> newRecords, java.util.Set<String> passFailCodes) {
         courseRecords.clear();
         for (CourseRecordData data : newRecords) {
             addCourseRecord(
@@ -205,7 +201,7 @@ public class Transcript extends BaseEntity {
                     data.grade(),
                     data.retake());
         }
-        recalculateCreditsAndGpa(passFailCodes);
+        recalculateCreditsAndGpa();
     }
 
     /**
@@ -217,54 +213,39 @@ public class Transcript extends BaseEntity {
      *   F는 취득학점에는 포함되지 않지만 평점 분모에는 포함되어 평점을 끌어내린다(평점 0).
      *   평점 계산용 학점이 0이면 GPA는 0.00이다.
      */
-    private void recalculateCreditsAndGpa(java.util.Set<String> passFailCodes) {
+    private void recalculateCreditsAndGpa() {
         // 취득학점: F·NP(이수 실패)를 제외한 학점의 합
         this.totalCredits = courseRecords.stream()
                 .filter(r -> r.getGrade() != Grade.F && r.getGrade() != Grade.NP)
                 .mapToInt(CourseRecord::getCredits)
                 .sum();
 
-        BigDecimal calculatedGpa = GpaCalculator.calculate(
-                courseRecords,
-                CourseRecord::getCredits,
-                CourseRecord::getGrade,
-                r -> passFailCodes.contains(r.getCourseCode()));
+        BigDecimal calculatedGpa = calculateGpa(courseRecords);
         this.gpa = calculatedGpa != null ? calculatedGpa : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
     }
 
     /** 현재 수강 이력의 전공·전필 평점. 평가 가능한 학점이 없으면 0점과 구별하기 위해 null을 반환한다. */
     public BigDecimal calculateMajorGpa() {
-        return calculateMajorGpa(java.util.Set.of());
-    }
-
-    public BigDecimal calculateMajorGpa(java.util.Set<String> passFailCodes) {
-        return GpaCalculator.calculate(
-                courseRecords.stream()
-                        .filter(r -> "전공".equals(r.getCourseTypeName())
-                                || "전필".equals(r.getCourseTypeName())
-                                || "전선".equals(r.getCourseTypeName()))
-                        .toList(),
-                CourseRecord::getCredits,
-                CourseRecord::getGrade,
-                r -> passFailCodes.contains(r.getCourseCode()));
+        return calculateGpa(courseRecords.stream()
+                .filter(r -> "전공".equals(r.getCourseTypeName())
+                        || "전필".equals(r.getCourseTypeName())
+                        || "전선".equals(r.getCourseTypeName()))
+                .toList());
     }
 
     /** 복수1 평점만 계산한다. 복수전공 미등록 또는 평가 가능한 학점이 없으면 null을 반환한다. */
     public BigDecimal calculateDualMajor1Gpa() {
-        return calculateDualMajor1Gpa(java.util.Set.of());
-    }
-
-    public BigDecimal calculateDualMajor1Gpa(java.util.Set<String> passFailCodes) {
         if (dualMajor1Id == null) {
             return null;
         }
-        return GpaCalculator.calculate(
-                courseRecords.stream()
-                        .filter(r -> "복수1".equals(r.getCourseTypeName()))
-                        .toList(),
-                CourseRecord::getCredits,
-                CourseRecord::getGrade,
-                r -> passFailCodes.contains(r.getCourseCode()));
+        return calculateGpa(courseRecords.stream()
+                .filter(r -> "복수1".equals(r.getCourseTypeName()))
+                .toList());
+    }
+
+    // 전체·전공별 평점에 동일한 학점 가중평균과 반올림 기준 적용. PDF 원본 평점으로 대체하지 않는다.
+    private BigDecimal calculateGpa(List<CourseRecord> records) {
+        return GpaCalculator.calculate(records, CourseRecord::getCredits, CourseRecord::getGrade);
     }
 
     /**
@@ -275,16 +256,19 @@ public class Transcript extends BaseEntity {
     }
 
     /**
-     * 보유한 수강 이력(CourseRecord)들의 학점 합을 반환한다.
+     * 보유한 수강 이력 중 이수에 성공한 학점 합을 반환한다. P는 포함하고 F·NP는 제외한다.
      */
     public int recordedCredits() {
-        return courseRecords.stream().mapToInt(CourseRecord::getCredits).sum();
+        return courseRecords.stream()
+                .filter(r -> r.getGrade() != Grade.F && r.getGrade() != Grade.NP)
+                .mapToInt(CourseRecord::getCredits)
+                .sum();
     }
 
     /**
-     * 총취득학점과 수강 이력 학점 합의 차이를 반환한다.
+     * 원문 총취득학점과 파싱된 취득학점 합의 차이를 반환한다.
      * 양수면 PDF에 기재된 총취득학점보다 파싱된 과목 학점이 적어 이수 이력을 더 추가해야 함을,
-     * 음수면 재수강·P/F 등으로 과목 학점 합이 총취득학점보다 많음을 의미한다.
+     * 음수면 파싱된 취득학점 합이 원문 총취득학점보다 많음을 의미한다.
      * 0이면 PDF 파싱 결과와 총취득학점이 정합함을 뜻한다.
      */
     public int creditGap() {

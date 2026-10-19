@@ -32,7 +32,6 @@ public class TranscriptCommandService {
     private final TranscriptRepository transcriptRepository;
     private final TranscriptPdfReader pdfReader;
     private final UserIdentityService memberIdentityService;
-    private final CourseGradingService grading;
 
     /** 일반 업로드와 관리자 미리보기의 동일한 파싱·변환 경로를 사용한다. */
     public TranscriptParseResult parseTranscript(byte[] pdfBytes) {
@@ -120,9 +119,7 @@ public class TranscriptCommandService {
                         c.retake()))
                 .toList();
 
-        var passFailCodes = grading.passFailCodes(
-                courses.stream().map(CourseRecordCreateCommand::courseCode).toList(), transcript.getAdmissionYear());
-        transcript.replaceCourseRecords(newRecords, passFailCodes);
+        transcript.replaceCourseRecords(newRecords);
         transcriptRepository.saveAndFlush(transcript);
 
         return new TranscriptUpdateResult(
