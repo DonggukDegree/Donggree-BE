@@ -60,6 +60,15 @@ services:
       KAKAO_REST_API_SECRET: ${KAKAO_REST_API_SECRET}
       FRONTEND_REDIRECT_URL: ${FRONTEND_REDIRECT_URL:-http://localhost:5173/login/callback}
       CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-${SMTP_USERNAME:-}}
+      SCHOOL_EMAIL_CODE_SECRET: ${SCHOOL_EMAIL_CODE_SECRET:-${JWT_SECRET}}
+      SCHOOL_EMAIL_MAIL_WORKERS: ${SCHOOL_EMAIL_MAIL_WORKERS:-3}
+      SCHOOL_EMAIL_MAIL_QUEUE_CAPACITY: ${SCHOOL_EMAIL_MAIL_QUEUE_CAPACITY:-36}
     ports:
       - "8080:8080"          # 로컬 API 직접 호출용. 운영에선 리버스 프록시(Caddy) 뒤에 둠.
     networks: [monitoring]

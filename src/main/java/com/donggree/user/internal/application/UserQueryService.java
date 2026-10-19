@@ -2,6 +2,7 @@ package com.donggree.user.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.internal.application.exception.UserErrorCode;
+import com.donggree.user.internal.application.readmodel.SchoolEmailVerificationReadModel;
 import com.donggree.user.internal.application.readmodel.UserInfoReadModel;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
@@ -18,6 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserQueryService {
 
     private final MemberRepository memberRepository;
+    private final SchoolEmailVerificationStore emailVerifications;
+
+    @Transactional(readOnly = true)
+    public SchoolEmailVerificationReadModel getSchoolEmailVerification(Long memberId) {
+        Member member = memberRepository
+                .findById(memberId)
+                .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
+        return SchoolEmailVerificationReadModel.from(
+                member, emailVerifications.findById(memberId).orElse(null));
+    }
 
     /**
      * 로그인한 회원의 정보를 조회한다.

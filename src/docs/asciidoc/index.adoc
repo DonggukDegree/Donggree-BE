@@ -52,6 +52,18 @@ operation::user-info-update[]
 
 operation::user-delete[]
 
+==== 학교 이메일 인증 상태 조회
+
+operation::school-email-status[]
+
+==== 학교 이메일 인증 코드 요청
+
+operation::school-email-request-code[]
+
+==== 학교 이메일 인증 코드 확인
+
+operation::school-email-confirm[]
+
 === 관리자 커리큘럼 관리
 
 ==== 과목 분류 조회

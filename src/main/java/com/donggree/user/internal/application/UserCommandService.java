@@ -21,6 +21,8 @@ public class UserCommandService {
 
     private final MemberRepository memberRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final SchoolEmailVerificationStore schoolEmailVerifications;
+    private final SchoolEmailMailQueue mailQueue;
 
     /**
      * 온보딩을 완료하고 회원의 학번과 이름을 설정한다.
@@ -101,9 +103,11 @@ public class UserCommandService {
     @Transactional
     public void deleteUser(Long memberId) {
         Member member = memberRepository
-                .findById(memberId)
+                .findByIdForUpdate(memberId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.MEMBER_NOT_FOUND));
 
+        schoolEmailVerifications.deleteById(memberId);
+        mailQueue.cancel(memberId);
         member.withdraw();
 
         eventPublisher.publishEvent(new MemberWithdrawnEvent(memberId));

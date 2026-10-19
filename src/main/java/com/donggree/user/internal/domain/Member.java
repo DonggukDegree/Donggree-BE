@@ -14,11 +14,14 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "member")
 @SQLRestriction("deleted_at IS NULL")
+// 로그인 토큰·PDF 본인 인증과 동시에 저장해도 학교 이메일 인증 값을 덮어쓰지 않는다.
+@DynamicUpdate
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member extends BaseEntity {
@@ -54,6 +57,12 @@ public class Member extends BaseEntity {
 
     @Column(name = "identity_verified", nullable = false)
     private boolean identityVerified;
+
+    @Column(name = "school_email", unique = true, length = 74)
+    private String schoolEmail;
+
+    @Column(name = "school_email_verified_at")
+    private LocalDateTime schoolEmailVerifiedAt;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -118,6 +127,15 @@ public class Member extends BaseEntity {
         this.identityVerified = true;
     }
 
+    public boolean isSchoolEmailVerified() {
+        return schoolEmailVerifiedAt != null;
+    }
+
+    public void verifySchoolEmail(SchoolEmailAddress address, LocalDateTime verifiedAt) {
+        this.schoolEmail = address.value();
+        this.schoolEmailVerifiedAt = java.util.Objects.requireNonNull(verifiedAt);
+    }
+
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
     }
@@ -139,6 +157,8 @@ public class Member extends BaseEntity {
         this.deletedAt = LocalDateTime.now();
         this.refreshToken = null;
         this.studentId = null;
+        this.schoolEmail = null;
+        this.schoolEmailVerifiedAt = null;
     }
 
     /**
@@ -156,6 +176,8 @@ public class Member extends BaseEntity {
         this.nickname = null;
         this.profileUrl = null;
         this.identityVerified = false;
+        this.schoolEmail = null;
+        this.schoolEmailVerifiedAt = null;
     }
 
     public boolean isDeleted() {
