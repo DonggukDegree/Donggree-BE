@@ -6,6 +6,7 @@ import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.LoginMemberId;
 import com.donggree.transcript.internal.application.TranscriptCommandService;
+import com.donggree.transcript.internal.application.TranscriptUploadTelemetry;
 import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
 import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
 import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
@@ -51,6 +52,7 @@ public class TranscriptController implements TranscriptApi {
     private final TranscriptCommandService transcriptCommandService;
     private final CurriculumLookupService curriculumLookupService;
     private final UserIdentityService memberIdentityService;
+    private final TranscriptUploadTelemetry telemetry;
 
     @Override
     @GetMapping
@@ -157,6 +159,12 @@ public class TranscriptController implements TranscriptApi {
 
             TranscriptCreateResult result =
                     transcriptCommandService.createTranscript(createData, courses, pdfStudentId, pdfName);
+            telemetry.saved(
+                    file.getSize(),
+                    courses.size(),
+                    result.creditGap(),
+                    parseResult.gradeReviewCourses().size(),
+                    deptId != null);
             return ApiResponse.onSuccess(
                     GeneralSuccessCode.CREATED,
                     new TranscriptCreateResponse(

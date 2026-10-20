@@ -23,6 +23,21 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 class OperationMetricsFilterTest {
+    @Test
+    void 이메일_제한_코드를_일반_HTTP오류로_축약하지_않는다() throws Exception {
+        var request = new MockHttpServletRequest("POST", "/api/users/me/school-email-verification/codes");
+        var response = new MockHttpServletResponse();
+        filter.doFilter(request, response, (req, res) -> {
+            response.setStatus(429);
+            request.setAttribute(OperationMetricsContext.CODE, "EMAIL429_3");
+        });
+        assertThat(registry.get("donggree.operation")
+                        .tags("operation", "email_request", "code", "EMAIL429_3", "outcome", "failure")
+                        .timer()
+                        .count())
+                .isEqualTo(1);
+    }
+
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
     private final OperationMetricsFilter filter = new OperationMetricsFilter(registry);
     private final OperationMetricsAdvice advice = new OperationMetricsAdvice();

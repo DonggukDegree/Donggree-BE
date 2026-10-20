@@ -98,6 +98,9 @@ class SecurityConfigTest {
     private UserCommandService userCommandService;
 
     @MockitoBean
+    private com.donggree.transcript.internal.application.TranscriptUploadTelemetry transcriptUploadTelemetry;
+
+    @MockitoBean
     private com.donggree.user.internal.application.SchoolEmailVerificationCommandService schoolEmailVerifications;
 
     @Test

@@ -72,7 +72,7 @@ public class OperationMetricsFilter extends OncePerRequestFilter {
         Object code = request.getAttribute(CODE);
         if (code instanceof String value
                 && value.matches(
-                        "(?:COMMON|USER|TRANSCRIPT|GRADUATION)[0-9]{3}_[0-9]{1,2}|LOGIN_SUCCESS|LOGIN_FAILURE"))
+                        "(?:COMMON|USER|TRANSCRIPT|GRADUATION|EMAIL)[0-9]{3}_[0-9]{1,2}|LOGIN_SUCCESS|LOGIN_FAILURE"))
             return value;
         return response.getStatus() >= 400 ? "HTTP_ERROR" : "OK";
     }
@@ -82,6 +82,10 @@ public class OperationMetricsFilter extends OncePerRequestFilter {
         if ("GET".equals(request.getMethod()) && "/oauth/callback/kakao".equals(path)) return "login";
         if ("PUT".equals(request.getMethod()) && "/api/users/me/reports".equals(path)) return "pdf_upload";
         if ("GET".equals(request.getMethod()) && "/api/reports/summary".equals(path)) return "report_summary";
+        if ("POST".equals(request.getMethod()) && "/api/users/me/school-email-verification/codes".equals(path))
+            return "email_request";
+        if ("POST".equals(request.getMethod()) && "/api/users/me/school-email-verification/confirm".equals(path))
+            return "email_verify";
         return null;
     }
 }

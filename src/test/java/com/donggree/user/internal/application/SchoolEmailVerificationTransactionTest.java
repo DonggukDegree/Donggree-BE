@@ -87,6 +87,9 @@ class SchoolEmailVerificationTransactionTest {
     @MockitoBean
     private SchoolEmailSender sender;
 
+    @MockitoBean
+    private SchoolEmailTelemetry telemetry;
+
     private Long memberId;
     private String oauthId;
     private final AtomicReference<String> sentCode = new AtomicReference<>();

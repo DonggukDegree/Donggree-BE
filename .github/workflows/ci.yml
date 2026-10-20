@@ -62,6 +62,12 @@ jobs:
           KAKAO_REST_API_SECRET: dummy
         run: docker compose config -q
 
+      - name: Validate Monitoring Rules
+        run: |
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v3.1.0 check rules /etc/prometheus/alerts.yml
+          docker run --rm --entrypoint /bin/promtool -v "$PWD/monitoring/prometheus:/etc/prometheus:ro" prom/prometheus:v3.1.0 test rules /etc/prometheus/alerts.test.yml
+          docker run --rm -v "$PWD/monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro" grafana/loki:3.3.2 -config.file=/etc/loki/local-config.yaml -verify-config=true
+
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v5
         if: always()

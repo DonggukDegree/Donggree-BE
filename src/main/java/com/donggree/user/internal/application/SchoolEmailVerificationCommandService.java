@@ -29,13 +29,16 @@ public class SchoolEmailVerificationCommandService {
     private final SchoolEmailVerificationStore verifications;
     private final SchoolEmailMailQueue mailQueue;
     private final SchoolEmailCodes codes;
+    private final SchoolEmailTelemetry telemetry;
 
     @Value("${app.mail.enabled:false}")
     private boolean mailEnabled;
 
     @Transactional
     public SchoolEmailCodeRequestResult requestCode(Long memberId, RequestSchoolEmailCodeCommand command) {
+        telemetry.identify(memberId, null);
         SchoolEmailAddress address = address(command.localPart());
+        telemetry.identify(memberId, address.value());
         if (!mailEnabled) throw new GeneralException(SchoolEmailErrorCode.SEND_UNAVAILABLE);
         // 회원 행 잠금으로 첫 요청·재발송·코드 확인을 같은 순서로 처리한다.
         Member member = unverifiedMember(memberId);
@@ -65,7 +68,9 @@ public class SchoolEmailVerificationCommandService {
 
     @Transactional(noRollbackFor = SchoolEmailCodeMismatchException.class)
     public void verifyCode(Long memberId, VerifySchoolEmailCodeCommand command) {
+        telemetry.identify(memberId, null);
         SchoolEmailAddress address = address(command.localPart());
+        telemetry.identify(memberId, address.value());
         Member member = unverifiedMember(memberId);
         SchoolEmailVerification verification = verifications
                 .findByIdForUpdate(memberId)

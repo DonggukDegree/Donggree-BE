@@ -16,6 +16,26 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 
 class SmtpSchoolEmailSenderTest {
+    @Test
+    void 중첩된_SMTP_타임아웃을_원문없이_구분한다() {
+        when(providers.getIfAvailable()).thenReturn(sender);
+        when(sender.createMimeMessage()).thenReturn(new MimeMessage(Session.getInstance(new Properties())));
+        var nested = new jakarta.mail.MessagingException(
+                "private SMTP host", new java.net.SocketTimeoutException("private address"));
+        doThrow(new MailSendException("private address", nested)).when(sender).send(any(MimeMessage.class));
+        assertThatThrownBy(() -> new SmtpSchoolEmailSender(providers, true, "noreply@example.invalid")
+                        .send("student@dgu.ac.kr", "012345"))
+                .isInstanceOf(com.donggree.user.internal.application.exception.SchoolEmailSendException.class)
+                .hasNoCause()
+                .hasMessageNotContaining("private")
+                .satisfies(error -> assertThat(
+                                ((com.donggree.user.internal.application.exception.SchoolEmailSendException) error)
+                                        .getReason())
+                        .isEqualTo(
+                                com.donggree.user.internal.application.exception.SchoolEmailSendException.Reason
+                                        .TIMEOUT));
+    }
+
     @SuppressWarnings("unchecked")
     private final ObjectProvider<JavaMailSender> providers = mock(ObjectProvider.class);
 

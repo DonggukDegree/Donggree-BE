@@ -27,6 +27,7 @@ services:
       - "9090:9090"   # 로컬 편의(타겟 확인). 운영에선 제거
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
     extra_hosts:
       - "host.docker.internal:host-gateway"
