@@ -173,7 +173,8 @@ final class GraduationAreaDetailAssembler {
                 // 다중 영역 요건은 해당 개별 카드에 귀속하지 않는다.
                 areaSatisfied = areaSatisfied
                         && areaRules.stream()
-                                .filter(creditTargets::isCreditTargetRule)
+                                .filter(rule -> creditTargets.isCreditTargetRule(rule)
+                                        || config.hasNumberField(rule.ruleConfig(), "minSatisfiedGroups"))
                                 .filter(rule -> config.parseStringList(rule.ruleConfig(), "areaNames").stream()
                                         .distinct()
                                         .toList()

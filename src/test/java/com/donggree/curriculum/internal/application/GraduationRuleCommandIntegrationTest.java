@@ -9,6 +9,7 @@ import com.donggree.curriculum.internal.application.command.GraduationRuleUpsert
 import com.donggree.curriculum.internal.application.exception.CurriculumErrorCode;
 import com.donggree.curriculum.internal.application.graduationrule.GraduationRuleCommandService;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
+import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleConfig;
 import com.donggree.curriculum.internal.domain.graduationrule.GraduationRuleRepository;
 import com.donggree.curriculum.internal.domain.ruletype.RuleType;
 import com.donggree.curriculum.internal.domain.ruletype.RuleTypeRepository;
@@ -34,6 +35,33 @@ class GraduationRuleCommandIntegrationTest {
 
     @Autowired
     private RuleTypeRepository typeRepository;
+
+    @Test
+    void 그룹_규칙을_저장하고_충족_수를_수정하되_겹치는_그룹으로는_교체하지_않는다() {
+        Long typeId = typeRepository
+                .save(RuleType.create("MIN_CREDITS", CourseType.FIRST_MAJOR, null))
+                .getId();
+        String config =
+                """
+                {"creditGroups":[{"courseCodes":["ABC*"],"minCredits":27},
+                                 {"courseCodes":["DEF*"],"minCredits":27}],"minSatisfiedGroups":1,
+                 "applicableMajorRoles":["SINGLE_PRIMARY"]}
+                """;
+        Long id = service.upsert(List.of(new GraduationRuleUpsertCommand(
+                        null, new GraduationRuleCommand(typeId, "계열별 이수", config, null))))
+                .getFirst();
+        String updated = config.replace("\"minSatisfiedGroups\":1", "\"minSatisfiedGroups\":2");
+        service.upsert(List.of(
+                new GraduationRuleUpsertCommand(id, new GraduationRuleCommand(typeId, "계열별 이수", updated, null))));
+        assertThat(ruleRepository.findById(id).orElseThrow().getRuleConfig())
+                .isEqualTo(GraduationRuleConfig.normalize(updated));
+        assertThatThrownBy(() -> service.upsert(List.of(new GraduationRuleUpsertCommand(
+                        id, new GraduationRuleCommand(typeId, "계열별 이수", updated.replace("DEF*", "ABC1*"), null)))))
+                .isInstanceOfSatisfying(GeneralException.class, error -> assertThat(error.getCode())
+                        .isEqualTo(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG));
+        assertThat(ruleRepository.findById(id).orElseThrow().getRuleConfig())
+                .isEqualTo(GraduationRuleConfig.normalize(updated));
+    }
 
     @Test
     void 같은_이름의_역할별_규칙을_저장하고_자기_설명만_수정할_수_있다() {
