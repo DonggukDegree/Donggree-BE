@@ -10,6 +10,82 @@ import org.junit.jupiter.params.provider.ValueSource;
 class GraduationRuleConfigValidatorTest {
 
     @Test
+    void 그룹별_학점과_충족_그룹_수를_허용하고_기존_합산_설정도_유지한다() {
+        assertThat(
+                        GraduationRuleConfigValidator.hasValidCreditGroups(
+                                "MIN_CREDITS",
+                                """
+                {"creditGroups":[{"courseCodes":["ABC*","7777700"],"minCredits":27},
+                                 {"courseCodes":["DEF*"],"minCredits":24}],"minSatisfiedGroups":2}
+                """))
+                .isTrue();
+        assertThat(GraduationRuleConfigValidator.hasValidCreditGroups("MIN_CREDITS", "{\"minCredits\":27}"))
+                .isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{\"creditGroups\":[]}",
+                "{\"creditGroups\":[{\"courseCodes\":[],\"minCredits\":27}],\"minSatisfiedGroups\":1}",
+                "{\"creditGroups\":[{\"courseCodes\":[\"ABC*\"],\"minCredits\":0}],\"minSatisfiedGroups\":1}",
+                "{\"creditGroups\":[{\"courseCodes\":[\"ABC*\"],\"minCredits\":1.5}],\"minSatisfiedGroups\":1}",
+                "{\"creditGroups\":[{\"courseCodes\":[\"ABC*\"],\"minCredits\":27}],\"minSatisfiedGroups\":0}",
+                "{\"creditGroups\":[{\"courseCodes\":[\"ABC*\"],\"minCredits\":27}],\"minSatisfiedGroups\":2}",
+                "{\"creditGroups\":[{\"courseCodes\":[\"ABC*\"],\"minCredits\":27}],\"minSatisfiedGroups\":1.5}",
+                "{\"minSatisfiedGroups\":1}",
+                "{\"creditGroups\":null,\"minSatisfiedGroups\":1}"
+            })
+    void 잘못된_그룹_구조와_하한과_충족_수를_거절한다(String config) {
+        assertThat(GraduationRuleConfigValidator.hasValidCreditGroups("MIN_CREDITS", config))
+                .isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ABC*", "ABC1*", "ABC1001", "AB*"})
+    void 다른_그룹의_동일_접두어와_포함되는_접두어와_개별_코드를_거절한다(String second) {
+        String config =
+                """
+                {"creditGroups":[{"courseCodes":["ABC*"],"minCredits":27},
+                                 {"courseCodes":["%s"],"minCredits":27}],"minSatisfiedGroups":2}
+                """
+                        .formatted(second);
+        assertThat(GraduationRuleConfigValidator.hasValidCreditGroups("MIN_CREDITS", config))
+                .isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"abc*", "*", "AB*C", "ABC-01", "ABCDEFGHI", "ABC**", " ABC*"})
+    void 그룹_학수번호의_잘못된_형식을_거절한다(String pattern) {
+        String config =
+                """
+                {"creditGroups":[{"courseCodes":["%s"],"minCredits":27}],"minSatisfiedGroups":1}
+                """
+                        .formatted(pattern);
+        assertThat(GraduationRuleConfigValidator.hasValidCreditGroups("MIN_CREDITS", config))
+                .isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "\"minCredits\":54",
+                "\"minCount\":2",
+                "\"courseCodes\":[\"ABC*\"]",
+                "\"creditSource\":\"TEACHING_SUMMARY\"",
+                "\"creditAdjustments\":[{\"requiredCourseCodes\":[\"A\"],\"replacementCourseCodes\":[\"B\"],\"credits\":3}]"
+            })
+    void 그룹_설정과_합산_임계값_및_감면의_혼용을_거절한다(String other) {
+        String config =
+                """
+                {"creditGroups":[{"courseCodes":["ABC*"],"minCredits":27}],"minSatisfiedGroups":1,%s}
+                """
+                        .formatted(other);
+        assertThat(GraduationRuleConfigValidator.hasValidCreditGroups("MIN_CREDITS", config))
+                .isFalse();
+    }
+
+    @Test
     void 교직_요약학점_기준은_제1전공_범위에서_양의_최소학점으로_설정한다() {
         assertThat(GraduationRuleConfigValidator.hasValidCreditSource(
                         "MIN_CREDITS",

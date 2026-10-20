@@ -163,7 +163,8 @@ public class GraduationRuleCommandService {
                     || !GraduationRuleConfigValidator.hasValidCreditAdjustments(
                             ruleType.getTypeName(), data.ruleConfig())
                     || !GraduationRuleConfigValidator.hasValidCreditSource(
-                            ruleType.getTypeName(), ruleType.getCourseType(), data.ruleConfig())) {
+                            ruleType.getTypeName(), ruleType.getCourseType(), data.ruleConfig())
+                    || !GraduationRuleConfigValidator.hasValidCreditGroups(ruleType.getTypeName(), data.ruleConfig())) {
                 throw new GeneralException(CurriculumErrorCode.INVALID_GRADUATION_RULE_CONFIG, null, "rule_validation");
             }
             if (!GraduationRuleConfigValidator.hasValidRequiredCourses(ruleType.getTypeName(), data.ruleConfig())) {

@@ -3,6 +3,8 @@ package com.donggree.curriculum.internal.domain.graduationrule;
 import com.donggree.curriculum.CourseType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /** 규칙 종류별 rule_config의 필수 불변식을 검증한다. */
@@ -115,5 +117,50 @@ public final class GraduationRuleConfigValidator {
         } catch (Exception ignored) {
             return false;
         }
+    }
+
+    /** 그룹별 하한을 채운 그룹이 N개 이상이어야 한다. 서로 다른 그룹의 코드 범위는 겹칠 수 없다. */
+    public static boolean hasValidCreditGroups(String typeName, String ruleConfig) {
+        if (!"MIN_CREDITS".equals(typeName)) return true;
+        try {
+            JsonNode config = MAPPER.readTree(ruleConfig);
+            JsonNode groups = config.path("creditGroups");
+            if (groups.isMissingNode() || groups.isNull()) return !config.hasNonNull("minSatisfiedGroups");
+            JsonNode required = config.path("minSatisfiedGroups");
+            if (!groups.isArray() || groups.isEmpty() || !positiveInteger(required) || required.asInt() > groups.size())
+                return false;
+            // 합산 모드·교직 요약·감면과 섞이면 어느 하한에 적용할지 불명확하므로 거절한다.
+            for (String field : List.of("minCredits", "minCount", "creditSource", "courseCodes")) {
+                if (config.hasNonNull(field)) return false;
+            }
+            if (config.hasNonNull("creditAdjustments")
+                    && !config.path("creditAdjustments").isEmpty()) return false;
+            List<String> earlierPatterns = new ArrayList<>();
+            for (JsonNode group : groups) {
+                JsonNode codes = group.path("courseCodes");
+                if (!positiveInteger(group.path("minCredits")) || !hasValidCodes(codes)) return false;
+                List<String> patterns = new ArrayList<>();
+                for (JsonNode code : codes) {
+                    String pattern = code.asText();
+                    if (!pattern.matches("[A-Z0-9]{1,8}\\*?")) return false;
+                    if (earlierPatterns.stream().anyMatch(previous -> overlaps(previous, pattern))) return false;
+                    patterns.add(pattern);
+                }
+                earlierPatterns.addAll(patterns);
+            }
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static boolean positiveInteger(JsonNode value) {
+        return value.isIntegralNumber() && value.canConvertToInt() && value.asInt() > 0;
+    }
+
+    private static boolean overlaps(String left, String right) {
+        if (left.equals(right)) return true;
+        if (left.endsWith("*") && right.startsWith(left.substring(0, left.length() - 1))) return true;
+        return right.endsWith("*") && left.startsWith(right.substring(0, right.length() - 1));
     }
 }

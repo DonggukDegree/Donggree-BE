@@ -37,8 +37,12 @@ public sealed interface RuleConfiguration {
             List<String> courseCodes,
             String creditSource,
             Integer minCredits,
-            Integer minCount)
+            Integer minCount,
+            List<CreditGroup> creditGroups,
+            Integer minSatisfiedGroups)
             implements RuleConfiguration {}
+
+    record CreditGroup(List<String> courseCodes, int minCredits) {}
 
     record TotalCredits(int minCredits) implements RuleConfiguration {}
 

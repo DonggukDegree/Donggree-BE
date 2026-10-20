@@ -27,6 +27,8 @@ import java.util.List;
  *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["직선", "직필"], "minCredits": 17}
  *   {"courseType": "FIRST_MAJOR", "pdfCourseTypeNames": ["전필"], "pdfAreaNames": ["전문"], "minCredits": 9}
  *   {"courseType": "SECOND_MAJOR", "minCredits": 36, "applicableMajorRoles": ["SECONDARY"]}
+ *   {"creditGroups": [{"courseCodes": ["ABC*"], "minCredits": 27},
+ *                     {"courseCodes": ["DEF*"], "minCredits": 27}], "minSatisfiedGroups": 2}
  *
  * 대상 과목 선택 — 조건(courseType·선택자)은 모두 AND로 좁힌다.
  * 값을 쓴 조건만 제약이 되고, 비어 있는(또는 null) 조건은 "제한 없음"이다.
@@ -54,6 +56,7 @@ public class MinCreditsEvaluator implements RuleEvaluator {
     @Override
     public RuleResult evaluate(EvaluationRule rule, EvaluationContext context) {
         RuleConfiguration.MinCredits config = rule.configuration(RuleConfiguration.MinCredits.class);
+        boolean grouped = config.creditGroups() != null;
         if ("TEACHING_SUMMARY".equals(config.creditSource())) {
             if (config.minCredits() == null) {
                 throw new IllegalStateException("교직 요약 학점 규칙은 minCredits가 필요합니다: " + rule.ruleName());
@@ -63,7 +66,7 @@ public class MinCreditsEvaluator implements RuleEvaluator {
                     : context.getTranscript().teachingCredits();
             return new RuleResult(rule.ruleName(), credits >= config.minCredits());
         }
-        if (config.minCredits() == null && config.minCount() == null) {
+        if (!grouped && config.minCredits() == null && config.minCount() == null) {
             throw new IllegalStateException("MIN_CREDITS는 minCredits 또는 minCount가 필요합니다: " + rule.ruleName());
         }
         CourseType configuredCourseType = config.courseType() == null ? null : CourseType.valueOf(config.courseType());
@@ -76,6 +79,23 @@ public class MinCreditsEvaluator implements RuleEvaluator {
         List<EvaluationCourse> selected = context.getPassedCoursesForRule(rule.courseType()).stream()
                 .filter(record -> matches(record, courseType, config, context))
                 .toList();
+
+        if (grouped) {
+            if (config.minSatisfiedGroups() == null
+                    || config.minSatisfiedGroups() <= 0
+                    || config.minSatisfiedGroups() > config.creditGroups().size()) {
+                throw new IllegalStateException("그룹별 최소학점 규칙의 충족 그룹 수가 올바르지 않습니다: " + rule.ruleName());
+            }
+            // 그룹마다 별도로 집계하므로 한 그룹의 초과 학점으로 다른 그룹의 부족분을 채울 수 없다.
+            long satisfiedGroups = config.creditGroups().stream()
+                    .filter(group -> selected.stream()
+                                    .filter(record -> context.codeMatchesAny(record.courseCode(), group.courseCodes()))
+                                    .mapToLong(EvaluationCourse::credits)
+                                    .sum()
+                            >= group.minCredits())
+                    .count();
+            return new RuleResult(rule.ruleName(), satisfiedGroups >= config.minSatisfiedGroups());
+        }
 
         int earnedCredits =
                 selected.stream().mapToInt(EvaluationCourse::credits).sum();
