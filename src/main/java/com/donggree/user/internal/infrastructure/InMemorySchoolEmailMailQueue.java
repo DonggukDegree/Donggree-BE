@@ -2,6 +2,7 @@ package com.donggree.user.internal.infrastructure;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.internal.application.SchoolEmailMailQueue;
+import com.donggree.user.internal.application.SchoolEmailTelemetry;
 import com.donggree.user.internal.application.command.SchoolEmailMailDelivery;
 import com.donggree.user.internal.application.exception.SchoolEmailErrorCode;
 import java.util.LinkedHashMap;
@@ -18,10 +19,15 @@ public class InMemorySchoolEmailMailQueue implements SchoolEmailMailQueue {
     private final Map<Long, Pending> pending = new LinkedHashMap<>();
     private final int capacity;
     private boolean accepting;
+    private final SchoolEmailTelemetry telemetry;
 
-    public InMemorySchoolEmailMailQueue(@Value("${app.school-email.mail-queue.capacity:36}") int capacity) {
+    public InMemorySchoolEmailMailQueue(
+            @Value("${app.school-email.mail-queue.capacity:36}") int capacity, SchoolEmailTelemetry telemetry) {
         if (capacity < 1) throw new IllegalArgumentException("메일 대기열 크기는 1 이상이어야 합니다.");
         this.capacity = capacity;
+        this.telemetry = telemetry;
+        telemetry.gauge("donggree.mail.queue.size", this::size);
+        telemetry.gauge("donggree.mail.queue.capacity", () -> capacity);
     }
 
     @Override
@@ -46,6 +52,9 @@ public class InMemorySchoolEmailMailQueue implements SchoolEmailMailQueue {
             public void afterCommit() {
                 synchronized (InMemorySchoolEmailMailQueue.this) {
                     replacement.ready = true;
+                    telemetry.record(SchoolEmailTelemetry.Action.QUEUED, delivery, 0, null);
+                    if (previous != null)
+                        telemetry.record(SchoolEmailTelemetry.Action.REPLACED, previous.delivery, 0, null);
                 }
             }
 
@@ -96,7 +105,12 @@ public class InMemorySchoolEmailMailQueue implements SchoolEmailMailQueue {
     }
 
     private synchronized void remove(Long memberId) {
-        pending.remove(memberId);
+        Pending removed = pending.remove(memberId);
+        if (removed != null) telemetry.record(SchoolEmailTelemetry.Action.CANCELLED, removed.delivery, 0, null);
+    }
+
+    private synchronized int size() {
+        return pending.size();
     }
 
     public synchronized void open() {

@@ -71,7 +71,11 @@ class TranscriptControllerTest extends RestDocsSupport {
     @Override
     protected Object initController() {
         return new TranscriptController(
-                transcriptQueryService, transcriptCommandService, curriculumLookupService, memberIdentityService);
+                transcriptQueryService,
+                transcriptCommandService,
+                curriculumLookupService,
+                memberIdentityService,
+                Mockito.mock(com.donggree.transcript.internal.application.TranscriptUploadTelemetry.class));
     }
 
     // 검증 실패(VALID400_1) 등 예외 응답 봉투를 확인하기 위해 전역 예외 핸들러를 등록한다.

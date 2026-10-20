@@ -1,6 +1,8 @@
 package com.donggree.user.internal.infrastructure;
 
+import com.donggree.global.logging.RequestDiagnostics;
 import com.donggree.user.internal.application.SchoolEmailMailDeliveryService;
+import com.donggree.user.internal.application.SchoolEmailTelemetry;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
@@ -8,8 +10,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +21,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 public class SchoolEmailMailDispatcher {
-    private static final Logger log = LoggerFactory.getLogger(SchoolEmailMailDispatcher.class);
     private final SchoolEmailMailDeliveryService deliveries;
     private final InMemorySchoolEmailMailQueue queue;
     private final boolean enabled;
@@ -33,6 +32,7 @@ public class SchoolEmailMailDispatcher {
     public SchoolEmailMailDispatcher(
             SchoolEmailMailDeliveryService deliveries,
             InMemorySchoolEmailMailQueue queue,
+            SchoolEmailTelemetry telemetry,
             @Value("${app.mail.enabled:false}") boolean enabled,
             @Value("${app.school-email.mail-queue.workers:3}") int workers) {
         if (workers < 1) throw new IllegalArgumentException("메일 워커 수는 1 이상이어야 합니다.");
@@ -41,6 +41,8 @@ public class SchoolEmailMailDispatcher {
         this.enabled = enabled;
         this.workers = workers;
         this.available = new Semaphore(workers);
+        telemetry.gauge("donggree.mail.workers.active", () -> workers - available.availablePermits());
+        telemetry.gauge("donggree.mail.workers.capacity", () -> workers);
         var sequence = new AtomicInteger();
         executor = new ThreadPoolExecutor(workers, workers, 0, TimeUnit.SECONDS, new SynchronousQueue<>(), runnable -> {
             var thread = new Thread(runnable, "school-email-mail-" + sequence.incrementAndGet());
@@ -69,7 +71,7 @@ public class SchoolEmailMailDispatcher {
                             // SMTP 통신은 전용 워커에서만 수행한다.
                         }
                     } catch (RuntimeException exception) {
-                        log.warn("학교 이메일 큐 처리에 실패했습니다.");
+                        RequestDiagnostics.backgroundFailure("school_email_dispatch", exception);
                     } finally {
                         available.release();
                     }

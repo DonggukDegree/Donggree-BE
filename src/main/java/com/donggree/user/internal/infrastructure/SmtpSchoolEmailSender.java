@@ -1,8 +1,8 @@
 package com.donggree.user.internal.infrastructure;
 
-import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.internal.application.SchoolEmailSender;
-import com.donggree.user.internal.application.exception.SchoolEmailErrorCode;
+import com.donggree.user.internal.application.exception.SchoolEmailSendException;
+import com.donggree.user.internal.application.exception.SchoolEmailSendException.Reason;
 import jakarta.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
 import org.springframework.beans.factory.ObjectProvider;
@@ -31,7 +31,7 @@ public class SmtpSchoolEmailSender implements SchoolEmailSender {
     public void send(String email, String code) {
         JavaMailSender sender = senders.getIfAvailable();
         if (!enabled || from.isBlank() || sender == null) {
-            throw new GeneralException(SchoolEmailErrorCode.SEND_UNAVAILABLE);
+            throw new SchoolEmailSendException(Reason.CONFIGURATION);
         }
         try {
             var message = sender.createMimeMessage();
@@ -43,7 +43,31 @@ public class SmtpSchoolEmailSender implements SchoolEmailSender {
             sender.send(message);
         } catch (MessagingException | UnsupportedEncodingException | MailException exception) {
             // SMTP 예외에는 주소·서버 정보가 포함될 수 있어 외부 응답이나 공용 예외 로그에 전달하지 않는다.
-            throw new GeneralException(SchoolEmailErrorCode.SEND_UNAVAILABLE);
+            throw new SchoolEmailSendException(classify(exception));
         }
+    }
+
+    private Reason classify(Exception exception) {
+        var pending = new java.util.ArrayDeque<Throwable>();
+        var visited = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Throwable, Boolean>());
+        pending.add(exception);
+        Reason reason = Reason.UNKNOWN;
+        for (int depth = 0; !pending.isEmpty() && depth < 32; depth++) {
+            Throwable current = pending.removeFirst();
+            if (!visited.add(current)) continue;
+            if (current instanceof org.springframework.mail.MailAuthenticationException
+                    || current instanceof jakarta.mail.AuthenticationFailedException) return Reason.AUTHENTICATION;
+            if (current instanceof java.net.SocketTimeoutException) return Reason.TIMEOUT;
+            if (current instanceof java.net.ConnectException || current instanceof java.net.UnknownHostException)
+                reason = Reason.CONNECTION;
+            else if (reason == Reason.UNKNOWN && current instanceof org.springframework.mail.MailSendException)
+                reason = Reason.SEND_FAILURE;
+            if (current.getCause() != null) pending.add(current.getCause());
+            if (current instanceof MessagingException mail && mail.getNextException() != null)
+                pending.add(mail.getNextException());
+            if (current instanceof org.springframework.mail.MailSendException mail)
+                pending.addAll(java.util.Arrays.asList(mail.getMessageExceptions()));
+        }
+        return reason;
     }
 }

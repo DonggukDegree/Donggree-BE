@@ -23,6 +23,26 @@ public final class RequestDiagnostics {
 
     public record Failure(String code, String stage, String reason, Throwable cause) {}
 
+    /** 이메일 요청의 제한 초과를 같은 회원·수신 대상과 연결한다. 원문 식별자는 받지 않는다. */
+    public static void emailAttempt(String actorKey, String recipientKey) {
+        HttpServletRequest request = currentRequest();
+        if (request == null) return;
+        if (actorKey != null && actorKey.matches("[a-f0-9]{64}")) request.setAttribute("actor_key", actorKey);
+        if (recipientKey != null && recipientKey.matches("[a-f0-9]{64}"))
+            request.setAttribute("recipient_key", recipientKey);
+    }
+
+    /** 비동기 작업 실패에서도 예외 메시지 없이 종류와 코드 위치만 기록한다. */
+    public static void backgroundFailure(String stage, Throwable cause) {
+        try {
+            var event = LOG.atError().addKeyValue("event", "background_failure").addKeyValue("stage", stage);
+            exceptionFields(event, cause);
+            event.log("백그라운드 작업 실패");
+        } catch (RuntimeException ignored) {
+            // 관측 실패로 작업 처리를 중단하지 않는다.
+        }
+    }
+
     /** reason은 서버가 정의한 설명만 전달한다. 예외 메시지나 사용자 입력을 전달하지 않는다. */
     public static void failure(HttpServletRequest request, String code, String stage, String reason, Throwable cause) {
         request.setAttribute(FAILURE, new Failure(code, stage, reason, cause));
@@ -78,6 +98,10 @@ public final class RequestDiagnostics {
                 .addKeyValue("reason", failure.reason());
         Object auth = request.getAttribute(AUTH_REASON);
         if (auth != null) event.addKeyValue("auth_reason", auth);
+        for (String key : new String[] {"actor_key", "recipient_key"}) {
+            if (request.getAttribute(key) instanceof String value && value.matches("[a-f0-9]{64}"))
+                event.addKeyValue(key, value);
+        }
         exceptionFields(event, failure.cause());
         event.log("요청 처리 실패");
     }
@@ -102,7 +126,8 @@ public final class RequestDiagnostics {
                 : null;
     }
 
-    private static void exceptionFields(LoggingEventBuilder event, Throwable cause) {
+    /** 공용 구조화 로그에 원문 메시지를 제외한 진단 필드만 추가한다. */
+    public static void exceptionFields(LoggingEventBuilder event, Throwable cause) {
         if (cause == null) return;
         event.addKeyValue("exception_type", cause.getClass().getName());
         StringBuilder stack = new StringBuilder();

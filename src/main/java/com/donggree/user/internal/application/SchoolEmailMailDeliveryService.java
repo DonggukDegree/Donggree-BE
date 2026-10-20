@@ -14,6 +14,7 @@ public class SchoolEmailMailDeliveryService {
     private final SchoolEmailMailQueue queue;
     private final SchoolEmailVerificationStore verifications;
     private final SchoolEmailSender sender;
+    private final SchoolEmailTelemetry telemetry;
 
     public boolean hasWork() {
         return queue.hasWork();
@@ -25,16 +26,31 @@ public class SchoolEmailMailDeliveryService {
         if (next.isEmpty()) return false;
         var delivery = next.get();
         // 선점 전에 새 요청으로 교체되거나 탈퇴·인증이 완료된 작업은 발송하지 않는다.
-        if (!verifications.startDelivery(delivery.memberId(), delivery.requestId())) return true;
+        if (!verifications.startDelivery(delivery.memberId(), delivery.requestId())) {
+            telemetry.record(SchoolEmailTelemetry.Action.SKIPPED, delivery, 0, null);
+            return true;
+        }
+        telemetry.record(
+                SchoolEmailTelemetry.Action.STARTED,
+                delivery,
+                Math.max(0, System.nanoTime() - delivery.queuedAtNanos()),
+                null);
+        long started = System.nanoTime();
         boolean succeeded = false;
+        RuntimeException failure = null;
         try {
             sender.send(delivery.email(), delivery.code());
             succeeded = true;
         } catch (RuntimeException exception) {
-            // SMTP 예외·수신 주소·인증 코드를 공용 로그에 남기지 않는다.
+            failure = exception;
         }
         verifications.completeDelivery(
                 delivery.memberId(), delivery.requestId(), succeeded, LocalDateTime.now(ZoneOffset.UTC));
+        telemetry.record(
+                succeeded ? SchoolEmailTelemetry.Action.SENT : SchoolEmailTelemetry.Action.FAILED,
+                delivery,
+                System.nanoTime() - started,
+                failure);
         return true;
     }
 }

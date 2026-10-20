@@ -3,6 +3,9 @@ global:
   external_labels:
     application: donggree
 
+rule_files:
+  - /etc/prometheus/alerts.yml
+
 scrape_configs:
   # ── 동그리 백엔드 ──────────────────────────────────────────────
   # 환경마다 바뀌는 유일한 줄: target.
