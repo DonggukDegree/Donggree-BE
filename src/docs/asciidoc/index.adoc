@@ -58,6 +58,8 @@ operation::school-email-status[]
 
 ==== 학교 이메일 인증 코드 요청
 
+PDF 본인인증과 학교 이메일 인증은 별도 상태다. PDF 본인인증 회원도 요청할 수 있고, 이미 학교 이메일 인증을 완료한 회원은 409(EMAIL409_1)를 반환한다.
+
 operation::school-email-request-code[]
 
 ==== 학교 이메일 인증 코드 확인

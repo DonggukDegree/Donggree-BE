@@ -110,7 +110,8 @@ public class SchoolEmailVerificationCommandService {
         if (!member.hasCompletedOnboarding()) {
             throw new GeneralException(UserErrorCode.NOT_ONBOARDED);
         }
-        if (member.isIdentityVerified() || member.isSchoolEmailVerified()) {
+        // PDF 본인인증과 학교 이메일 인증은 별도 상태이므로 학교 이메일 완료 여부만 막는다.
+        if (member.isSchoolEmailVerified()) {
             throw new GeneralException(SchoolEmailErrorCode.ALREADY_VERIFIED);
         }
         return member;

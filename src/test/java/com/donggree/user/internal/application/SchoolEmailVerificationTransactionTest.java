@@ -214,14 +214,18 @@ class SchoolEmailVerificationTransactionTest {
     }
 
     @Test
-    void 기존_본인인증_회원은_추가_이메일인증이_필요없다() {
+    void PDF_본인인증_회원도_학교이메일을_인증하고_두_상태를_모두_유지한다() {
         new TransactionTemplate(transactions)
                 .executeWithoutResult(
                         status -> members.findById(memberId).orElseThrow().verifyIdentity());
         assertThat(queries.getSchoolEmailVerification(memberId).identityVerified())
                 .isTrue();
+        request("student");
+        confirm("student", sentCode.get());
+        var member = members.findById(memberId).orElseThrow();
+        assertThat(member.isIdentityVerified()).isTrue();
+        assertThat(member.isSchoolEmailVerified()).isTrue();
         assertError(() -> request("student"), SchoolEmailErrorCode.ALREADY_VERIFIED);
-        verifyNoInteractions(sender);
     }
 
     @Test
