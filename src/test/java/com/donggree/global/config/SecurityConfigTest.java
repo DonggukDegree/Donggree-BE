@@ -183,6 +183,12 @@ class SecurityConfigTest {
     @MockitoBean
     private com.donggree.support.internal.application.FaqCommandService faqCommandService;
 
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceQueryService placeQueryService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceCommandService placeCommandService;
+
     @TestConfiguration
     static class TestConfig {
         @Bean
@@ -349,6 +355,19 @@ class SecurityConfigTest {
     @Test
     void FAQ_조회는_인증_없이_접근할_수_있다() throws Exception {
         mockMvc.perform(get("/api/faqs")).andExpect(status().isOk());
+    }
+
+    // 동글맵은 열람도 로그인 회원만 가능하다. 쓰기의 학생 인증 여부는 응용 서비스가 검증한다.
+    @Test
+    void 동글맵_장소_API는_로그인이_필요하다() throws Exception {
+        mockMvc.perform(get("/api/places")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/places")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/places").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isOk());
+        verifyNoInteractions(placeCommandService);
     }
 
     // 읽기를 연 것이 쓰기까지 열어버리지 않았는지 확인한다. (쓰기는 /api/admin/faqs)
