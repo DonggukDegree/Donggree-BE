@@ -79,7 +79,7 @@ class UserControllerTest extends RestDocsSupport {
                 .setAuthentication(new UsernamePasswordAuthenticationToken(memberId, null, Collections.emptyList()));
 
         given(userQueryService.getUserInfo(memberId))
-                .willReturn(new UserInfoReadModel("2023123456", "하승연", "하승연", false));
+                .willReturn(new UserInfoReadModel("2023123456", "하승연", "하승연", false, true));
 
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk())
@@ -89,6 +89,7 @@ class UserControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.result.name").value("하승연"))
                 .andExpect(jsonPath("$.result.nickname").value("하승연"))
                 .andExpect(jsonPath("$.result.identityVerified").value(false))
+                .andExpect(jsonPath("$.result.schoolEmailVerified").value(true))
                 .andDo(document(
                         "user-info",
                         responseFields(
@@ -98,7 +99,8 @@ class UserControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.studentId").description("학번"),
                                 fieldWithPath("result.name").description("이름"),
                                 fieldWithPath("result.nickname").description("닉네임"),
-                                fieldWithPath("result.identityVerified").description("본인 인증 완료 여부"))));
+                                fieldWithPath("result.identityVerified").description("PDF 본인 인증 완료 여부"),
+                                fieldWithPath("result.schoolEmailVerified").description("학교 이메일 인증 완료 여부"))));
     }
 
     @Test
@@ -110,7 +112,7 @@ class UserControllerTest extends RestDocsSupport {
         UserInfoUpdateRequest request = new UserInfoUpdateRequest("2023123456", "하승연", "동동이");
 
         given(userCommandService.updateUserInfo(memberId, "2023123456", "하승연", "동동이"))
-                .willReturn(new UserInfoReadModel("2023123456", "하승연", "동동이", false));
+                .willReturn(new UserInfoReadModel("2023123456", "하승연", "동동이", false, true));
 
         mockMvc.perform(patch("/api/users/me")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -122,6 +124,7 @@ class UserControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.result.name").value("하승연"))
                 .andExpect(jsonPath("$.result.nickname").value("동동이"))
                 .andExpect(jsonPath("$.result.identityVerified").value(false))
+                .andExpect(jsonPath("$.result.schoolEmailVerified").value(true))
                 .andDo(document(
                         "user-info-update",
                         requestFields(
@@ -135,7 +138,8 @@ class UserControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.studentId").description("학번"),
                                 fieldWithPath("result.name").description("이름"),
                                 fieldWithPath("result.nickname").description("닉네임"),
-                                fieldWithPath("result.identityVerified").description("본인 인증 완료 여부"))));
+                                fieldWithPath("result.identityVerified").description("PDF 본인 인증 완료 여부"),
+                                fieldWithPath("result.schoolEmailVerified").description("학교 이메일 인증 완료 여부"))));
     }
 
     @Test
