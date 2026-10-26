@@ -28,6 +28,8 @@ abstract class MigrationDatabase {
             "faq",
             "graduation_rule",
             "member",
+            "place",
+            "place_menu",
             "requirement_set",
             "requirement_set_rule",
             "rule_type",
@@ -108,6 +110,11 @@ abstract class MigrationDatabase {
     Map<String, String> dataSnapshot() throws SQLException {
         Map<String, String> snapshot = new LinkedHashMap<>();
         for (String table : TABLES) {
+            // 이후 버전에서 생기는 테이블은 baseline 전 스냅샷에서 빈 테이블과 같게 본다.
+            if (scalar("SELECT to_regclass('public." + table + "')") == null) {
+                snapshot.put(table, "[]");
+                continue;
+            }
             snapshot.put(
                     table,
                     scalar("SELECT coalesce(jsonb_agg("
