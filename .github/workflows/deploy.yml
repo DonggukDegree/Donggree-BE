@@ -29,7 +29,7 @@ jobs:
         run: |
           cd "$REPO_DIR"
           git fetch --all --prune
-          git reset --hard origin/dev
+          git reset --hard origin/main
 
       - name: Build Spring Boot image
         run: |
