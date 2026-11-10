@@ -131,6 +131,11 @@ public class Member extends BaseEntity {
         return schoolEmailVerifiedAt != null;
     }
 
+    /** PDF 본인인증 또는 학교 이메일 인증 중 하나라도 완료했으면 인증된 학생으로 본다. */
+    public boolean isStudentVerified() {
+        return identityVerified || isSchoolEmailVerified();
+    }
+
     public void verifySchoolEmail(SchoolEmailAddress address, LocalDateTime verifiedAt) {
         this.schoolEmail = address.value();
         this.schoolEmailVerifiedAt = java.util.Objects.requireNonNull(verifiedAt);
