@@ -1,18 +1,25 @@
 package com.donggree.graduation.internal.presentation.dto;
 
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * GET /api/reports/{reportId} 응답 DTO.
- * summary: 졸업 달성률 요약 / areaOverviews: courseType별 이수 현황
- */
-public record GraduationReportResponse(Summary summary, List<AreaOverview> areaOverviews) {
+/** 학업 리포트 HTTP 계약. 응용 계층의 읽기 모델을 중첩 항목까지 명시적으로 변환한다. */
+public record GraduationReportResponse(
+        Summary summary,
+        List<AreaOverview> areaOverviews,
+        boolean hasUnsupportedMajor,
+        Boolean englishPassed,
+        List<AdditionalNotice> additionalNotices) {
+    public static GraduationReportResponse from(GraduationReportReadModel source) {
+        return new GraduationReportResponse(
+                Summary.from(source.summary()),
+                source.areaOverviews().stream().map(AreaOverview::from).toList(),
+                source.hasUnsupportedMajor(),
+                source.englishPassed(),
+                source.additionalNotices().stream().map(AdditionalNotice::from).toList());
+    }
 
-    /**
-     * 졸업 요건 전체 요약.
-     * unsatisfiedReasons: GRADUATION_REQ 카테고리에서 미충족된 rule_name 목록
-     */
     public record Summary(
             int achievementRate,
             int earnedCredits,
@@ -20,14 +27,48 @@ public record GraduationReportResponse(Summary summary, List<AreaOverview> areaO
             int remainingCredits,
             BigDecimal gpa,
             boolean graduated,
-            List<String> unsatisfiedReasons) {}
+            List<String> unsatisfiedReasons) {
+        static Summary from(GraduationReportReadModel.Summary source) {
+            return new Summary(
+                    source.achievementRate(),
+                    source.earnedCredits(),
+                    source.targetCredits(),
+                    source.remainingCredits(),
+                    source.gpa(),
+                    source.graduated(),
+                    source.unsatisfiedReasons());
+        }
+    }
 
-    /**
-     * courseType별 이수 현황.
-     * achievementRate: MIN_AREA_CREDITS 기준 학점 달성률 (earnedCredits / targetCredits × 100, max 100)
-     * remainingCredits: max(0, targetCredits - earnedCredits)
-     * satisfied: 해당 courseType에 적용되는 모든 MIN_AREA_CREDITS 규칙 충족 여부
-     */
     public record AreaOverview(
-            String courseType, String courseTypeName, int achievementRate, int remainingCredits, boolean satisfied) {}
+            String courseType, String courseTypeName, int achievementRate, int remainingCredits, boolean satisfied) {
+        static AreaOverview from(GraduationReportReadModel.AreaOverview source) {
+            return new AreaOverview(
+                    source.courseType(),
+                    source.courseTypeName(),
+                    source.achievementRate(),
+                    source.remainingCredits(),
+                    source.satisfied());
+        }
+    }
+
+    public record AdditionalNotice(
+            Long requirementSetId,
+            String collegeName,
+            String departmentName,
+            String track,
+            int yearStart,
+            int yearEnd,
+            String content) {
+        static AdditionalNotice from(GraduationReportReadModel.AdditionalNotice source) {
+            return new AdditionalNotice(
+                    source.requirementSetId(),
+                    source.collegeName(),
+                    source.departmentName(),
+                    source.track(),
+                    source.yearStart(),
+                    source.yearEnd(),
+                    source.content());
+        }
+    }
 }

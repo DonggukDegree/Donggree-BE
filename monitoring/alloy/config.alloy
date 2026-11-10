@@ -1,0 +1,47 @@
+// Grafana Alloy 로그 수집 설정.
+// 호스트의 도커 소켓을 읽어 모든 컨테이너 로그를 발견하고 Loki 로 전달한다.
+//
+// 흐름:  docker.sock 컨테이너 발견 → 컨테이너명 라벨링 → 로그 읽기 → loki.write 로 전송
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// 실행 중인 도커 컨테이너 목록을 발견
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// 컨테이너 이름(앞의 "/" 제거)을 container 라벨로 붙인다 → Grafana 에서 필터용
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // 모니터링 도구들 자기 로그는 앱 로그가 아니라 노이즈이므로 수집에서 제외한다.
+  // (이 컨테이너들의 로그가 필요하면 `docker compose logs <이름>` 으로 직접 본다.)
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/donggree-(alloy|grafana|loki|prometheus|tempo|node-exporter)"
+    action        = "drop"
+  }
+}
+
+// 발견된 컨테이너들의 로그를 읽어 Loki 로 흘려보낸다
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  labels     = { job = "docker" }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

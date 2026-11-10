@@ -5,17 +5,19 @@ import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.LoginMemberId;
-import com.donggree.transcript.internal.application.CourseRecordCreateData;
-import com.donggree.transcript.internal.application.TranscriptCreateResult;
-import com.donggree.transcript.internal.application.TranscriptParseResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
-import com.donggree.transcript.internal.application.TranscriptService;
-import com.donggree.transcript.internal.application.TranscriptUpdateResult;
+import com.donggree.transcript.internal.application.TranscriptCommandService;
+import com.donggree.transcript.internal.application.TranscriptUploadTelemetry;
+import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
+import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
+import com.donggree.transcript.internal.application.command.TranscriptParseResult;
+import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
 import com.donggree.transcript.internal.application.exception.TranscriptErrorCode;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.TranscriptCreateData;
+import com.donggree.transcript.internal.application.query.TranscriptQueryService;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawSemesterGroup;
 import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateResponse;
 import com.donggree.transcript.internal.presentation.dto.TranscriptCreateResponse;
@@ -24,7 +26,7 @@ import com.donggree.transcript.internal.presentation.dto.TranscriptReportRespons
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.Meta;
 import com.donggree.transcript.internal.presentation.dto.TranscriptReportResponse.SemesterCourses;
 import com.donggree.transcript.internal.presentation.swagger.TranscriptApi;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.user.UserIdentityService;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
@@ -46,14 +48,16 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class TranscriptController implements TranscriptApi {
 
-    private final TranscriptService transcriptService;
+    private final TranscriptQueryService transcriptQueryService;
+    private final TranscriptCommandService transcriptCommandService;
     private final CurriculumLookupService curriculumLookupService;
-    private final MemberIdentityService memberIdentityService;
+    private final UserIdentityService memberIdentityService;
+    private final TranscriptUploadTelemetry telemetry;
 
     @Override
     @GetMapping
     public ApiResponse<TranscriptReportResponse> getTranscriptReport(@LoginMemberId Long memberId) {
-        TranscriptQueryResult raw = transcriptService.getTranscriptRawReport(memberId);
+        TranscriptReportReadModel raw = transcriptQueryService.getTranscriptRawReport(memberId);
 
         List<Long> deptIds = Stream.of(
                         raw.meta().departmentId(),
@@ -68,12 +72,13 @@ public class TranscriptController implements TranscriptApi {
         Map<Long, String> deptNameMap = curriculumLookupService.findDepartmentNamesByIds(deptIds);
         String collegeName = curriculumLookupService
                 .findCollegeNameByDepartmentId(raw.meta().departmentId())
-                .orElse(null);
+                .orElse(raw.meta().pdfCollegeName());
+        String departmentName = deptName(deptNameMap, raw.meta().departmentId());
 
         Meta meta = new Meta(
                 raw.meta().admissionYear(),
                 collegeName,
-                deptName(deptNameMap, raw.meta().departmentId()),
+                departmentName != null ? departmentName : raw.meta().pdfDepartment(),
                 deptName(deptNameMap, raw.meta().subMajor1Id()),
                 deptName(deptNameMap, raw.meta().subMajor2Id()),
                 deptName(deptNameMap, raw.meta().dualMajor1Id()),
@@ -81,6 +86,8 @@ public class TranscriptController implements TranscriptApi {
                 raw.meta().academicStatus(),
                 raw.meta().totalCredits(),
                 raw.meta().gpa(),
+                raw.meta().majorGpa(),
+                raw.meta().dualMajor1Gpa(),
                 raw.meta().completedSemesters(),
                 raw.meta().createdAt(),
                 raw.meta().updatedAt());
@@ -100,7 +107,7 @@ public class TranscriptController implements TranscriptApi {
             throw new GeneralException(TranscriptErrorCode.PDF_FILE_REQUIRED);
         }
         try {
-            TranscriptParseResult parseResult = transcriptService.parseTranscript(file.getBytes());
+            TranscriptParseResult parseResult = transcriptCommandService.parseTranscript(file.getBytes());
             ParsedTranscriptData parsed = parseResult.parsedData();
             Map<String, String> meta = parsed.meta();
 
@@ -117,25 +124,29 @@ public class TranscriptController implements TranscriptApi {
             }
             memberIdentityService.validatePdfOwner(memberId, pdfStudentId, pdfName);
 
-            Long deptId = resolveDepartmentId(meta.get("학과"));
+            // 학과 연결 실패는 졸업 판정만 제한한다. 본인 확인을 마친 성적표와 원문은 보존한다.
+            Long deptId = curriculumLookupService
+                    .findDepartmentId(
+                            meta.get("학과"), parsed.admissionYear(), parsed.engineeringCertified(), meta.get("대학"))
+                    .orElse(null);
             Long sub1Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("부전공1"))
+                    .findDepartmentId(meta.get("부전공1"), parsed.admissionYear(), false, null)
                     .orElse(null);
             Long sub2Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("부전공2"))
+                    .findDepartmentId(meta.get("부전공2"), parsed.admissionYear(), false, null)
                     .orElse(null);
             Long dual1Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("복수1"))
+                    .findDepartmentId(meta.get("복수1"), parsed.admissionYear(), true, null)
                     .orElse(null);
             Long dual2Id = curriculumLookupService
-                    .findDepartmentIdByName(meta.get("복수2"))
+                    .findDepartmentId(meta.get("복수2"), parsed.admissionYear(), true, null)
                     .orElse(null);
 
-            TranscriptCreateData createData = transcriptService.buildCreateData(
+            TranscriptCreateData createData = transcriptCommandService.buildCreateData(
                     memberId, parseResult.rawDataJson(), parsed, deptId, sub1Id, sub2Id, dual1Id, dual2Id);
 
-            List<CourseRecordCreateData> courses = parsed.courses().stream()
-                    .map(c -> new CourseRecordCreateData(
+            List<CourseRecordCreateCommand> courses = parsed.courses().stream()
+                    .map(c -> new CourseRecordCreateCommand(
                             c.semester(),
                             c.category(),
                             (c.area() == null || c.area().isBlank()) ? null : c.area(),
@@ -147,13 +158,26 @@ public class TranscriptController implements TranscriptApi {
                     .toList();
 
             TranscriptCreateResult result =
-                    transcriptService.createTranscript(createData, courses, pdfStudentId, pdfName);
+                    transcriptCommandService.createTranscript(createData, courses, pdfStudentId, pdfName);
+            telemetry.saved(
+                    file.getSize(),
+                    courses.size(),
+                    result.creditGap(),
+                    parseResult.gradeReviewCourses().size(),
+                    deptId != null);
             return ApiResponse.onSuccess(
                     GeneralSuccessCode.CREATED,
-                    new TranscriptCreateResponse(result.totalCredits(), result.recordedCredits(), result.creditGap()));
+                    new TranscriptCreateResponse(
+                            result.totalCredits(),
+                            result.recordedCredits(),
+                            result.creditGap(),
+                            parseResult.gradeReviewCourses().stream()
+                                    .map(c -> new TranscriptCreateResponse.GradeReviewCourse(
+                                            c.semester(), c.courseCode(), c.courseName()))
+                                    .toList()));
 
         } catch (IOException e) {
-            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE);
+            throw new GeneralException(TranscriptErrorCode.INVALID_PDF_FILE, e, "pdf_upload_read");
         }
     }
 
@@ -161,10 +185,10 @@ public class TranscriptController implements TranscriptApi {
     @PatchMapping
     public ApiResponse<CourseRecordUpdateResponse> updateCourseRecords(
             @LoginMemberId Long memberId, @Valid @RequestBody CourseRecordUpdateRequest request) {
-        List<CourseRecordCreateData> courses = request.courses().stream()
+        List<CourseRecordCreateCommand> courses = request.courses().stream()
                 .map(item -> {
                     try {
-                        return new CourseRecordCreateData(
+                        return new CourseRecordCreateCommand(
                                 item.semester(),
                                 item.courseType(),
                                 (item.areaName() == null || item.areaName().isBlank()) ? null : item.areaName(),
@@ -174,12 +198,12 @@ public class TranscriptController implements TranscriptApi {
                                 Grade.fromValue(item.grade()),
                                 item.retake());
                     } catch (IllegalArgumentException e) {
-                        throw new GeneralException(TranscriptErrorCode.INVALID_COURSE_DATA);
+                        throw new GeneralException(TranscriptErrorCode.INVALID_COURSE_DATA, e, "course_validation");
                     }
                 })
                 .toList();
 
-        TranscriptUpdateResult result = transcriptService.replaceCourseRecords(memberId, courses);
+        TranscriptUpdateResult result = transcriptCommandService.replaceCourseRecords(memberId, courses);
 
         List<SemesterCourses> updatedCourses = result.semesterGroups().stream()
                 .map(g -> new SemesterCourses(g.semester(), toCourseRecords(g)))
@@ -188,13 +212,6 @@ public class TranscriptController implements TranscriptApi {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.OK,
                 new CourseRecordUpdateResponse(result.totalCredits(), result.gpa(), updatedCourses));
-    }
-
-    private Long resolveDepartmentId(String departmentName) {
-        if (departmentName == null || departmentName.isBlank()) return null;
-        return curriculumLookupService
-                .findDepartmentIdByName(departmentName)
-                .orElseThrow(() -> new GeneralException(TranscriptErrorCode.DEPARTMENT_NOT_FOUND));
     }
 
     private String deptName(Map<Long, String> map, Long id) {

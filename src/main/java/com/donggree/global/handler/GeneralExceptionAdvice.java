@@ -3,9 +3,10 @@ package com.donggree.global.handler;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.global.logging.RequestDiagnostics;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -16,21 +17,21 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-@Slf4j
 @RestControllerAdvice
 public class GeneralExceptionAdvice {
 
     // 애플리케이션에서 발생하는 커스텀 예외를 처리
     @ExceptionHandler(GeneralException.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(GeneralException ex) {
-
+    public ResponseEntity<ApiResponse<Void>> handleException(GeneralException ex, HttpServletRequest request) {
+        RequestDiagnostics.failure(
+                request, ex.getCode().getCode(), ex.getStage(), ex.getCode().getMessage(), ex);
         return ResponseEntity.status(ex.getCode().getStatus()).body(ApiResponse.onFailure(ex.getCode()));
     }
 
     // 컨트롤러 메서드에서 @Valid 어노테이션을 사용하여 DTO의 유효성 검사를 수행
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<ApiResponse<Map<String, String>>> handleMethodArgumentNotValidException(
-            MethodArgumentNotValidException ex) {
+            MethodArgumentNotValidException ex, HttpServletRequest request) {
         // 검사에 실패한 필드와 그에 대한 메시지를 저장하는 Map
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult()
@@ -38,6 +39,7 @@ public class GeneralExceptionAdvice {
                 .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
         GeneralErrorCode code = GeneralErrorCode.VALID_FAIL;
+        RequestDiagnostics.failure(request, code.getCode(), "validation", code.getMessage(), ex);
         ApiResponse<Map<String, String>> errorResponse = ApiResponse.onFailure(code, errors);
 
         // 에러 코드, 메시지와 함께 errors를 반환
@@ -50,35 +52,36 @@ public class GeneralExceptionAdvice {
     // - MissingRequestCookieException: 필수 쿠키 누락 (예: /auth/refresh 호출 시 refreshToken 쿠키 없음)
     // - HttpMessageNotReadableException: 요청 본문 누락 또는 JSON 형식 오류
     // 이전에는 이들이 미처리 예외로 빠져 500으로 응답되던 문제를 바로잡는다.
-    // 디버깅을 위해 사유는 warn 레벨로만 기록한다(스택 트레이스 미기록).
+    // 입력값을 포함할 수 있는 원문 메시지 대신 원인 종류와 코드 위치를 공통 필터에서 기록한다.
     @ExceptionHandler({
         MethodArgumentTypeMismatchException.class,
         MissingServletRequestParameterException.class,
         MissingRequestCookieException.class,
         HttpMessageNotReadableException.class
     })
-    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex) {
-        log.warn("[BadRequest] {}", ex.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex, HttpServletRequest request) {
 
         GeneralErrorCode code = GeneralErrorCode.BAD_REQUEST;
+        RequestDiagnostics.failure(request, code.getCode(), "request_binding", code.getMessage(), ex);
         return ResponseEntity.status(code.getStatus()).body(ApiResponse.onFailure(code));
     }
 
     // 지원하지 않는 HTTP 메서드로 요청한 경우 405로 응답한다. (이전에는 500으로 빠지던 문제 수정)
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
-        log.warn("[MethodNotAllowed] {}", ex.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
 
         GeneralErrorCode code = GeneralErrorCode.METHOD_NOT_ALLOWED;
+        RequestDiagnostics.failure(request, code.getCode(), "routing", code.getMessage(), ex);
         return ResponseEntity.status(code.getStatus()).body(ApiResponse.onFailure(code));
     }
 
     // 그 외의 정의되지 않은 모든 예외 처리 (스택 트레이스를 로그에 기록)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
-        log.error("[UnhandledException] {}", ex.getMessage(), ex);
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception ex, HttpServletRequest request) {
 
         GeneralErrorCode code = GeneralErrorCode.INTERNAL_SERVER_ERROR;
+        RequestDiagnostics.failure(request, code.getCode(), "application", code.getMessage(), ex);
         return ResponseEntity.status(code.getStatus()).body(ApiResponse.onFailure(code));
     }
 }

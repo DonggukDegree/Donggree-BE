@@ -1,24 +1,39 @@
 package com.donggree.graduation.internal.presentation.dto;
 
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
 import java.util.List;
 
-/**
- * GET /api/reports/{reportId}?courseType={courseType} 응답 DTO.
- * areaDetails: courseType 내 areaName별 이수 현황
- * unsatisfiedReasons: 해당 courseType에서 미충족된 rule_name 목록
- * creditStatus: 해당 courseType 전체 학점 이수 현황
- */
+/** 영역별 이수 현황의 HTTP 계약. */
 public record AreaDetailResponse(
         List<AreaSection> areaDetails, List<String> unsatisfiedReasons, CreditStatus creditStatus) {
+    public static AreaDetailResponse from(AreaDetailReadModel source) {
+        return new AreaDetailResponse(
+                source.areaDetails().stream().map(AreaSection::from).toList(),
+                source.unsatisfiedReasons(),
+                CreditStatus.from(source.creditStatus()));
+    }
 
     public record AreaSection(
-            String areaName, int earnedCredits, int targetCredits, boolean satisfied, List<CourseItem> items) {}
+            String areaName, int earnedCredits, int targetCredits, boolean satisfied, List<CourseItem> items) {
+        static AreaSection from(AreaDetailReadModel.AreaSection source) {
+            return new AreaSection(
+                    source.areaName(),
+                    source.earnedCredits(),
+                    source.targetCredits(),
+                    source.satisfied(),
+                    source.items().stream().map(CourseItem::from).toList());
+        }
+    }
 
-    /**
-     * status: SATISFIED(필수 이수), UNSATISFIED(필수 미이수), OPTIONAL(선택 이수)
-     * detail: title이 alias(소분류명)인 경우 실제 수강 과목명 목록, 단일 과목이면 null
-     */
-    public record CourseItem(String title, int credit, String status, List<String> detail) {}
+    public record CourseItem(String title, int credit, String status, List<String> detail) {
+        static CourseItem from(AreaDetailReadModel.CourseItem source) {
+            return new CourseItem(source.title(), source.credit(), source.status(), source.detail());
+        }
+    }
 
-    public record CreditStatus(int earnedCredits, int targetCredits, int remainingCredits) {}
+    public record CreditStatus(int earnedCredits, int targetCredits, int remainingCredits) {
+        static CreditStatus from(AreaDetailReadModel.CreditStatus source) {
+            return new CreditStatus(source.earnedCredits(), source.targetCredits(), source.remainingCredits());
+        }
+    }
 }

@@ -1,0 +1,76 @@
+rule_files:
+  - alerts.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="donggree-backend"}'
+        values: '0+0x20'
+      - series: donggree_mail_queue_size
+        values: '36+0x20'
+      - series: donggree_mail_queue_capacity
+        values: '36+0x20'
+      - series: 'donggree_mail_events_total{action="failed"}'
+        values: '0+1x20'
+      - series: 'donggree_mail_events_total{action="sent"}'
+        values: '0+2x20'
+      - series: 'http_server_requests_seconds_count{status="500",uri="/api/reports/summary"}'
+        values: '0+2x20'
+      - series: 'http_server_requests_seconds_count{status="200",uri="/api/reports/summary"}'
+        values: '0+20x20'
+      - series: 'donggree_transcript_upload_total{quality="clean"}'
+        values: '0+2x20'
+      - series: 'donggree_transcript_upload_total{quality="credit_gap"}'
+        values: '0+1x20'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: DonggreeBackendDown
+        exp_alerts:
+          - exp_labels: {job: donggree-backend, severity: critical}
+            exp_annotations: {summary: 백엔드 메트릭 수집 실패}
+      - eval_time: 10m
+        alertname: DonggreeEmailFailureRate
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations: {summary: '최근 5분 SMTP 발송 실패율 20% 초과 (완료 5건 이상)'}
+      - eval_time: 10m
+        alertname: DonggreeEmailQueueFull
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations: {summary: 학교 이메일 대기열 포화 지속}
+      - eval_time: 10m
+        alertname: DonggreeEmailStalled
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: DonggreeServerErrors
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations: {summary: '최근 5분 API 서버 오류율 5% 초과 (20건 이상)'}
+      - eval_time: 10m
+        alertname: DonggreeTranscriptQuality
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations: {summary: '최근 15분 성적표 품질 확인 비율 20% 초과 (10건 이상)'}
+  - interval: 1m
+    input_series:
+      - series: donggree_mail_queue_size
+        values: '1+0x20'
+      - series: 'donggree_mail_events_total{action="failed"}'
+        values: '0+0.1x20'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: DonggreeEmailFailureRate
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: DonggreeEmailStalled
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: donggree_mail_queue_size
+        values: '1+0x20'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: DonggreeEmailStalled
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations: {summary: 대기 중인 이메일 작업의 발송 결과 정체}

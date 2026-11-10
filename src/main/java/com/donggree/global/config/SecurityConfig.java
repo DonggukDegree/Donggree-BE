@@ -4,6 +4,7 @@ import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.auth.JwtAuthFilter;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.global.logging.RequestDiagnostics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -55,7 +57,11 @@ public class SecurityConfig {
         "/swagger-resources/**",
         "/v3/api-docs/**",
         "/docs/**",
-        "/actuator/health"
+        "/actuator/health",
+        // Prometheus 가 메트릭을 수집(scrape)하는 엔드포인트. 인증 없이 접근 가능해야 한다.
+        // 운영에서는 리버스 프록시(Caddy)에서 외부의 /actuator/* 접근을 차단하고,
+        // 내부망의 Prometheus 컨테이너만 도달하도록 둔다. (또는 management.server.port 분리)
+        "/actuator/prometheus"
     };
 
     @Bean
@@ -82,6 +88,8 @@ public class SecurityConfig {
                     if (isLocal) {
                         auth.requestMatchers("/auth/test-login").permitAll();
                     }
+                    // FAQ는 비로그인 홈의 푸터에서도 들어올 수 있어야 하므로 읽기만 공개한다.
+                    auth.requestMatchers(HttpMethod.GET, "/api/faqs").permitAll();
                     // 관리자 영역은 경로 단위로 1차 방어한다. (SUPER_ADMIN 전용 엔드포인트는 컨트롤러의 @PreAuthorize로 2차 방어)
                     // RoleHierarchy에 의해 SUPER_ADMIN은 ADMIN 권한을 포함한다.
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
@@ -89,10 +97,16 @@ public class SecurityConfig {
                 })
                 // 인증/인가 실패도 일반 API와 동일한 ApiResponse 봉투(JSON)로 응답한다.
                 // (이전에는 sendError로 Spring 기본 에러 JSON이 나가 프론트가 code로 분기할 수 없었다.)
-                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) ->
-                                writeErrorResponse(response, GeneralErrorCode.UNAUTHORIZED, objectMapper))
-                        .accessDeniedHandler((request, response, accessDeniedException) ->
-                                writeErrorResponse(response, GeneralErrorCode.FORBIDDEN, objectMapper)))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
+                            RequestDiagnostics.failure(
+                                    request, "AUTH401_1", "authentication", "인증 정보 부재 또는 유효하지 않은 토큰", authException);
+                            writeErrorResponse(response, GeneralErrorCode.UNAUTHORIZED, objectMapper);
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            RequestDiagnostics.failure(
+                                    request, "AUTH403_1", "authorization", "요청 권한 부족", accessDeniedException);
+                            writeErrorResponse(response, GeneralErrorCode.FORBIDDEN, objectMapper);
+                        }))
                 .oauth2Login(oauth -> oauth.redirectionEndpoint(endpoint -> endpoint.baseUri("/oauth/callback/*"))
                         .userInfoEndpoint(userInfo -> userInfo.userService(oAuth2UserService))
                         .successHandler(oAuthSuccessHandler)
@@ -134,6 +148,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("X-Request-ID"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -13,12 +13,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.donggree.curriculum.internal.application.RequirementSetAdminService;
-import com.donggree.curriculum.internal.application.dto.RequirementSetCommand;
-import com.donggree.curriculum.internal.application.dto.RequirementSetResponse;
-import com.donggree.curriculum.internal.application.dto.RequirementSetSummaryResponse;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetRequest;
-import com.donggree.curriculum.internal.presentation.dto.RequirementSetUpdateRequest;
+import com.donggree.curriculum.internal.application.command.RequirementSetCommand;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetReadModel;
+import com.donggree.curriculum.internal.application.readmodel.RequirementSetSummaryReadModel;
+import com.donggree.curriculum.internal.application.requirementset.RequirementSetCommandService;
+import com.donggree.curriculum.internal.application.requirementset.RequirementSetQueryService;
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetRequest;
+import com.donggree.curriculum.internal.presentation.dto.requirementset.RequirementSetUpdateRequest;
 import com.donggree.global.support.RestDocsSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -29,27 +31,49 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 
 class AdminRequirementSetControllerTest extends RestDocsSupport {
 
-    private final RequirementSetAdminService service = Mockito.mock(RequirementSetAdminService.class);
+    private final RequirementSetQueryService requirementSetQueryService =
+            Mockito.mock(RequirementSetQueryService.class);
+    private final RequirementSetCommandService requirementSetCommandService =
+            Mockito.mock(RequirementSetCommandService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new AdminRequirementSetController(service);
+        return new AdminRequirementSetController(requirementSetQueryService, requirementSetCommandService);
     }
 
-    private RequirementSetResponse sample() {
-        return new RequirementSetResponse(
-                1L, 10L, "컴퓨터·AI학부", 2023, 2025, 1, "23~25학번 졸업 요건", "https://img/sheet.png", true, List.of(1L, 2L));
+    private RequirementSetReadModel sample() {
+        return new RequirementSetReadModel(
+                1L,
+                10L,
+                "컴퓨터·AI학부",
+                2023,
+                2025,
+                RequirementTrack.ALL,
+                1,
+                "23~25학번 졸업 요건",
+                "https://img/sheet.png",
+                true,
+                List.of(1L, 2L));
     }
 
-    private RequirementSetSummaryResponse summarySample() {
-        return new RequirementSetSummaryResponse(
-                1L, 10L, "컴퓨터·AI학부", 2023, 2025, 1, "23~25학번 졸업 요건", "https://img/sheet.png", true);
+    private RequirementSetSummaryReadModel summarySample() {
+        return new RequirementSetSummaryReadModel(
+                1L,
+                10L,
+                "컴퓨터·AI학부",
+                2023,
+                2025,
+                RequirementTrack.ALL,
+                1,
+                "23~25학번 졸업 요건",
+                "https://img/sheet.png",
+                true);
     }
 
     @Test
     void 졸업_요건_세트_목록을_조회한다() throws Exception {
-        given(service.search(10L, 2L, 2024)).willReturn(List.of(summarySample()));
+        given(requirementSetQueryService.search(10L, 2L, 2024)).willReturn(List.of(summarySample()));
 
         mockMvc.perform(get("/api/admin/requirement-sets")
                         .param("departmentId", "10")
@@ -74,6 +98,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                         .description("학과명 (없으면 null)"),
                                 fieldWithPath("result[].yearStart").description("적용 시작년도"),
                                 fieldWithPath("result[].yearEnd").description("적용 종료년도"),
+                                fieldWithPath("result[].track")
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정)"),
                                 fieldWithPath("result[].version").description("버전"),
                                 fieldWithPath("result[].description").optional().description("설명 (없으면 null)"),
                                 fieldWithPath("result[].sheetImageUrl")
@@ -84,7 +110,7 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
 
     @Test
     void 졸업_요건_세트_단건을_조회한다() throws Exception {
-        given(service.get(1L)).willReturn(sample());
+        given(requirementSetQueryService.get(1L)).willReturn(sample());
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/admin/requirement-sets/{id}", 1L))
                 .andExpect(status().isOk())
@@ -103,8 +129,13 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                         .description("학과명 (없으면 null)"),
                                 fieldWithPath("result.yearStart").description("적용 시작년도"),
                                 fieldWithPath("result.yearEnd").description("적용 종료년도"),
+                                fieldWithPath("result.track")
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정)"),
                                 fieldWithPath("result.version").description("버전"),
                                 fieldWithPath("result.description").optional().description("설명 (없으면 null)"),
+                                fieldWithPath("result.studentNotice")
+                                        .optional()
+                                        .description("학생 리포트에 표시할 추가 확인사항 (없으면 null)"),
                                 fieldWithPath("result.sheetImageUrl").optional().description("시트 이미지 URL (없으면 null)"),
                                 fieldWithPath("result.active").description("활성 여부"),
                                 fieldWithPath("result.graduationRuleIds").description("연결된 졸업 규칙 ID 목록"))));
@@ -113,8 +144,17 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
     @Test
     void 졸업_요건_세트를_생성한다() throws Exception {
         RequirementSetRequest request = new RequirementSetRequest(
-                "첨단융합대학", "컴퓨터·AI학부", 2023, 2025, "23~25학번 졸업 요건", "https://img/sheet.png", true, List.of(1L, 2L));
-        given(service.create(any(RequirementSetCommand.class))).willReturn(100L);
+                "첨단융합대학",
+                "컴퓨터·AI학부",
+                2023,
+                2025,
+                RequirementTrack.ADVANCED,
+                "23~25학번 심화과정 졸업 요건",
+                "https://img/sheet.png",
+                true,
+                List.of(1L, 2L));
+        given(requirementSetCommandService.create(any(RequirementSetCommand.class)))
+                .willReturn(100L);
 
         mockMvc.perform(RestDocumentationRequestBuilders.post("/api/admin/requirement-sets")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -128,7 +168,11 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                                 fieldWithPath("departmentName").description("학과명(있으면 재사용, 없으면 학과 신규 등록)"),
                                 fieldWithPath("yearStart").description("적용 시작년도"),
                                 fieldWithPath("yearEnd").description("적용 종료년도"),
+                                fieldWithPath("track")
+                                        .optional()
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정). 미지정 시 ALL"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
+                                fieldWithPath("studentNotice").optional().description("학생 리포트에 표시할 추가 확인사항 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),
                                 fieldWithPath("graduationRuleIds").optional().description("연결할 졸업 규칙 ID 목록")),
@@ -141,8 +185,8 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
 
     @Test
     void 졸업_요건_세트를_수정한다() throws Exception {
-        RequirementSetUpdateRequest request =
-                new RequirementSetUpdateRequest(2023, 2026, "수정된 설명", null, false, List.of(1L, 3L));
+        RequirementSetUpdateRequest request = new RequirementSetUpdateRequest(
+                2023, 2026, RequirementTrack.GENERAL, "수정된 설명", null, false, List.of(1L, 3L));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/admin/requirement-sets/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -155,7 +199,11 @@ class AdminRequirementSetControllerTest extends RestDocsSupport {
                         requestFields(
                                 fieldWithPath("yearStart").description("적용 시작년도"),
                                 fieldWithPath("yearEnd").description("적용 종료년도"),
+                                fieldWithPath("track")
+                                        .optional()
+                                        .description("적용 과정(ALL=과정 구분 없음, GENERAL=일반과정, ADVANCED=심화과정). 미지정 시 ALL"),
                                 fieldWithPath("description").optional().description("설명 (선택)"),
+                                fieldWithPath("studentNotice").optional().description("학생 리포트에 표시할 추가 확인사항 (선택)"),
                                 fieldWithPath("sheetImageUrl").optional().description("시트 이미지 URL (선택)"),
                                 fieldWithPath("active").optional().description("활성 여부 (미지정 시 true)"),
                                 fieldWithPath("graduationRuleIds").optional().description("연결할 졸업 규칙 ID 목록")),

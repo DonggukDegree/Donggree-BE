@@ -14,15 +14,16 @@ import com.donggree.curriculum.CourseType;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
-import com.donggree.graduation.internal.application.GraduationReportService;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.AreaSection;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.CourseItem;
-import com.donggree.graduation.internal.presentation.dto.AreaDetailResponse.CreditStatus;
-import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse;
-import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.AreaOverview;
-import com.donggree.graduation.internal.presentation.dto.GraduationReportResponse.Summary;
+import com.donggree.graduation.internal.application.query.GraduationQueryService;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.AreaSection;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.CourseItem;
+import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel.CreditStatus;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AdditionalNotice;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.AreaOverview;
+import com.donggree.graduation.internal.application.readmodel.GraduationReportReadModel.Summary;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -35,11 +36,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class GraduationReportControllerTest extends RestDocsSupport {
 
-    private final GraduationReportService graduationReportService = Mockito.mock(GraduationReportService.class);
+    private final GraduationQueryService graduationQueryService = Mockito.mock(GraduationQueryService.class);
 
     @Override
     protected Object initController() {
-        return new GraduationReportController(graduationReportService);
+        return new GraduationReportController(graduationQueryService);
     }
 
     @Override
@@ -70,8 +71,13 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 new AreaOverview("ACADEMIC_FOUNDATION", "학문기초", 90, 3, false),
                 new AreaOverview("FIRST_MAJOR", "제1전공", 80, 12, false));
 
-        given(graduationReportService.getReport(memberId))
-                .willReturn(new GraduationReportResponse(summary, areaOverviews));
+        given(graduationQueryService.getReport(memberId))
+                .willReturn(new GraduationReportReadModel(
+                        summary,
+                        areaOverviews,
+                        false,
+                        true,
+                        List.of(new AdditionalNotice(10L, "첨단융합대학", "컴퓨터·AI학부", "ADVANCED", 2023, 2025, "추가 안내 문구"))));
 
         mockMvc.perform(get("/api/reports/summary"))
                 .andExpect(status().isOk())
@@ -101,7 +107,29 @@ class GraduationReportControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.areaOverviews[].remainingCredits")
                                         .description("해당 영역의 잔여 학점"),
                                 fieldWithPath("result.areaOverviews[].satisfied")
-                                        .description("해당 영역의 요건 충족 여부"))));
+                                        .description("해당 영역의 요건 충족 여부"),
+                                fieldWithPath("result.hasUnsupportedMajor")
+                                        .description("복수전공 판정 누락·복수전공 2·부전공·편입으로 정확도 경고가 필요한지 여부"),
+                                fieldWithPath("result.englishPassed")
+                                        .description(
+                                                "영어패스제 결과 (PASS=true / FAIL=false / 미기재=null). 졸업 규칙으로 판정하지 않아 충족 여부에 영향이 없고, false일 때만 리포트 유의사항 문구를 띄운다."),
+                                fieldWithPath("result.additionalNotices[].requirementSetId")
+                                        .description("추가 확인사항이 설정된 졸업 요건 세트 ID"),
+                                fieldWithPath("result.additionalNotices[].collegeName")
+                                        .optional()
+                                        .description("단과대명"),
+                                fieldWithPath("result.additionalNotices[].departmentName")
+                                        .optional()
+                                        .description("학과명"),
+                                fieldWithPath("result.additionalNotices[].track")
+                                        .optional()
+                                        .description("적용 과정 (ALL, GENERAL, ADVANCED)"),
+                                fieldWithPath("result.additionalNotices[].yearStart")
+                                        .description("적용 시작 연도"),
+                                fieldWithPath("result.additionalNotices[].yearEnd")
+                                        .description("적용 종료 연도"),
+                                fieldWithPath("result.additionalNotices[].content")
+                                        .description("학생에게 표시할 추가 확인사항"))));
     }
 
     @Test
@@ -109,7 +137,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
         Long memberId = 999L;
         authenticate(memberId);
 
-        given(graduationReportService.getReport(memberId))
+        given(graduationQueryService.getReport(memberId))
                 .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
         mockMvc.perform(get("/api/reports/summary"))
@@ -123,7 +151,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
         Long memberId = 1L;
         authenticate(memberId);
 
-        given(graduationReportService.getReport(memberId))
+        given(graduationQueryService.getReport(memberId))
                 .willThrow(new GeneralException(GraduationErrorCode.REQUIREMENT_SET_NOT_FOUND));
 
         mockMvc.perform(get("/api/reports/summary"))
@@ -148,13 +176,20 @@ class GraduationReportControllerTest extends RestDocsSupport {
                 List.of(new CourseItem("불교와인간", 2, "SATISFIED", null), new CourseItem("자아와명상1", 2, "OPTIONAL", null));
         List<CourseItem> 자기계발Items = List.of(new CourseItem("진로탐색과비전", 1, "OPTIONAL", null));
 
-        List<AreaSection> areaSections =
-                List.of(new AreaSection("동국인성", 4, 0, true, 동국인성Items), new AreaSection("자기계발", 1, 0, true, 자기계발Items));
+        // 여러 영역을 합산해 판정하는 규칙(ex. 21세기시민·지역연구·미래위험사회와안전 중 2학점)은
+        // 목표학점을 어느 한 영역에 귀속시킬 수 없으므로 섹션 targetCredits는 0이고,
+        // 요건 자체는 unsatisfiedReasons에 규칙명으로 노출된다.
+        List<CourseItem> 지역연구Items = List.of(new CourseItem("동남아지역연구", 1, "OPTIONAL", null));
 
-        AreaDetailResponse response =
-                new AreaDetailResponse(areaSections, List.of("EAS2 이전에 EAS1을 선이수해야 합니다."), new CreditStatus(17, 17, 0));
+        List<AreaSection> areaSections = List.of(
+                new AreaSection("동국인성", 4, 0, true, 동국인성Items),
+                new AreaSection("자기계발", 1, 0, true, 자기계발Items),
+                new AreaSection("지역연구", 1, 0, false, 지역연구Items));
 
-        given(graduationReportService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
+        AreaDetailReadModel response = new AreaDetailReadModel(
+                areaSections, List.of("21세기시민·지역연구·미래위험사회와안전 중 2학점 이상 이수해야 합니다."), new CreditStatus(17, 17, 0));
+
+        given(graduationQueryService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
                 .willReturn(response);
 
         mockMvc.perform(get("/api/reports").param("courseType", "COMMON_GENERAL"))
@@ -200,7 +235,7 @@ class GraduationReportControllerTest extends RestDocsSupport {
         Long memberId = 999L;
         authenticate(memberId);
 
-        given(graduationReportService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
+        given(graduationQueryService.getAreaDetail(memberId, CourseType.COMMON_GENERAL))
                 .willThrow(new GeneralException(GraduationErrorCode.REPORT_NOT_FOUND));
 
         mockMvc.perform(get("/api/reports").param("courseType", "COMMON_GENERAL"))

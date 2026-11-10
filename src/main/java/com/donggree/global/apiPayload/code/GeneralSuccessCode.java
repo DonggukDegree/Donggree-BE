@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
+@org.springframework.modulith.NamedInterface("api")
 public enum GeneralSuccessCode implements BaseSuccessCode {
     OK(HttpStatus.OK, "COMMON200_1", "요청이 성공적으로 처리되었습니다."),
     CREATED(HttpStatus.CREATED, "COMMON201_1", "리소스가 성공적으로 생성되었습니다."),

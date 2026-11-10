@@ -11,6 +11,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 @JsonPropertyOrder({"isSuccess", "code", "message", "result"})
+@org.springframework.modulith.NamedInterface("api")
 public class ApiResponse<T> {
 
     @Getter(AccessLevel.NONE)

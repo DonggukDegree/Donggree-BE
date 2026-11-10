@@ -1,0 +1,12 @@
+# /var/lib/grafana/dashboards 폴더의 JSON 대시보드를 자동으로 불러온다.
+apiVersion: 1
+
+providers:
+  - name: 'donggree'
+    orgId: 1
+    folder: 'Donggree'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

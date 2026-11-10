@@ -1,6 +1,7 @@
 package com.donggree.graduation.internal.domain;
 
-import com.donggree.curriculum.GraduationRuleView;
+import com.donggree.graduation.internal.domain.evaluation.EvaluationContext;
+import com.donggree.graduation.internal.domain.rule.EvaluationRule;
 
 /**
  * 졸업 규칙 하나를 평가하는 도메인 서비스 인터페이스.
@@ -13,7 +14,7 @@ public interface RuleEvaluator {
 
     /**
      * 졸업 규칙을 평가하여 충족 여부와 규칙명을 담은 RuleResult를 반환한다.
-     * ruleConfig JSON 파싱 실패 시 IllegalStateException을 던진다.
+     * 저장 형식 해석이 끝난 유형별 설정만 사용한다.
      */
-    RuleResult evaluate(GraduationRuleView rule, EvaluationContext context);
+    RuleResult evaluate(EvaluationRule rule, EvaluationContext context);
 }

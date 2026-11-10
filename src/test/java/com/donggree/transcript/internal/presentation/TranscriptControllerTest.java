@@ -1,8 +1,9 @@
 package com.donggree.transcript.internal.presentation;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -16,31 +17,41 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.donggree.curriculum.CurriculumLookupService;
+import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
-import com.donggree.transcript.internal.application.TranscriptCreateResult;
-import com.donggree.transcript.internal.application.TranscriptParseResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawCourseRecord;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawMeta;
-import com.donggree.transcript.internal.application.TranscriptQueryResult.RawSemesterGroup;
-import com.donggree.transcript.internal.application.TranscriptService;
-import com.donggree.transcript.internal.application.TranscriptUpdateResult;
-import com.donggree.transcript.internal.domain.ParsedCourse;
-import com.donggree.transcript.internal.domain.ParsedTranscriptData;
-import com.donggree.transcript.internal.domain.TranscriptCreateData;
+import com.donggree.transcript.internal.application.TranscriptCommandService;
+import com.donggree.transcript.internal.application.command.CourseRecordCreateCommand;
+import com.donggree.transcript.internal.application.command.ParsedCourse;
+import com.donggree.transcript.internal.application.command.ParsedTranscriptData;
+import com.donggree.transcript.internal.application.command.TranscriptCreateResult;
+import com.donggree.transcript.internal.application.command.TranscriptParseResult;
+import com.donggree.transcript.internal.application.command.TranscriptUpdateResult;
+import com.donggree.transcript.internal.application.pdf.TranscriptPdfReader;
+import com.donggree.transcript.internal.application.query.TranscriptQueryService;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawCourseRecord;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawMeta;
+import com.donggree.transcript.internal.application.readmodel.TranscriptReportReadModel.RawSemesterGroup;
+import com.donggree.transcript.internal.domain.enums.Grade;
+import com.donggree.transcript.internal.domain.transcript.TranscriptCreateData;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest;
 import com.donggree.transcript.internal.presentation.dto.CourseRecordUpdateRequest.CourseItem;
-import com.donggree.user.MemberIdentityService;
+import com.donggree.user.UserIdentityService;
+import com.donggree.user.internal.application.exception.UserErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -51,14 +62,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 class TranscriptControllerTest extends RestDocsSupport {
 
-    private final TranscriptService transcriptService = Mockito.mock(TranscriptService.class);
+    private final TranscriptQueryService transcriptQueryService = Mockito.mock(TranscriptQueryService.class);
+    private final TranscriptCommandService transcriptCommandService = Mockito.mock(TranscriptCommandService.class);
     private final CurriculumLookupService curriculumLookupService = Mockito.mock(CurriculumLookupService.class);
-    private final MemberIdentityService memberIdentityService = Mockito.mock(MemberIdentityService.class);
+    private final UserIdentityService memberIdentityService = Mockito.mock(UserIdentityService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected Object initController() {
-        return new TranscriptController(transcriptService, curriculumLookupService, memberIdentityService);
+        return new TranscriptController(
+                transcriptQueryService,
+                transcriptCommandService,
+                curriculumLookupService,
+                memberIdentityService,
+                Mockito.mock(com.donggree.transcript.internal.application.TranscriptUploadTelemetry.class));
     }
 
     // 검증 실패(VALID400_1) 등 예외 응답 봉투를 확인하기 위해 전역 예외 핸들러를 등록한다.
@@ -89,17 +106,21 @@ class TranscriptControllerTest extends RestDocsSupport {
                 null,
                 null,
                 null,
+                "원문학과",
+                "원문대학",
                 "재학",
                 60,
                 new BigDecimal("3.50"),
+                new BigDecimal("4.50"),
+                null,
                 4,
                 LocalDateTime.of(2024, 3, 1, 9, 0, 0),
                 LocalDateTime.of(2024, 6, 1, 9, 0, 0));
         RawCourseRecord rawRecord = new RawCourseRecord(1L, "CSE1101", "프로그래밍기초", 3, null, "전공", "A+", false);
-        TranscriptQueryResult queryResult =
-                new TranscriptQueryResult(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
+        TranscriptReportReadModel queryResult =
+                new TranscriptReportReadModel(rawMeta, List.of(new RawSemesterGroup("2023-1", List.of(rawRecord))));
 
-        given(transcriptService.getTranscriptRawReport(memberId)).willReturn(queryResult);
+        given(transcriptQueryService.getTranscriptRawReport(memberId)).willReturn(queryResult);
         given(curriculumLookupService.findDepartmentNamesByIds(List.of(10L))).willReturn(Map.of(10L, "컴퓨터·AI학부"));
         given(curriculumLookupService.findCollegeNameByDepartmentId(10L)).willReturn(Optional.of("정보통신공학대학"));
 
@@ -107,6 +128,9 @@ class TranscriptControllerTest extends RestDocsSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.meta.collegeName").value("정보통신공학대학"))
+                .andExpect(jsonPath("$.result.meta.department").value("컴퓨터·AI학부"))
+                .andExpect(jsonPath("$.result.meta.majorGpa").value(4.5))
+                .andExpect(jsonPath("$.result.meta.dualMajor1Gpa").value(org.hamcrest.Matchers.nullValue()))
                 .andDo(document(
                         "transcript-get-report",
                         responseFields(
@@ -117,8 +141,10 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.meta.collegeName")
                                         .type(JsonFieldType.STRING)
                                         .optional()
-                                        .description("소속 단과대학명 (학과 미등록 시 null)"),
-                                fieldWithPath("result.meta.department").description("전공 학과명"),
+                                        .description("소속 단과대학명 (조회 불가 시 PDF 원문, 원문도 없으면 null)"),
+                                fieldWithPath("result.meta.department")
+                                        .optional()
+                                        .description("전공 학과명 (조회 불가 시 PDF 원문, 원문도 없으면 null)"),
                                 fieldWithPath("result.meta.subMajor1")
                                         .type(JsonFieldType.NULL)
                                         .optional()
@@ -138,6 +164,14 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.meta.academicStatus").description("학적 상태 (재학/휴학/졸업 등)"),
                                 fieldWithPath("result.meta.totalCredits").description("총 취득 학점"),
                                 fieldWithPath("result.meta.gpa").description("평점 평균"),
+                                fieldWithPath("result.meta.majorGpa")
+                                        .type(JsonFieldType.NUMBER)
+                                        .optional()
+                                        .description("현재 전공·전필 과목의 학점 가중평점 (F 포함, P·NP 제외, 계산 가능한 학점이 없으면 null)"),
+                                fieldWithPath("result.meta.dualMajor1Gpa")
+                                        .type(JsonFieldType.NUMBER)
+                                        .optional()
+                                        .description("현재 복수1 과목의 학점 가중평점 (복수전공 미등록 또는 계산 가능한 학점이 없으면 null)"),
                                 fieldWithPath("result.meta.completedSemesters").description("이수 학기 수"),
                                 fieldWithPath("result.meta.createdAt").description("성적표 최초 생성 시각"),
                                 fieldWithPath("result.meta.updatedAt").description("성적표 최종 수정 시각"),
@@ -150,7 +184,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.courses[].records[].credits")
                                         .description("학점"),
                                 fieldWithPath("result.courses[].records[].courseType")
-                                        .description("이수 구분 — PDF 원시 문자열 (예: 전공, 공교, 일교, 학기)"),
+                                        .description("이수 구분 — PDF 원시 문자열 (예: 전공, 복수1, 복수2, 공교, 일교, 학기)"),
                                 fieldWithPath("result.courses[].records[].areaName")
                                         .type(JsonFieldType.NULL)
                                         .optional()
@@ -162,12 +196,46 @@ class TranscriptControllerTest extends RestDocsSupport {
     }
 
     @Test
+    void 복수전공_평점과_계산불가_전공평점을_구별하여_반환한다() throws Exception {
+        authenticate(1L);
+        RawMeta rawMeta = new RawMeta(
+                2023,
+                10L,
+                null,
+                null,
+                20L,
+                null,
+                null,
+                null,
+                "재학",
+                3,
+                new BigDecimal("3.50"),
+                null,
+                new BigDecimal("0.00"),
+                4,
+                LocalDateTime.of(2024, 3, 1, 9, 0),
+                LocalDateTime.of(2024, 6, 1, 9, 0));
+        given(transcriptQueryService.getTranscriptRawReport(1L))
+                .willReturn(new TranscriptReportReadModel(rawMeta, List.of()));
+        given(curriculumLookupService.findDepartmentNamesByIds(List.of(10L, 20L)))
+                .willReturn(Map.of(10L, "주전공학과", 20L, "복수전공학과"));
+
+        mockMvc.perform(get("/api/users/me/reports"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.meta.gpa").value(3.5))
+                .andExpect(jsonPath("$.result.meta.dualMajor1").value("복수전공학과"))
+                .andExpect(jsonPath("$.result.meta.majorGpa").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.result.meta.dualMajor1Gpa").value(0.0));
+    }
+
+    @Test
     void PDF를_업로드하여_성적표를_생성한다() throws Exception {
         Long memberId = 1L;
         authenticate(memberId);
 
         Map<String, String> meta = Map.of(
                 "학과", "컴퓨터·AI학부",
+                "복수1", "전자전기공학부",
                 "교육과정 적용년도", "2023",
                 "학적상태", "재학",
                 "과정", "학사",
@@ -178,7 +246,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                 "성명", "홍길동");
         ParsedTranscriptData parsedData = new ParsedTranscriptData(
                 meta, List.of(new ParsedCourse("2023-1", 1, "전공", "CSE1101", "프로그래밍기초", 3, "A+", null, false)));
-        TranscriptParseResult parseResult = new TranscriptParseResult(parsedData, "{}");
+        TranscriptParseResult parseResult = new TranscriptParseResult(
+                parsedData, "{}", List.of(new TranscriptParseResult.GradeReviewCourse("2023-2", "RGC0017", "자아와명상1")));
 
         TranscriptCreateData createData = new TranscriptCreateData(
                 memberId,
@@ -189,7 +258,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                 10L,
                 null,
                 null,
-                null,
+                20L,
                 null,
                 60,
                 new BigDecimal("3.50"),
@@ -202,14 +271,17 @@ class TranscriptControllerTest extends RestDocsSupport {
                 false,
                 null,
                 null,
+                null,
                 false);
 
-        given(transcriptService.parseTranscript(any(byte[].class))).willReturn(parseResult);
-        given(curriculumLookupService.findDepartmentIdByName("컴퓨터·AI학부")).willReturn(Optional.of(10L));
-        given(curriculumLookupService.findDepartmentIdByName(isNull())).willReturn(Optional.empty());
-        given(transcriptService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(transcriptCommandService.parseTranscript(any(byte[].class))).willReturn(parseResult);
+        given(curriculumLookupService.findDepartmentId("컴퓨터·AI학부", 2023, false, null))
+                .willReturn(Optional.of(10L));
+        given(curriculumLookupService.findDepartmentId("전자전기공학부", 2023, true, null))
+                .willReturn(Optional.of(20L));
+        given(transcriptCommandService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(createData);
-        given(transcriptService.createTranscript(any(), any(), any(), any()))
+        given(transcriptCommandService.createTranscript(any(), any(), any(), any()))
                 .willReturn(new TranscriptCreateResult(60, 54, 6));
 
         MockMultipartFile pdfFile =
@@ -221,6 +293,8 @@ class TranscriptControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.result.totalCredits").value(60))
                 .andExpect(jsonPath("$.result.recordedCredits").value(54))
                 .andExpect(jsonPath("$.result.creditGap").value(6))
+                .andExpect(jsonPath("$.result.gradeReviewCourses[0].courseCode").value("RGC0017"))
+                .andExpect(jsonPath("$.result.gradeReviewCourses[0].semester").value("2023-2"))
                 .andDo(document(
                         "transcript-create",
                         requestParts(partWithName("file").description("성적표 PDF 파일 (nDRIMS '취득교과목 영역별 분류표')")),
@@ -229,9 +303,156 @@ class TranscriptControllerTest extends RestDocsSupport {
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
                                 fieldWithPath("result.totalCredits").description("PDF에 기재된 총취득학점"),
-                                fieldWithPath("result.recordedCredits").description("등록된 수강 이력 학점의 합"),
-                                fieldWithPath("result.creditGap")
-                                        .description("총취득학점 - 과목 학점 합. 0이 아니면 불일치(양수: 이수 이력 추가 필요, 음수: 과목 합이 더 많음)"))));
+                                fieldWithPath("result.recordedCredits").description("등록된 취득학점 합 (P 포함, F·NP 제외)"),
+                                fieldWithPath("result.creditGap").description("총취득학점 - 등록된 취득학점 합 (양수: 누락, 음수: 초과)"),
+                                fieldWithPath("result.gradeReviewCourses").description("F 평가방식 확인 대상. 없으면 빈 배열"),
+                                fieldWithPath("result.gradeReviewCourses[].semester")
+                                        .description("이수 학기"),
+                                fieldWithPath("result.gradeReviewCourses[].courseCode")
+                                        .description("학수번호"),
+                                fieldWithPath("result.gradeReviewCourses[].courseName")
+                                        .description("교과목명"))));
+
+        then(transcriptCommandService).should().buildCreateData(memberId, "{}", parsedData, 10L, null, null, 20L, null);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"미등록학과", "동명학과", "   "})
+    void 학과를_식별하지_못해도_본인확인_후_성적표를_저장한다(String department) throws Exception {
+        authenticate(1L);
+        ParsedTranscriptData parsed = parsedForDepartment(department);
+        String rawData = objectMapper.writeValueAsString(Map.of("meta", parsed.meta()));
+        TranscriptCreateData createData = new TranscriptPdfReader(null, objectMapper, null)
+                .buildCreateData(1L, rawData, parsed, null, null, null, null, null);
+        given(transcriptCommandService.parseTranscript(any(byte[].class)))
+                .willReturn(new TranscriptParseResult(parsed, rawData));
+        // 미등록·누락·동명 학과의 모호한 결과 모두 임의의 학과 ID로 대체하지 않는다.
+        given(curriculumLookupService.findDepartmentId(department, 2023, false, "원문대학"))
+                .willReturn(Optional.empty());
+        given(transcriptCommandService.buildCreateData(any(), any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(createData);
+        given(transcriptCommandService.createTranscript(any(), any(), any(), any()))
+                .willReturn(new TranscriptCreateResult(3, 3, 0));
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/api/users/me/reports").file(pdfFile()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.totalCredits").value(3))
+                .andExpect(jsonPath("$.result.creditGap").value(0));
+
+        then(memberIdentityService).should().validatePdfOwner(1L, "2023123456", "홍길동");
+        then(transcriptCommandService).should().buildCreateData(1L, rawData, parsed, null, null, null, null, null);
+        then(transcriptCommandService)
+                .should()
+                .createTranscript(
+                        createData,
+                        List.of(new CourseRecordCreateCommand(
+                                "2023-1", "전공", "기초", "CSE1", "과목", 3, Grade.A_PLUS, false)),
+                        "2023123456",
+                        "홍길동");
+    }
+
+    @Test
+    void 미식별_학과라도_타인의_PDF는_저장하지_않는다() throws Exception {
+        authenticate(1L);
+        given(transcriptCommandService.parseTranscript(any(byte[].class)))
+                .willReturn(new TranscriptParseResult(parsedForDepartment(null), "{}"));
+        Mockito.doThrow(new GeneralException(UserErrorCode.PDF_OWNER_MISMATCH))
+                .when(memberIdentityService)
+                .validatePdfOwner(1L, "2023123456", "홍길동");
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/api/users/me/reports").file(pdfFile()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("USER403_1"));
+
+        then(curriculumLookupService).shouldHaveNoInteractions();
+        then(transcriptCommandService).should(Mockito.never()).createTranscript(any(), any(), any(), any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"학번", "성명", "교육과정 적용년도", "학적상태", "총취득학점", "평점평균", "이수학기"})
+    void 필수_PDF_정보_누락은_학과_누락과_달리_저장을_차단한다(String missingField) throws Exception {
+        authenticate(1L);
+        Map<String, String> meta = new HashMap<>(parsedForDepartment(null).meta());
+        meta.remove(missingField);
+        given(transcriptCommandService.parseTranscript(any(byte[].class)))
+                .willReturn(new TranscriptParseResult(new ParsedTranscriptData(meta, List.of()), "{}"));
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/api/users/me/reports").file(pdfFile()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("TRANSCRIPT400_1"));
+
+        then(memberIdentityService).shouldHaveNoInteractions();
+        then(curriculumLookupService).shouldHaveNoInteractions();
+        then(transcriptCommandService).should(Mockito.never()).createTranscript(any(), any(), any(), any());
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"원문학과"})
+    void 학과_ID가_없어도_본인_학업정보와_PDF_원문_이름을_반환한다(String department) throws Exception {
+        authenticate(7L);
+        RawMeta meta = new RawMeta(
+                2023,
+                null,
+                null,
+                null,
+                null,
+                null,
+                department,
+                "원문대학",
+                "재학",
+                3,
+                new BigDecimal("4.50"),
+                new BigDecimal("4.50"),
+                null,
+                1,
+                null,
+                null);
+        RawCourseRecord course = new RawCourseRecord(1L, "CSE1", "과목", 3, "기초", "전공", "A+", false);
+        given(transcriptQueryService.getTranscriptRawReport(7L))
+                .willReturn(
+                        new TranscriptReportReadModel(meta, List.of(new RawSemesterGroup("2023-1", List.of(course)))));
+        given(curriculumLookupService.findDepartmentNamesByIds(List.of())).willReturn(Map.of());
+
+        mockMvc.perform(get("/api/users/me/reports"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.meta.department").value(department))
+                .andExpect(jsonPath("$.result.meta.collegeName").value("원문대학"))
+                .andExpect(jsonPath("$.result.courses[0].records[0].courseCode").value("CSE1"));
+
+        then(transcriptQueryService).should().getTranscriptRawReport(eq(7L));
+        then(transcriptQueryService).shouldHaveNoMoreInteractions();
+    }
+
+    private ParsedTranscriptData parsedForDepartment(String department) {
+        Map<String, String> meta = new HashMap<>(Map.of(
+                "대학",
+                "원문대학",
+                "교육과정 적용년도",
+                "2023",
+                "학적상태",
+                "재학",
+                "과정",
+                "학사과정",
+                "총취득학점",
+                "3",
+                "평점평균",
+                "4.50",
+                "이수학기",
+                "1",
+                "학번",
+                "2023123456",
+                "성명",
+                "홍길동"));
+        if (department != null) meta.put("학과", department);
+        return new ParsedTranscriptData(
+                meta, List.of(new ParsedCourse("2023-1", 1, "전공", "CSE1", "과목", 3, "A+", "기초", false)));
+    }
+
+    private MockMultipartFile pdfFile() {
+        return new MockMultipartFile("file", "transcript.pdf", "application/pdf", "pdf-content".getBytes());
     }
 
     @Test
@@ -252,7 +473,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                         List.of(
                                 new RawCourseRecord(10L, "CSE2101", "자료구조", 3, "전공필수", "전공", "A+", false),
                                 new RawCourseRecord(11L, "CSE2102", "알고리즘", 3, "전공필수", "전공", "B+", false)))));
-        given(transcriptService.replaceCourseRecords(any(), any())).willReturn(result);
+        given(transcriptCommandService.replaceCourseRecords(any(), any())).willReturn(result);
 
         mockMvc.perform(patch("/api/users/me/reports")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -315,7 +536,7 @@ class TranscriptControllerTest extends RestDocsSupport {
                 new BigDecimal("0.00"),
                 List.of(new RawSemesterGroup(
                         "2024-1", List.of(new RawCourseRecord(10L, "GEN0000", "영점학점과목", 0, null, "전공", "P", false)))));
-        given(transcriptService.replaceCourseRecords(any(), any())).willReturn(result);
+        given(transcriptCommandService.replaceCourseRecords(any(), any())).willReturn(result);
 
         mockMvc.perform(patch("/api/users/me/reports")
                         .contentType(MediaType.APPLICATION_JSON)

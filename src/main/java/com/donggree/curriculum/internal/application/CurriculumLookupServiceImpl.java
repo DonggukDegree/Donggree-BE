@@ -4,18 +4,20 @@ import com.donggree.curriculum.CourseClassificationView;
 import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
-import com.donggree.curriculum.internal.domain.AreaType;
-import com.donggree.curriculum.internal.domain.AreaTypeRepository;
-import com.donggree.curriculum.internal.domain.College;
-import com.donggree.curriculum.internal.domain.CollegeRepository;
-import com.donggree.curriculum.internal.domain.CourseClassification;
-import com.donggree.curriculum.internal.domain.CourseClassificationRepository;
-import com.donggree.curriculum.internal.domain.Department;
-import com.donggree.curriculum.internal.domain.DepartmentRepository;
-import com.donggree.curriculum.internal.domain.GraduationRule;
-import com.donggree.curriculum.internal.domain.RequirementSetRepository;
-import com.donggree.curriculum.internal.domain.RuleType;
-import com.donggree.curriculum.internal.domain.RuleTypeRepository;
+import com.donggree.curriculum.internal.domain.areatype.AreaType;
+import com.donggree.curriculum.internal.domain.areatype.AreaTypeRepository;
+import com.donggree.curriculum.internal.domain.college.College;
+import com.donggree.curriculum.internal.domain.college.CollegeRepository;
+import com.donggree.curriculum.internal.domain.courseclassification.CourseClassification;
+import com.donggree.curriculum.internal.domain.courseclassification.CourseClassificationRepository;
+import com.donggree.curriculum.internal.domain.department.Department;
+import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
+import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
+import com.donggree.curriculum.internal.domain.graduationrule.GraduationRule;
+import com.donggree.curriculum.internal.domain.requirementset.RequirementSet;
+import com.donggree.curriculum.internal.domain.requirementset.RequirementSetRepository;
+import com.donggree.curriculum.internal.domain.ruletype.RuleType;
+import com.donggree.curriculum.internal.domain.ruletype.RuleTypeRepository;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,11 +41,55 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     private final AreaTypeRepository areaTypeRepository;
 
     @Override
-    public Optional<Long> findDepartmentIdByName(String departmentName) {
+    public Optional<Long> findDepartmentId(
+            String departmentName, int admissionYear, boolean engineeringCertified, String collegeName) {
         if (departmentName == null || departmentName.isBlank()) {
             return Optional.empty();
         }
-        return departmentRepository.findByDepartmentName(departmentName).map(Department::getId);
+        String trimmedName = departmentName.trim();
+        List<Department> candidates = departmentRepository.findAllByDepartmentName(trimmedName);
+        if (candidates.isEmpty()) {
+            String normalizedName = stripTrailingParentheticalSuffix(trimmedName);
+            if (!normalizedName.equals(trimmedName)) {
+                candidates = departmentRepository.findAllByDepartmentName(normalizedName);
+            }
+        }
+        // 일반적인 단일 학과는 세트 등록 여부와 무관하게 기존 업로드 동작을 유지한다.
+        if (candidates.size() == 1) return Optional.of(candidates.getFirst().getId());
+        if (candidates.isEmpty()) return Optional.empty();
+
+        var matchingIds =
+                requirementSetRepository
+                        .findByDepartmentIdInAndActiveTrue(
+                                candidates.stream().map(Department::getId).toList())
+                        .stream()
+                        .filter(set -> set.appliesTo(admissionYear, RequirementTrack.ofStudent(engineeringCertified)))
+                        .map(RequirementSet::getDepartmentId)
+                        .collect(Collectors.toSet());
+        List<Department> matching = candidates.stream()
+                .filter(dept -> matchingIds.contains(dept.getId()))
+                .toList();
+        if (matching.size() == 1) return Optional.of(matching.getFirst().getId());
+
+        // 세트가 없어도 단과대로 학과를 특정할 수 있으면 저장 가능. 리포트는 기존 세트 부재 처리.
+        if (collegeName == null || collegeName.isBlank()) return Optional.empty();
+        var college = collegeRepository.findByCollegeName(collegeName.trim());
+        if (college.isEmpty()) return Optional.empty();
+        List<Department> narrowed = (matching.isEmpty() ? candidates : matching)
+                .stream()
+                        .filter(dept -> dept.getCollegeId().equals(college.get().getId()))
+                        .toList();
+        return narrowed.size() == 1 ? Optional.of(narrowed.getFirst().getId()) : Optional.empty();
+    }
+
+    private String stripTrailingParentheticalSuffix(String departmentName) {
+        String normalizedName = departmentName;
+        while (true) {
+            String withoutSuffix =
+                    normalizedName.replaceFirst("\\s*[（(][^()（）]*[)）]\\s*$", "").trim();
+            if (withoutSuffix.equals(normalizedName)) return normalizedName;
+            normalizedName = withoutSuffix;
+        }
     }
 
     @Override
@@ -68,12 +114,32 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     }
 
     @Override
-    public Optional<RequirementSetView> findActiveRequirementSet(Long departmentId, int admissionYear) {
+    public Optional<RequirementSetView> findActiveRequirementSet(
+            Long departmentId, int admissionYear, boolean engineeringCertified) {
+        RequirementTrack studentTrack = RequirementTrack.ofStudent(engineeringCertified);
         return requirementSetRepository.findByDepartmentIdAndActiveTrue(departmentId).stream()
-                .filter(rs -> rs.appliesTo(admissionYear))
+                .filter(rs -> rs.appliesTo(admissionYear, studentTrack))
                 .findFirst()
-                .map(rs ->
-                        new RequirementSetView(rs.getId(), rs.getDepartmentId(), rs.getYearStart(), rs.getYearEnd()));
+                .map(rs -> {
+                    Department department =
+                            departmentRepository.findById(rs.getDepartmentId()).orElse(null);
+                    String departmentName = department == null ? null : department.getDepartmentName();
+                    String collegeName = department == null
+                            ? null
+                            : collegeRepository
+                                    .findById(department.getCollegeId())
+                                    .map(College::getCollegeName)
+                                    .orElse(null);
+                    return new RequirementSetView(
+                            rs.getId(),
+                            rs.getDepartmentId(),
+                            rs.getYearStart(),
+                            rs.getYearEnd(),
+                            collegeName,
+                            departmentName,
+                            rs.getStudentNotice(),
+                            rs.getTrack().name());
+                });
     }
 
     @Override

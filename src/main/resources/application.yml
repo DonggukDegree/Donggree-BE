@@ -1,4 +1,27 @@
 spring:
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
+      "[mail.smtp.starttls.required]": true
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: public
+    baseline-on-migrate: false
+    clean-disabled: true
+    validate-on-migrate: true
+    validate-migration-naming: true
+  sql:
+    init:
+      mode: never
   jpa:
     open-in-view: false
     hibernate:
@@ -28,6 +51,15 @@ spring:
             user-name-attribute: id
 
 app:
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:${SMTP_USERNAME:}}
+  school-email:
+    code-secret: ${SCHOOL_EMAIL_CODE_SECRET:${app.jwt.secret}}
+    mail-queue:
+      workers: ${SCHOOL_EMAIL_MAIL_WORKERS:3}
+      capacity: ${SCHOOL_EMAIL_MAIL_QUEUE_CAPACITY:36}
+      poll-interval-ms: 500
   jwt:
     secret: ${JWT_SECRET}
     access-expiration: 1800000      # 30분
@@ -44,6 +76,20 @@ management:
   metrics:
     tags:
       application: donggree
+    distribution:
+      # HTTP 요청 처리시간을 히스토그램(버킷)으로 노출한다.
+      # 이게 있어야 Prometheus 의 histogram_quantile() 로 p95/p99 를 계산할 수 있고,
+      # 여러 인스턴스에 걸쳐 합산 가능한 정확한 백분위가 나온다.
+      percentiles-histogram:
+        http.server.requests: true
+      # 자주 보는 지연 구간에 버킷을 촘촘히 배치해 백분위 정확도를 높인다.
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 300ms, 500ms, 1s, 2s
+      # 버킷 개수 폭증을 막기 위해 관측 범위를 제한한다.
+      minimum-expected-value:
+        http.server.requests: 10ms
+      maximum-expected-value:
+        http.server.requests: 5s
 
 springdoc:
   swagger-ui:

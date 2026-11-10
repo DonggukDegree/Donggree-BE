@@ -1,5 +1,6 @@
 package com.donggree.global.auth;
 
+import com.donggree.global.logging.RequestDiagnostics;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  * JWT 액세스/리프레시 토큰 생성, 검증, 클레임 추출을 담당하는 컴포넌트.
  */
 @Component
+@org.springframework.modulith.NamedInterface("auth")
 public class JwtTokenProvider {
 
     private final SecretKey key;
@@ -67,6 +69,7 @@ public class JwtTokenProvider {
             parseToken(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
+            RequestDiagnostics.authenticationFailure(e);
             return false;
         }
     }
@@ -86,6 +89,7 @@ public class JwtTokenProvider {
             return Optional.of(
                     new AccessTokenClaims(claims.get("memberId", Long.class), claims.get("role", String.class)));
         } catch (JwtException | IllegalArgumentException e) {
+            RequestDiagnostics.authenticationFailure(e);
             return Optional.empty();
         }
     }

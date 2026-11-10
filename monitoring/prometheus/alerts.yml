@@ -1,0 +1,46 @@
+# Prometheus에서 판정하고 Grafana ALERTS 패널에서 조회한다. 외부 알림 수신 채널은 별도 설정 대상이다.
+groups:
+  - name: donggree
+    rules:
+      - alert: DonggreeBackendDown
+        expr: up{job="donggree-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 백엔드 메트릭 수집 실패
+      - alert: DonggreeEmailFailureRate
+        expr: sum(increase(donggree_mail_events_total{action="failed"}[5m])) / clamp_min(sum(increase(donggree_mail_events_total{action=~"sent|failed"}[5m])), 1) > 0.2 and sum(increase(donggree_mail_events_total{action=~"sent|failed"}[5m])) >= 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 최근 5분 SMTP 발송 실패율 20% 초과 (완료 5건 이상)
+      - alert: DonggreeEmailQueueFull
+        expr: donggree_mail_queue_size / donggree_mail_queue_capacity >= 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 학교 이메일 대기열 포화 지속
+      - alert: DonggreeEmailStalled
+        expr: sum(donggree_mail_queue_size) > 0 and (sum(increase(donggree_mail_events_total{action=~"sent|failed"}[5m])) or vector(0)) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 대기 중인 이메일 작업의 발송 결과 정체
+      - alert: DonggreeServerErrors
+        expr: sum(increase(http_server_requests_seconds_count{status=~"5..",uri!~"/actuator.*"}[5m])) / clamp_min(sum(increase(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m])), 1) > 0.05 and sum(increase(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m])) >= 20
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 최근 5분 API 서버 오류율 5% 초과 (20건 이상)
+      - alert: DonggreeTranscriptQuality
+        expr: sum(increase(donggree_transcript_upload_total{quality!="clean"}[15m])) / clamp_min(sum(increase(donggree_transcript_upload_total[15m])), 1) > 0.2 and sum(increase(donggree_transcript_upload_total[15m])) >= 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 최근 15분 성적표 품질 확인 비율 20% 초과 (10건 이상)
