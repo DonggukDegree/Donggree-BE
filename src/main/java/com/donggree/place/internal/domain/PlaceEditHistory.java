@@ -56,7 +56,7 @@ public class PlaceEditHistory {
     @Column(name = "after_description", length = Place.DESCRIPTION_MAX_LENGTH)
     private String afterDescription;
 
-    // columnDefinition 없이 방언이 매핑하게 둔다(Postgres→jsonb, H2→json).
+    // PostgreSQL 방언이 SqlTypes.JSON을 jsonb로 매핑한다(컬럼은 Flyway 마이그레이션이 만든다).
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "before_menus", nullable = false)
     private List<MenuItem> beforeMenus;

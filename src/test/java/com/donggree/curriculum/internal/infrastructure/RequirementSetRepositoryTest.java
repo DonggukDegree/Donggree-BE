@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.donggree.curriculum.internal.application.readmodel.RequirementSetSummaryReadModel;
 import com.donggree.curriculum.internal.application.requirementset.RequirementSetQueries;
+import com.donggree.curriculum.internal.domain.college.College;
+import com.donggree.curriculum.internal.domain.college.CollegeRepository;
 import com.donggree.curriculum.internal.domain.department.Department;
 import com.donggree.curriculum.internal.domain.department.DepartmentRepository;
 import com.donggree.curriculum.internal.domain.enums.RequirementTrack;
@@ -34,6 +36,9 @@ class RequirementSetRepositoryTest {
 
     @Autowired
     private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private CollegeRepository collegeRepository;
 
     @Autowired
     private RequirementSetQueries customRepository;
@@ -178,7 +183,9 @@ class RequirementSetRepositoryTest {
 
     @Test
     void 검색_결과에_department를_조인해_학과명을_채운다() {
-        Department dept = departmentRepository.save(Department.create(1L, "컴퓨터·AI학부"));
+        // department.college_id는 college를 참조하므로 단과대를 먼저 만든다.
+        Long collegeId = collegeRepository.save(College.create("AI융합대학")).getId();
+        Department dept = departmentRepository.save(Department.create(collegeId, "컴퓨터·AI학부"));
         requirementSetRepository.save(
                 RequirementSet.create(dept.getId(), 2023, 2025, RequirementTrack.ALL, 1, null, null, true));
 

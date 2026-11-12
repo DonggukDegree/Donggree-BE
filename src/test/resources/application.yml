@@ -1,15 +1,27 @@
+# DB는 운영과 같은 PostgreSQL 16 컨테이너를 쓴다. 접속 정보는 PostgresTestDatabaseEnvironmentPostProcessor가
+# Spring 컨텍스트마다 새로 만든 DB로 채우고, 스키마는 엔티티가 아니라 Flyway 마이그레이션으로 만든다.
 spring:
-  flyway:
-    enabled: false
+  test:
+    database:
+      # @DataJpaTest가 내장 DB로 바꾸지 않고 위 컨테이너 DB를 그대로 쓰게 한다.
+      replace: none
   datasource:
-    url: jdbc:h2:mem:testdb
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    hikari:
+      # 캐시된 테스트 컨텍스트마다 풀을 잡고 있으므로 작게 둔다(동시 트랜잭션 테스트에 필요한 2개 이상은 유지).
+      maximum-pool-size: 4
+      minimum-idle: 1
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: public
+    baseline-on-migrate: false
+    clean-disabled: true
+    validate-on-migrate: true
+    validate-migration-naming: true
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: true
 
   security:
