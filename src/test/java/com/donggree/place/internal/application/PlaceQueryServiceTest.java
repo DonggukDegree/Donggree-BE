@@ -12,9 +12,13 @@ import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.application.readmodel.PlaceDetailReadModel;
 import com.donggree.place.internal.application.readmodel.PlaceDuplicatesReadModel;
+import com.donggree.place.internal.application.readmodel.PlaceSummaryReadModel;
+import com.donggree.place.internal.application.readmodel.RatingSummary;
 import com.donggree.place.internal.domain.PlaceFixtures;
 import com.donggree.place.internal.domain.PlaceRepository;
+import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
+import com.donggree.place.internal.domain.enums.PlaceSubCategory;
 import com.donggree.user.MemberProfile;
 import com.donggree.user.UserLookupService;
 import java.util.List;
@@ -31,13 +35,14 @@ class PlaceQueryServiceTest {
             placeQueries,
             placeRepository,
             new PlaceDuplicateFinder(placeRepository),
-            new PlaceDetailReader(userLookupService));
+            new PlaceDetailReader(userLookupService, placeQueries));
 
     @Test
     void 노출_장소의_상세와_메뉴와_등록자_닉네임을_반환한다() {
         given(placeRepository.findByIdAndStatus(1L, PlaceStatus.VISIBLE))
                 .willReturn(Optional.of(PlaceFixtures.place(1L, "동국반점", NEAR_CAMPUS)));
         given(userLookupService.findProfiles(List.of(1L))).willReturn(Map.of(1L, new MemberProfile(1L, "김아코", null)));
+        given(placeQueries.findRatingSummary(1L)).willReturn(RatingSummary.EMPTY);
 
         PlaceDetailReadModel detail = service.getPlace(1L);
 
@@ -46,6 +51,31 @@ class PlaceQueryServiceTest {
         assertThat(detail.menus())
                 .containsExactly(
                         new PlaceDetailReadModel.Menu("짜장면", 7000), new PlaceDetailReadModel.Menu("탕수육", null));
+    }
+
+    @Test
+    void 지도_목록에_장소별_평균_별점과_리뷰_수를_붙이고_리뷰가_없으면_null과_0이다() {
+        given(placeQueries.findVisibleSummaries())
+                .willReturn(List.of(
+                        new PlaceSummaryReadModel(
+                                1L,
+                                "동국반점",
+                                PlaceCategory.RESTAURANT,
+                                PlaceSubCategory.CHINESE,
+                                37.5585,
+                                127.0,
+                                null,
+                                0),
+                        new PlaceSummaryReadModel(
+                                2L, "필동커피", PlaceCategory.CAFE, PlaceSubCategory.COFFEE, 37.5586, 127.0, null, 0)));
+        given(placeQueries.findRatingSummaries()).willReturn(Map.of(1L, new RatingSummary(4.3, 3)));
+
+        List<PlaceSummaryReadModel> places = service.getPlaces();
+
+        assertThat(places.get(0).averageRating()).isEqualTo(4.3);
+        assertThat(places.get(0).reviewCount()).isEqualTo(3);
+        assertThat(places.get(1).averageRating()).isNull();
+        assertThat(places.get(1).reviewCount()).isZero();
     }
 
     @Test

@@ -79,7 +79,7 @@ class PlaceControllerTest extends RestDocsSupport {
     void 지도_장소_목록을_조회한다() throws Exception {
         given(placeQueryService.getPlaces())
                 .willReturn(List.of(new PlaceSummaryReadModel(
-                        1L, "동국반점", PlaceCategory.RESTAURANT, PlaceSubCategory.CHINESE, 37.5585, 126.999)));
+                        1L, "동국반점", PlaceCategory.RESTAURANT, PlaceSubCategory.CHINESE, 37.5585, 126.999, 4.3, 12)));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/places"))
                 .andExpect(status().isOk())
@@ -96,7 +96,11 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result[].category").description("카테고리 코드"),
                                 fieldWithPath("result[].subCategory").description("상세카테고리 코드"),
                                 fieldWithPath("result[].latitude").description("위도"),
-                                fieldWithPath("result[].longitude").description("경도"))));
+                                fieldWithPath("result[].longitude").description("경도"),
+                                fieldWithPath("result[].averageRating")
+                                        .optional()
+                                        .description("평균 별점(소수 첫째 자리). 리뷰가 없으면 null"),
+                                fieldWithPath("result[].reviewCount").description("리뷰 수"))));
     }
 
     @Test
@@ -115,7 +119,9 @@ class PlaceControllerTest extends RestDocsSupport {
                         LocalDateTime.of(2026, 10, 26, 12, 0),
                         LocalDateTime.of(2026, 10, 27, 9, 30),
                         3L,
-                        "김아코"));
+                        "김아코",
+                        4.3,
+                        12));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/places/{placeId}", 1L))
                 .andExpect(status().isOk())
@@ -145,7 +151,11 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.version").description("장소 버전. 정보 수정 요청에 그대로 보냄"),
                                 fieldWithPath("result.registrantNickname")
                                         .optional()
-                                        .description("최초 등록자 닉네임. 탈퇴 등으로 없으면 null(\"탈퇴한 회원\"으로 표시)"))));
+                                        .description("최초 등록자 닉네임. 탈퇴 등으로 없으면 null(\"탈퇴한 회원\"으로 표시)"),
+                                fieldWithPath("result.averageRating")
+                                        .optional()
+                                        .description("평균 별점(소수 첫째 자리). 리뷰가 없으면 null"),
+                                fieldWithPath("result.reviewCount").description("리뷰 수"))));
     }
 
     @Test
@@ -278,7 +288,9 @@ class PlaceControllerTest extends RestDocsSupport {
                         LocalDateTime.of(2026, 10, 26, 12, 0),
                         LocalDateTime.of(2026, 11, 12, 18, 0),
                         4L,
-                        "김아코"));
+                        "김아코",
+                        4.3,
+                        12));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -315,7 +327,9 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.version").description("수정 후 장소 버전. 바뀐 값이 없으면 그대로"),
                                 fieldWithPath("result.registrantNickname")
                                         .optional()
-                                        .description("최초 등록자 닉네임. 없으면 null"))));
+                                        .description("최초 등록자 닉네임. 없으면 null"),
+                                fieldWithPath("result.averageRating").optional().description("평균 별점"),
+                                fieldWithPath("result.reviewCount").description("리뷰 수"))));
 
         ArgumentCaptor<EditPlaceInfoCommand> command = ArgumentCaptor.forClass(EditPlaceInfoCommand.class);
         then(placeCommandService).should().editInfo(eq(MEMBER_ID), eq(1L), command.capture());

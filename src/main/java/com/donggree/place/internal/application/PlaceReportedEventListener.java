@@ -1,6 +1,7 @@
 package com.donggree.place.internal.application;
 
 import com.donggree.place.internal.application.event.PlaceReportedEvent;
+import com.donggree.place.internal.application.event.ReviewReportedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
@@ -15,5 +16,10 @@ public class PlaceReportedEventListener {
     @ApplicationModuleListener
     void on(PlaceReportedEvent event) {
         reportNotifier.notifyPlaceReported(event);
+    }
+
+    @ApplicationModuleListener
+    void on(ReviewReportedEvent event) {
+        reportNotifier.notifyReviewReported(event);
     }
 }

@@ -47,7 +47,7 @@ class SchemaMappingTest extends MigrationDatabase {
                                     .current()
                                     .getVersion()
                                     .getVersion())
-                            .isEqualTo("5");
+                            .isEqualTo("6");
                 });
     }
 
@@ -125,6 +125,54 @@ class SchemaMappingTest extends MigrationDatabase {
                 .isInstanceOf(SQLException.class)
                 .extracting(e -> ((SQLException) e).getSQLState())
                 .isEqualTo("23514");
+    }
+
+    @Test
+    void 리뷰는_회원당_장소별_미삭제_1건과_별점_본문_제약을_DB에서도_지킨다() throws Exception {
+        flyway().migrate();
+        execute(
+                """
+                INSERT INTO public.place (name, category, sub_category, latitude, longitude, status, version,
+                    created_by, info_updated_at, created_at, updated_at)
+                    VALUES ('migration-place', 'ETC', 'ETC', 37.558, 127.0, 'VISIBLE', 0, 1, now(), now(), now());
+                INSERT INTO public.place_review (place_id, author_id, rating, content, status, created_at, updated_at)
+                    VALUES (1, 7, 5, 'migration-review-content', 'VISIBLE', now(), now());
+                """);
+        String duplicate =
+                """
+                INSERT INTO public.place_review (place_id, author_id, rating, content, status, created_at, updated_at)
+                    VALUES (1, 7, 4, 'migration-review-again', 'VISIBLE', now(), now())
+                """;
+        assertThatThrownBy(() -> execute(duplicate))
+                .isInstanceOf(SQLException.class)
+                .extracting(e -> ((SQLException) e).getSQLState())
+                .isEqualTo("23505");
+        execute("UPDATE public.place_review SET deleted_at = now()");
+        execute(duplicate);
+        assertThat(scalar("SELECT count(*) FROM public.place_review")).isEqualTo("2");
+        assertThatThrownBy(
+                        () -> execute(
+                                """
+                INSERT INTO public.place_review (place_id, author_id, rating, content, status, created_at, updated_at)
+                    VALUES (1, 8, 6, 'migration-review-content', 'VISIBLE', now(), now())
+                """))
+                .isInstanceOf(SQLException.class)
+                .extracting(e -> ((SQLException) e).getSQLState())
+                .isEqualTo("23514");
+        execute(
+                """
+                INSERT INTO public.place_review_report (review_id, reporter_id, reason, status, created_at, updated_at)
+                    SELECT max(id), 8, 'ABUSE', 'PENDING', now(), now() FROM public.place_review;
+                """);
+        assertThatThrownBy(
+                        () -> execute(
+                                """
+                INSERT INTO public.place_review_report (review_id, reporter_id, reason, status, created_at, updated_at)
+                    SELECT max(id), 8, 'SPAM', 'PENDING', now(), now() FROM public.place_review
+                """))
+                .isInstanceOf(SQLException.class)
+                .extracting(e -> ((SQLException) e).getSQLState())
+                .isEqualTo("23505");
     }
 
     // 실제 Modulith 자동 설정과 같은 기본 이벤트 엔티티만 포함한다. archive 모드는 사용하지 않는다.

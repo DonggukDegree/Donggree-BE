@@ -5,10 +5,12 @@ import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.application.readmodel.PlaceDetailReadModel;
 import com.donggree.place.internal.application.readmodel.PlaceDuplicatesReadModel;
 import com.donggree.place.internal.application.readmodel.PlaceSummaryReadModel;
+import com.donggree.place.internal.application.readmodel.RatingSummary;
 import com.donggree.place.internal.domain.GeoPoint;
 import com.donggree.place.internal.domain.PlaceRepository;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +27,10 @@ public class PlaceQueryService {
 
     @Transactional(readOnly = true)
     public List<PlaceSummaryReadModel> getPlaces() {
-        return placeQueries.findVisibleSummaries();
+        Map<Long, RatingSummary> ratings = placeQueries.findRatingSummaries();
+        return placeQueries.findVisibleSummaries().stream()
+                .map(summary -> summary.withRating(ratings.getOrDefault(summary.id(), RatingSummary.EMPTY)))
+                .toList();
     }
 
     /** 숨김 장소는 존재하지 않는 장소와 같게 응답한다. */
