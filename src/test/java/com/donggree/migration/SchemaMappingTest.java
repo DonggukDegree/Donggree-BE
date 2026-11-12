@@ -47,7 +47,7 @@ class SchemaMappingTest extends MigrationDatabase {
                                     .current()
                                     .getVersion()
                                     .getVersion())
-                            .isEqualTo("4");
+                            .isEqualTo("5");
                 });
     }
 
@@ -87,6 +87,44 @@ class SchemaMappingTest extends MigrationDatabase {
                   '{"applicableMajorRoles":["SINGLE_PRIMARY","SECONDARY","SINGLE_PRIMARY"]}'::jsonb)::text
                 """))
                 .isEqualTo("{\"applicableMajorRoles\": [\"SECONDARY\", \"SINGLE_PRIMARY\"]}");
+    }
+
+    @Test
+    void 장소_신고는_회원당_장소별_처리_대기_1건과_기타_설명_필수를_DB에서도_지킨다() throws Exception {
+        flyway().migrate();
+        execute(
+                """
+                INSERT INTO public.place (name, category, sub_category, latitude, longitude, status, version,
+                    created_by, info_updated_at, created_at, updated_at)
+                    VALUES ('migration-place', 'ETC', 'ETC', 37.558, 127.0, 'VISIBLE', 0, 1, now(), now(), now());
+                INSERT INTO public.place_report (place_id, reporter_id, reason, status, created_at, updated_at)
+                    VALUES (1, 7, 'CLOSED', 'PENDING', now(), now());
+                """);
+        assertThatThrownBy(
+                        () -> execute(
+                                """
+                INSERT INTO public.place_report (place_id, reporter_id, reason, status, created_at, updated_at)
+                    VALUES (1, 7, 'WRONG_NAME', 'PENDING', now(), now())
+                """))
+                .isInstanceOf(SQLException.class)
+                .extracting(e -> ((SQLException) e).getSQLState())
+                .isEqualTo("23505");
+        execute(
+                """
+                UPDATE public.place_report SET status = 'RESOLVED', processed_at = now();
+                INSERT INTO public.place_report (place_id, reporter_id, reason, status, created_at, updated_at)
+                    VALUES (1, 7, 'WRONG_NAME', 'PENDING', now(), now());
+                """);
+        assertThat(scalar("SELECT count(*) FROM public.place_report")).isEqualTo("2");
+        assertThatThrownBy(
+                        () -> execute(
+                                """
+                INSERT INTO public.place_report (place_id, reporter_id, reason, status, created_at, updated_at)
+                    VALUES (1, 8, 'OTHER', 'PENDING', now(), now())
+                """))
+                .isInstanceOf(SQLException.class)
+                .extracting(e -> ((SQLException) e).getSQLState())
+                .isEqualTo("23514");
     }
 
     // 실제 Modulith 자동 설정과 같은 기본 이벤트 엔티티만 포함한다. archive 모드는 사용하지 않는다.

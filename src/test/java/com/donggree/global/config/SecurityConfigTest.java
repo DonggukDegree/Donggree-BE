@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +43,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest
+// 운영처럼 클래스 프록시를 쓰게 한다. 없으면 Swagger 인터페이스를 구현한 @PreAuthorize 컨트롤러가
+// 인터페이스 프록시가 되어 핸들러 매핑에서 빠진다.
+@ImportAutoConfiguration(AopAutoConfiguration.class)
 @Import({SecurityConfig.class, ServletFilterConfig.class, SecurityConfigTest.TestConfig.class})
 class SecurityConfigTest {
     @Autowired
@@ -188,6 +193,12 @@ class SecurityConfigTest {
 
     @MockitoBean
     private com.donggree.place.internal.application.PlaceCommandService placeCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceReportCommandService placeReportCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.AdminPlaceCommandService adminPlaceCommandService;
 
     @TestConfiguration
     static class TestConfig {
@@ -368,6 +379,24 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/places").header("Authorization", bearer("STUDENT")))
                 .andExpect(status().isOk());
         verifyNoInteractions(placeCommandService);
+    }
+
+    @Test
+    void 동글맵_신고는_로그인이_필요하고_장소_숨김은_관리자만_가능하다() throws Exception {
+        mockMvc.perform(post("/api/places/1/reports")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"CLOSED\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/admin/places/1/hide")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/admin/places/1/hide").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/admin/places/1/unhide").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(placeReportCommandService, adminPlaceCommandService);
+
+        mockMvc.perform(post("/api/admin/places/1/hide").header("Authorization", bearer("ADMIN")))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(adminPlaceCommandService).hide(1L);
     }
 
     // 읽기를 연 것이 쓰기까지 열어버리지 않았는지 확인한다. (쓰기는 /api/admin/faqs)

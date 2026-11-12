@@ -31,6 +31,7 @@ abstract class MigrationDatabase {
             "place",
             "place_edit_history",
             "place_menu",
+            "place_report",
             "requirement_set",
             "requirement_set_rule",
             "rule_type",

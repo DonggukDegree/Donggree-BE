@@ -199,6 +199,21 @@ class PlaceTest {
         assertThat(place.getMenus()).hasSize(2);
     }
 
+    @Test
+    void 관리자_숨김과_해제는_노출_상태만_바꾼다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+        LocalDateTime infoUpdatedAt = place.getInfoUpdatedAt();
+
+        place.hide();
+        assertThat(place.isVisible()).isFalse();
+        assertThat(place.getStatus()).isEqualTo(PlaceStatus.HIDDEN);
+        place.hide();
+        assertThat(place.getStatus()).isEqualTo(PlaceStatus.HIDDEN);
+        place.show();
+        assertThat(place.isVisible()).isTrue();
+        assertThat(place.getInfoUpdatedAt()).isEqualTo(infoUpdatedAt);
+    }
+
     private static PlaceRegistration menus(List<MenuItem> menus) {
         return new PlaceRegistration(
                 1L, "동국반점", PlaceCategory.RESTAURANT, PlaceSubCategory.CHINESE, NEAR_CAMPUS, null, null, menus);

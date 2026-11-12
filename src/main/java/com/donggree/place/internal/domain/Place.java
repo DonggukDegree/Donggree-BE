@@ -127,6 +127,16 @@ public class Place extends BaseEntity {
         return status == PlaceStatus.VISIBLE;
     }
 
+    /** 관리자가 지도에서 숨긴다. 정보·마지막 수정일은 그대로 두고, 이미 숨긴 장소면 바꾸지 않는다. */
+    public void hide() {
+        this.status = PlaceStatus.HIDDEN;
+    }
+
+    /** 관리자가 숨김을 해제해 다시 지도에 보인다. */
+    public void show() {
+        this.status = PlaceStatus.VISIBLE;
+    }
+
     public List<PlaceMenu> getMenus() {
         return Collections.unmodifiableList(menus);
     }
