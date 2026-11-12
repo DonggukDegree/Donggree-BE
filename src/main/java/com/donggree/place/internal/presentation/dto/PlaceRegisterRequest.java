@@ -1,15 +1,12 @@
 package com.donggree.place.internal.presentation.dto;
 
 import com.donggree.place.internal.application.command.RegisterPlaceCommand;
-import com.donggree.place.internal.domain.MenuItem;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -41,7 +38,8 @@ public record PlaceRegisterRequest(
         @Size(max = 100, message = "영업시간은 100자 이하여야 합니다.") @Schema(example = "평일 11:00-21:00, 일요일 휴무")
                 String businessHours,
         @Size(max = 300, message = "설명은 300자 이하여야 합니다.") @Schema(example = "정문 맞은편 골목 2층") String description,
-        @Size(max = 50, message = "메뉴는 50개 이하여야 합니다.") @Valid List<Menu> menus) {
+        @Size(max = 50, message = "메뉴는 50개 이하여야 합니다.") @Valid
+                List<@NotNull(message = "메뉴를 확인해주세요.") PlaceMenuRequest> menus) {
 
     public RegisterPlaceCommand toCommand() {
         return new RegisterPlaceCommand(
@@ -52,18 +50,6 @@ public record PlaceRegisterRequest(
                 longitude,
                 businessHours,
                 description,
-                menus == null
-                        ? List.of()
-                        : menus.stream()
-                                .map(menu -> new MenuItem(menu.name(), menu.price()))
-                                .toList());
+                PlaceMenuRequest.toItems(menus));
     }
-
-    public record Menu(
-            @NotBlank(message = "메뉴명은 필수입니다.") @Size(max = 30, message = "메뉴명은 30자 이하여야 합니다.") @Schema(example = "짜장면")
-                    String name,
-            @Min(value = 0, message = "가격은 0원 이상이어야 합니다.")
-                    @Max(value = 1_000_000, message = "가격은 1,000,000원 이하여야 합니다.")
-                    @Schema(example = "7000", description = "가격(원). 비우면 가격 변동")
-                    Integer price) {}
 }

@@ -7,6 +7,7 @@ import com.donggree.place.internal.application.PlaceCommandService;
 import com.donggree.place.internal.application.PlaceQueryService;
 import com.donggree.place.internal.presentation.dto.PlaceDetailResponse;
 import com.donggree.place.internal.presentation.dto.PlaceDuplicatesResponse;
+import com.donggree.place.internal.presentation.dto.PlaceInfoEditRequest;
 import com.donggree.place.internal.presentation.dto.PlaceRegisterRequest;
 import com.donggree.place.internal.presentation.dto.PlaceSummaryResponse;
 import com.donggree.place.internal.presentation.swagger.PlaceApi;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -62,5 +64,16 @@ public class PlaceController implements PlaceApi {
             @LoginMemberId Long memberId, @Valid @RequestBody PlaceRegisterRequest request) {
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.OK, placeCommandService.register(memberId, request.toCommand()));
+    }
+
+    @Override
+    @PutMapping("/{placeId}/info")
+    public ApiResponse<PlaceDetailResponse> editPlaceInfo(
+            @LoginMemberId Long memberId,
+            @PathVariable Long placeId,
+            @Valid @RequestBody PlaceInfoEditRequest request) {
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK,
+                PlaceDetailResponse.from(placeCommandService.editInfo(memberId, placeId, request.toCommand())));
     }
 }

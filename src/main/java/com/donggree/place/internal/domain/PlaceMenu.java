@@ -21,9 +21,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PlaceMenu {
 
-    static final int NAME_MAX_LENGTH = 30;
-    static final int PRICE_MAX = 1_000_000;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -32,7 +29,7 @@ public class PlaceMenu {
     @JoinColumn(name = "place_id", nullable = false)
     private Place place;
 
-    @Column(name = "name", nullable = false, length = NAME_MAX_LENGTH)
+    @Column(name = "name", nullable = false, length = MenuItem.NAME_MAX_LENGTH)
     private String name;
 
     @Column(name = "price")
@@ -45,16 +42,14 @@ public class PlaceMenu {
         if (item == null) {
             throw new IllegalArgumentException("menu must not be null");
         }
-        String validatedName = item.name() == null ? "" : item.name().trim();
-        if (validatedName.isEmpty() || validatedName.length() > NAME_MAX_LENGTH) {
-            throw new IllegalArgumentException("menu name must be 1 to " + NAME_MAX_LENGTH + " characters");
-        }
-        if (item.price() != null && (item.price() < 0 || item.price() > PRICE_MAX)) {
-            throw new IllegalArgumentException("menu price must be between 0 and " + PRICE_MAX);
-        }
+        MenuItem validated = item.normalize();
         this.place = place;
-        this.name = validatedName;
-        this.price = item.price();
+        this.name = validated.name();
+        this.price = validated.price();
         this.sortOrder = sortOrder;
+    }
+
+    MenuItem toItem() {
+        return new MenuItem(name, price);
     }
 }

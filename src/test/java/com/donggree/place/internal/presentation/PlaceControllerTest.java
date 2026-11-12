@@ -20,6 +20,7 @@ import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.place.internal.application.PlaceCommandService;
 import com.donggree.place.internal.application.PlaceQueryService;
+import com.donggree.place.internal.application.command.EditPlaceInfoCommand;
 import com.donggree.place.internal.application.command.RegisterPlaceCommand;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.application.readmodel.PlaceDetailReadModel;
@@ -27,6 +28,8 @@ import com.donggree.place.internal.application.readmodel.PlaceDuplicatesReadMode
 import com.donggree.place.internal.application.readmodel.PlaceSummaryReadModel;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import com.donggree.place.internal.presentation.dto.PlaceInfoEditRequest;
+import com.donggree.place.internal.presentation.dto.PlaceMenuRequest;
 import com.donggree.place.internal.presentation.dto.PlaceRegisterRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -35,6 +38,7 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
@@ -109,7 +113,8 @@ class PlaceControllerTest extends RestDocsSupport {
                         "정문 맞은편 골목 2층",
                         List.of(new PlaceDetailReadModel.Menu("짜장면", 7000), new PlaceDetailReadModel.Menu("탕수육", null)),
                         LocalDateTime.of(2026, 10, 26, 12, 0),
-                        LocalDateTime.of(2026, 10, 27, 9, 30)));
+                        LocalDateTime.of(2026, 10, 27, 9, 30),
+                        3L));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/places/{placeId}", 1L))
                 .andExpect(status().isOk())
@@ -134,7 +139,8 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.menus[].name").description("메뉴명(입력 순서)"),
                                 fieldWithPath("result.menus[].price").optional().description("가격(원). null이면 가격 변동"),
                                 fieldWithPath("result.createdAt").description("최초 등록 시각"),
-                                fieldWithPath("result.updatedAt").description("마지막 정보 수정 시각"))));
+                                fieldWithPath("result.updatedAt").description("마지막 정보 수정 시각"),
+                                fieldWithPath("result.version").description("장소 버전. 정보 수정 요청에 그대로 보냄"))));
     }
 
     @Test
@@ -190,7 +196,7 @@ class PlaceControllerTest extends RestDocsSupport {
                 126.999,
                 "평일 11:00-21:00",
                 "정문 맞은편 골목 2층",
-                List.of(new PlaceRegisterRequest.Menu("짜장면", 7000), new PlaceRegisterRequest.Menu("탕수육", null)));
+                List.of(new PlaceMenuRequest("짜장면", 7000), new PlaceMenuRequest("탕수육", null)));
         given(placeCommandService.register(eq(MEMBER_ID), any(RegisterPlaceCommand.class)))
                 .willReturn(10L);
 
@@ -244,6 +250,96 @@ class PlaceControllerTest extends RestDocsSupport {
                 .andExpect(jsonPath("$.code").value("VALID400_1"));
 
         then(placeCommandService).should(never()).register(any(), any());
+    }
+
+    @Test
+    void 장소_정보를_수정한다() throws Exception {
+        PlaceInfoEditRequest request = new PlaceInfoEditRequest(
+                3L,
+                "매일 10:00-22:00",
+                "정문 맞은편 골목 2층",
+                List.of(new PlaceMenuRequest("짬뽕", 8000), new PlaceMenuRequest("탕수육", null)));
+        given(placeCommandService.editInfo(eq(MEMBER_ID), eq(1L), any(EditPlaceInfoCommand.class)))
+                .willReturn(new PlaceDetailReadModel(
+                        1L,
+                        "동국반점",
+                        PlaceCategory.RESTAURANT,
+                        PlaceSubCategory.CHINESE,
+                        37.5585,
+                        126.999,
+                        "매일 10:00-22:00",
+                        "정문 맞은편 골목 2층",
+                        List.of(new PlaceDetailReadModel.Menu("짬뽕", 8000), new PlaceDetailReadModel.Menu("탕수육", null)),
+                        LocalDateTime.of(2026, 10, 26, 12, 0),
+                        LocalDateTime.of(2026, 11, 12, 18, 0),
+                        4L));
+
+        mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.version").value(4))
+                .andExpect(jsonPath("$.result.businessHours").value("매일 10:00-22:00"))
+                .andDo(document(
+                        "place-info-edit",
+                        pathParameters(parameterWithName("placeId").description("장소 ID")),
+                        requestFields(
+                                fieldWithPath("version").description("상세 조회로 받은 장소 버전. 현재와 다르면 409"),
+                                fieldWithPath("businessHours").optional().description("영업시간(최대 100자). 비우거나 null이면 삭제"),
+                                fieldWithPath("description").optional().description("설명(최대 300자). 비우거나 null이면 삭제"),
+                                fieldWithPath("menus[]").description("메뉴 전체 목록(최대 50개, 입력 순서 저장). 빈 배열이면 전체 삭제"),
+                                fieldWithPath("menus[].name").description("메뉴명(1~30자)"),
+                                fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동")),
+                        responseFields(
+                                fieldWithPath("isSuccess").description("요청 성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("result.id").description("장소 ID"),
+                                fieldWithPath("result.name").description("장소 이름"),
+                                fieldWithPath("result.category").description("카테고리 코드"),
+                                fieldWithPath("result.subCategory").description("상세카테고리 코드"),
+                                fieldWithPath("result.latitude").description("위도"),
+                                fieldWithPath("result.longitude").description("경도"),
+                                fieldWithPath("result.businessHours").optional().description("수정된 영업시간"),
+                                fieldWithPath("result.description").optional().description("수정된 설명"),
+                                fieldWithPath("result.menus[].name").description("메뉴명(입력 순서)"),
+                                fieldWithPath("result.menus[].price").optional().description("가격(원). null이면 가격 변동"),
+                                fieldWithPath("result.createdAt").description("최초 등록 시각"),
+                                fieldWithPath("result.updatedAt").description("마지막 정보 수정 시각"),
+                                fieldWithPath("result.version").description("수정 후 장소 버전. 바뀐 값이 없으면 그대로"))));
+
+        ArgumentCaptor<EditPlaceInfoCommand> command = ArgumentCaptor.forClass(EditPlaceInfoCommand.class);
+        then(placeCommandService).should().editInfo(eq(MEMBER_ID), eq(1L), command.capture());
+        org.assertj.core.api.Assertions.assertThat(command.getValue().version()).isEqualTo(3L);
+        org.assertj.core.api.Assertions.assertThat(command.getValue().menus()).hasSize(2);
+    }
+
+    @Test
+    void 다른_회원이_먼저_수정했으면_409_2다() throws Exception {
+        given(placeCommandService.editInfo(eq(MEMBER_ID), eq(1L), any(EditPlaceInfoCommand.class)))
+                .willThrow(new GeneralException(PlaceErrorCode.EDIT_CONFLICT));
+
+        mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":3,\"menus\":[]}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PLACE409_2"));
+    }
+
+    @Test
+    void 버전이나_메뉴_목록이_없으면_400이다() throws Exception {
+        mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"businessHours\":\"매일\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALID400_1"));
+        mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":3,\"menus\":[null]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALID400_1"));
+
+        then(placeCommandService).should(never()).editInfo(any(), any(), any());
     }
 
     private static FieldDescriptor[] candidateFields() {
