@@ -21,6 +21,7 @@ public class PlaceQueryService {
     private final PlaceQueries placeQueries;
     private final PlaceRepository placeRepository;
     private final PlaceDuplicateFinder duplicateFinder;
+    private final PlaceDetailReader detailReader;
 
     @Transactional(readOnly = true)
     public List<PlaceSummaryReadModel> getPlaces() {
@@ -32,7 +33,7 @@ public class PlaceQueryService {
     public PlaceDetailReadModel getPlace(Long placeId) {
         return placeRepository
                 .findByIdAndStatus(placeId, PlaceStatus.VISIBLE)
-                .map(PlaceDetailReadModel::from)
+                .map(detailReader::read)
                 .orElseThrow(() -> new GeneralException(PlaceErrorCode.PLACE_NOT_FOUND));
     }
 
