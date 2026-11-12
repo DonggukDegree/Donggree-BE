@@ -16,7 +16,8 @@ public enum PlaceTag {
     MOOD("분위기 맛집"),
     BAR_SNACK("안주 맛집"),
     MEAL_DATE("밥약 맛집"),
-    SOLO_DINING("혼밥 맛집");
+    SOLO_DINING("혼밥 맛집"),
+    SHORTCUT("지름길 맛집");
 
     private final String label;
 }

@@ -41,7 +41,7 @@ public record PlaceRegisterRequest(
         @Size(max = 300, message = "설명은 300자 이하여야 합니다.") @Schema(example = "정문 맞은편 골목 2층") String description,
         @Size(max = 50, message = "메뉴는 50개 이하여야 합니다.") @Valid
                 List<@NotNull(message = "메뉴를 확인해주세요.") PlaceMenuRequest> menus,
-        @Size(max = 7, message = "숨은 맛집 태그를 확인해주세요.") @Schema(description = "숨은 맛집 태그(0개 이상, 중복은 하나로 저장). 비우면 없음")
+        @Size(max = 8, message = "숨은 맛집 태그를 확인해주세요.") @Schema(description = "숨은 맛집 태그(0개 이상, 중복은 하나로 저장). 비우면 없음")
                 List<@NotNull(message = "숨은 맛집 태그를 확인해주세요.") PlaceTag> tags) {
 
     public RegisterPlaceCommand toCommand() {

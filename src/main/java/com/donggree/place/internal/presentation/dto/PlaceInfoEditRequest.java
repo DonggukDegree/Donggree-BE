@@ -25,7 +25,7 @@ public record PlaceInfoEditRequest(
                 @Valid
                 List<@NotNull(message = "메뉴를 확인해주세요.") PlaceMenuRequest> menus,
         @NotNull(message = "숨은 맛집 태그 목록은 필수입니다.")
-                @Size(max = 7, message = "숨은 맛집 태그를 확인해주세요.")
+                @Size(max = 8, message = "숨은 맛집 태그를 확인해주세요.")
                 @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "숨은 맛집 태그 전체(빈 배열이면 없음)")
                 List<@NotNull(message = "숨은 맛집 태그를 확인해주세요.") PlaceTag> tags) {
 

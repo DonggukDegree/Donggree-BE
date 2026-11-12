@@ -193,7 +193,7 @@ class SchemaMappingTest extends MigrationDatabase {
 
         assertThat(scalar("SELECT string_agg(sub_category, ',' ORDER BY id) FROM public.place"))
                 .isEqualTo("BAR_ETC,STUDY_ETC");
-        execute("INSERT INTO public.place_tag (place_id, tag) VALUES (1, 'SOLO_DINING')");
+        execute("INSERT INTO public.place_tag (place_id, tag) VALUES (1, 'SOLO_DINING'), (1, 'SHORTCUT')");
         assertThatThrownBy(() -> execute("INSERT INTO public.place_tag (place_id, tag) VALUES (1, 'UNKNOWN')"))
                 .isInstanceOf(SQLException.class)
                 .extracting(e -> ((SQLException) e).getSQLState())

@@ -10,7 +10,7 @@ CREATE TABLE public.place_tag (
     CONSTRAINT place_tag_pkey PRIMARY KEY (place_id, tag),
     CONSTRAINT place_tag_place_id_fkey FOREIGN KEY (place_id) REFERENCES public.place (id) ON DELETE CASCADE,
     CONSTRAINT place_tag_tag_check CHECK (
-        tag IN ('COFFEE', 'STUDY', 'GATHERING', 'MOOD', 'BAR_SNACK', 'MEAL_DATE', 'SOLO_DINING'))
+        tag IN ('COFFEE', 'STUDY', 'GATHERING', 'MOOD', 'BAR_SNACK', 'MEAL_DATE', 'SOLO_DINING', 'SHORTCUT'))
 );
 
 -- 수정 이력에 태그 전후 값. 기존 이력은 태그가 없던 시절이라 빈 배열.
