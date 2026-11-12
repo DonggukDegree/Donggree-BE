@@ -17,6 +17,11 @@ public interface PlaceReportRepository extends JpaRepository<PlaceReport, Long> 
 
     List<PlaceReport> findByPlaceIdOrderByIdAsc(Long placeId);
 
+    /** 관리자 목록. 상태별(null이면 전체) 최신순. */
+    @Query("select r from PlaceReport r where :status is null or r.status = :status")
+    org.springframework.data.domain.Page<PlaceReport> findForAdmin(
+            @Param("status") PlaceReportStatus status, org.springframework.data.domain.Pageable pageable);
+
     /** 관리자가 장소를 숨기면 그 장소의 처리 대기 신고를 모두 처리 완료로 바꾼다. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update PlaceReport r set r.status = com.donggree.place.internal.domain.enums.PlaceReportStatus.RESOLVED,"

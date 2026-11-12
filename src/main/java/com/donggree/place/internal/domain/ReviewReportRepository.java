@@ -17,6 +17,16 @@ public interface ReviewReportRepository extends JpaRepository<ReviewReport, Long
 
     List<ReviewReport> findByReviewIdOrderByIdAsc(Long reviewId);
 
+    /** 관리자 목록. 상태별(null이면 전체) 최신순. */
+    @Query("select r from ReviewReport r where :status is null or r.status = :status")
+    org.springframework.data.domain.Page<ReviewReport> findForAdmin(
+            @Param("status") PlaceReportStatus status, org.springframework.data.domain.Pageable pageable);
+
+    /** 회원이 쓴 리뷰에 들어온 신고 수(작성자별, 상태 무관). */
+    @Query("select r.authorId, count(rr) from ReviewReport rr, PlaceReview r"
+            + " where rr.reviewId = r.id and r.authorId in :authorIds group by r.authorId")
+    List<Object[]> countReceivedByAuthorIds(@Param("authorIds") java.util.Collection<Long> authorIds);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update ReviewReport r set r.status = com.donggree.place.internal.domain.enums.PlaceReportStatus.RESOLVED,"
             + " r.processedAt = :processedAt, r.updatedAt = :processedAt"

@@ -212,6 +212,21 @@ class SecurityConfigTest {
     @MockitoBean
     private com.donggree.place.internal.application.AdminReviewCommandService adminReviewCommandService;
 
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminReportQueryService adminReportQueryService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminReportCommandService adminReportCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminMemberService adminMemberService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminContentQueryService adminContentQueryService;
+
+    @MockitoBean
+    private com.donggree.global.auth.MemberAccessGuard memberAccessGuard;
+
     @TestConfiguration
     static class TestConfig {
         @Bean
@@ -409,6 +424,21 @@ class SecurityConfigTest {
         mockMvc.perform(post("/api/admin/places/1/hide").header("Authorization", bearer("ADMIN")))
                 .andExpect(status().isOk());
         org.mockito.Mockito.verify(adminPlaceCommandService).hide(1L);
+    }
+
+    @Test
+    void 정지_회원은_기존_토큰으로도_요청할_수_없고_정지_내용을_받는다() throws Exception {
+        org.mockito.BDDMockito.given(memberAccessGuard.findRestriction(1L))
+                .willReturn(java.util.Optional.of(new com.donggree.global.auth.AccessRestriction(
+                        java.time.LocalDateTime.of(2026, 12, 13, 10, 0), 30, true)));
+
+        mockMvc.perform(get("/api/places").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH403_2"))
+                .andExpect(jsonPath("$.result.days").value(30))
+                .andExpect(jsonPath("$.result.byReport").value(true))
+                .andExpect(jsonPath("$.result.suspendedUntil").exists());
+        verifyNoInteractions(placeQueryService);
     }
 
     @Test

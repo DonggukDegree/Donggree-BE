@@ -102,6 +102,30 @@ public class CurriculumLookupServiceImpl implements CurriculumLookupService {
     }
 
     @Override
+    public Map<Long, String> findCollegeNamesByDepartmentIds(List<Long> departmentIds) {
+        if (departmentIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        var departments = departmentRepository.findAllById(departmentIds);
+        Map<Long, String> collegeNames =
+                collegeRepository
+                        .findAllById(departments.stream()
+                                .map(Department::getCollegeId)
+                                .distinct()
+                                .toList())
+                        .stream()
+                        .collect(Collectors.toMap(College::getId, College::getCollegeName));
+        Map<Long, String> result = new HashMap<>();
+        for (Department department : departments) {
+            String collegeName = collegeNames.get(department.getCollegeId());
+            if (collegeName != null) {
+                result.put(department.getId(), collegeName);
+            }
+        }
+        return result;
+    }
+
+    @Override
     public Optional<String> findCollegeNameByDepartmentId(Long departmentId) {
         if (departmentId == null) {
             return Optional.empty();

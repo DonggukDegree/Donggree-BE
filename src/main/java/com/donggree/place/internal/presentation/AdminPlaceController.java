@@ -2,6 +2,7 @@ package com.donggree.place.internal.presentation;
 
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralSuccessCode;
+import com.donggree.global.auth.LoginMemberId;
 import com.donggree.place.internal.application.AdminPlaceCommandService;
 import com.donggree.place.internal.presentation.swagger.AdminPlaceApi;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,14 @@ public class AdminPlaceController implements AdminPlaceApi {
     @PostMapping("/hide")
     public ApiResponse<Void> hidePlace(@PathVariable Long placeId) {
         adminPlaceCommandService.hide(placeId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK);
+    }
+
+    @Override
+    @PostMapping("/edit-histories/{historyId}/revert")
+    public ApiResponse<Void> revertEdit(
+            @LoginMemberId Long adminId, @PathVariable Long placeId, @PathVariable Long historyId) {
+        adminPlaceCommandService.revertEdit(placeId, historyId, adminId);
         return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }
 

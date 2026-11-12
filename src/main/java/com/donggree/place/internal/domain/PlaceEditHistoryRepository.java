@@ -10,6 +10,11 @@ public interface PlaceEditHistoryRepository extends JpaRepository<PlaceEditHisto
 
     List<PlaceEditHistory> findByPlaceIdOrderByEditedAtAsc(Long placeId);
 
+    /** 관리자 신고 상세용 최근 수정 이력. */
+    List<PlaceEditHistory> findTop20ByPlaceIdOrderByIdDesc(Long placeId);
+
+    java.util.Optional<PlaceEditHistory> findByIdAndPlaceId(Long id, Long placeId);
+
     /** 탈퇴 회원의 수정자 연결을 끊는다. 재가입 시 같은 회원 ID가 재활성화되므로 ID를 남기지 않는다. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update PlaceEditHistory h set h.editorId = null where h.editorId = :memberId")

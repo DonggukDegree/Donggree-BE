@@ -37,6 +37,7 @@ import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -201,14 +202,14 @@ class PlaceReviewControllerTest extends RestDocsSupport {
     private static FieldDescriptor[] reviewFields() {
         return new FieldDescriptor[] {
             fieldWithPath("id").description("리뷰 ID"),
-            fieldWithPath("rating").description("별점(1~5)"),
-            fieldWithPath("content").description("본문"),
+            fieldWithPath("rating").optional().type(JsonFieldType.NUMBER).description("별점(1~5). 목록의 숨긴 리뷰면 null"),
+            fieldWithPath("content").optional().type(JsonFieldType.STRING).description("본문. 목록의 숨긴 리뷰면 null"),
             fieldWithPath("createdAt").description("작성 시각"),
             fieldWithPath("updatedAt").description("마지막 수정 시각"),
             fieldWithPath("author.nickname").optional().description("작성자 닉네임. 탈퇴 등으로 없으면 null(\"탈퇴한 회원\")"),
             fieldWithPath("author.profileUrl").optional().description("작성자 프로필 사진. 없으면 null(기본 아바타)"),
             fieldWithPath("mine").description("요청 회원의 리뷰인지"),
-            fieldWithPath("hidden").description("신고·관리자로 숨겨졌는지(본인 리뷰에서만 true 가능)")
+            fieldWithPath("hidden").description("신고·관리자로 숨겨졌는지. 목록에서는 자리를 지키고 별점·본문이 null")
         };
     }
 

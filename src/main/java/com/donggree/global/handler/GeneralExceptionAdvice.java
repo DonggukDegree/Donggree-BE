@@ -22,10 +22,11 @@ public class GeneralExceptionAdvice {
 
     // 애플리케이션에서 발생하는 커스텀 예외를 처리
     @ExceptionHandler(GeneralException.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(GeneralException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> handleException(GeneralException ex, HttpServletRequest request) {
         RequestDiagnostics.failure(
                 request, ex.getCode().getCode(), ex.getStage(), ex.getCode().getMessage(), ex);
-        return ResponseEntity.status(ex.getCode().getStatus()).body(ApiResponse.onFailure(ex.getCode()));
+        return ResponseEntity.status(ex.getCode().getStatus())
+                .body(ApiResponse.onFailure(ex.getCode(), ex.getResult()));
     }
 
     // 컨트롤러 메서드에서 @Valid 어노테이션을 사용하여 DTO의 유효성 검사를 수행

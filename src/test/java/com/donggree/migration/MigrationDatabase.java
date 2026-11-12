@@ -28,6 +28,7 @@ abstract class MigrationDatabase {
             "faq",
             "graduation_rule",
             "member",
+            "member_suspension",
             "place",
             "place_edit_history",
             "place_menu",
@@ -124,7 +125,7 @@ abstract class MigrationDatabase {
                     table,
                     scalar("SELECT coalesce(jsonb_agg("
                             + (table.equals("member")
-                                    ? "to_jsonb(t) - 'school_email' - 'school_email_verified_at'"
+                                    ? "to_jsonb(t) - 'school_email' - 'school_email_verified_at' - 'suspended_until'"
                                     : "to_jsonb(t)")
                             + " ORDER BY to_jsonb(t)::text), '[]'::jsonb)::text FROM public." + table + " t"));
         }

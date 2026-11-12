@@ -24,4 +24,16 @@ public class TranscriptLookupServiceImpl implements TranscriptLookupService {
     public Optional<TranscriptView> findByMemberId(Long memberId) {
         return transcriptRepository.findWithCourseRecordsByMemberId(memberId).map(viewMapper::toView);
     }
+
+    @Override
+    public java.util.Map<Long, Long> findDepartmentIdsByMemberIds(java.util.Collection<Long> memberIds) {
+        var ids =
+                memberIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return java.util.Map.of();
+        }
+        return transcriptRepository.findDepartmentIdsByMemberIds(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (Long) row[0], row -> (Long) row[1], (first, second) -> first));
+    }
 }
