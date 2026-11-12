@@ -2,6 +2,7 @@ package com.donggree.place.internal.infrastructure;
 
 import static com.donggree.place.internal.domain.PlaceFixtures.NEAR_CAMPUS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.donggree.global.config.JpaAuditingConfig;
 import com.donggree.global.config.QueryDslConfig;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @DataJpaTest
 @Import({JpaAuditingConfig.class, QueryDslConfig.class, QuerydslPlaceQueries.class})
@@ -181,6 +183,34 @@ class PlaceReviewPersistenceTest {
         assertThat(reportRepository.clearReporter(8L)).isEqualTo(1);
         assertThat(reportRepository.findByReviewIdOrderByIdAsc(review.getId()))
                 .allSatisfy(report -> assertThat(report.getStatus()).isEqualTo(PlaceReportStatus.RESOLVED));
+    }
+
+    // 아래 두 테스트는 V6 부분 유일 인덱스(마이그레이션에만 있음)를 실제 PostgreSQL에서 확인한다.
+    // 위반 뒤에는 PostgreSQL이 같은 트랜잭션의 다음 SQL을 거절하므로, 위반은 각 테스트의 마지막 동작으로 둔다.
+    @Test
+    void 회원당_장소별_지우지_않은_리뷰가_있으면_DB가_두번째_리뷰를_거절한다() {
+        Place place = savePlace("동국반점");
+        review(place, 7L, 5);
+
+        assertThatThrownBy(() -> review(place, 7L, 4)).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void 지운_리뷰와_처리한_신고는_DB_중복_제한에서_빠진다() {
+        Place place = savePlace("동국반점");
+        PlaceReview deleted = review(place, 7L, 5);
+        deleted.delete(LocalDateTime.now());
+        entityManager.flush();
+        PlaceReview rewritten = review(place, 7L, 4);
+
+        ReviewReport handled = ReviewReport.submit(rewritten.getId(), 9L, ReviewReportReason.ABUSE, null);
+        handled.resolve(LocalDateTime.now());
+        reportRepository.saveAndFlush(handled);
+        reportRepository.saveAndFlush(ReviewReport.submit(rewritten.getId(), 9L, ReviewReportReason.SPAM, null));
+
+        assertThatThrownBy(() -> reportRepository.saveAndFlush(
+                        ReviewReport.submit(rewritten.getId(), 9L, ReviewReportReason.PRIVACY, null)))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private Place savePlace(String name) {
