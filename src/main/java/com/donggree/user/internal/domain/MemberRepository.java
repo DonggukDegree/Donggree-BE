@@ -34,8 +34,11 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
      *
      * @param suspendedOnly true면 now 기준 정지 중인 회원만
      */
-    @Query("select m from Member m where (:keyword is null or m.studentId like concat('%', :keyword, '%')"
-            + " or m.name like concat('%', :keyword, '%') or m.nickname like concat('%', :keyword, '%'))"
+    // PostgreSQL은 타입 없는 null 파라미터를 `is null`에서 판정하지 못하므로 문자열로 형변환한다.
+    @Query("select m from Member m where (cast(:keyword as String) is null"
+            + " or m.studentId like concat('%', cast(:keyword as String), '%')"
+            + " or m.name like concat('%', cast(:keyword as String), '%')"
+            + " or m.nickname like concat('%', cast(:keyword as String), '%'))"
             + " and (:suspendedOnly = false or m.suspendedUntil > :now)")
     org.springframework.data.domain.Page<Member> search(
             @Param("keyword") String keyword,

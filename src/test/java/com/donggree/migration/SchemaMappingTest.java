@@ -200,8 +200,55 @@ class SchemaMappingTest extends MigrationDatabase {
                 .isEqualTo("23514");
     }
 
+    @Test
+    void 관리자_회원_검색은_검색어가_없어도_PostgreSQL에서_실행된다() throws Exception {
+        flyway().migrate();
+        execute(
+                """
+                INSERT INTO public.member (oauth_id, email, role, identity_verified, created_at, updated_at)
+                    VALUES ('migration-a', 'a@example.com', 'STUDENT', false, now(), now());
+                INSERT INTO public.member (oauth_id, email, role, identity_verified, student_id, name, nickname,
+                    created_at, updated_at)
+                    VALUES ('migration-b', 'b@example.com', 'STUDENT', false, '2023000001', '홍길동', '길동',
+                    now(), now());
+                """);
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        DataSourceAutoConfiguration.class,
+                        HibernateJpaAutoConfiguration.class,
+                        TransactionAutoConfiguration.class))
+                .withUserConfiguration(Mappings.class, MemberRepositories.class)
+                .withPropertyValues(
+                        "spring.datasource.url=" + databaseUrl,
+                        "spring.datasource.username=" + user,
+                        "spring.datasource.password=" + password,
+                        "spring.datasource.driver-class-name=org.postgresql.Driver",
+                        "spring.jpa.hibernate.ddl-auto=validate")
+                .run(context -> {
+                    var repository = context.getBean(com.donggree.user.internal.domain.MemberRepository.class);
+                    var now = java.time.LocalDateTime.now();
+                    var all = org.springframework.data.domain.PageRequest.of(0, 20);
+                    assertThat(repository.search(null, false, now, all).getTotalElements())
+                            .isEqualTo(2);
+                    assertThat(repository.search("길동", false, now, all).getTotalElements())
+                            .isEqualTo(1);
+                    assertThat(repository.search(null, true, now, all).getTotalElements())
+                            .isZero();
+                });
+    }
+
     // 실제 Modulith 자동 설정과 같은 기본 이벤트 엔티티만 포함한다. archive 모드는 사용하지 않는다.
     @TestConfiguration(proxyBeanMethods = false)
     @EntityScan(basePackages = {"com.donggree", "org.springframework.modulith.events.jpa.updating"})
     static class Mappings {}
+
+    // 회원 검색 JPQL을 실제 PostgreSQL 바인딩으로 확인한다(H2는 타입 없는 null 파라미터를 허용해 놓친다).
+    @TestConfiguration(proxyBeanMethods = false)
+    @org.springframework.data.jpa.repository.config.EnableJpaRepositories(
+            basePackageClasses = com.donggree.user.internal.domain.MemberRepository.class,
+            includeFilters =
+                    @org.springframework.context.annotation.ComponentScan.Filter(
+                            type = org.springframework.context.annotation.FilterType.ASSIGNABLE_TYPE,
+                            classes = com.donggree.user.internal.domain.MemberRepository.class))
+    static class MemberRepositories {}
 }
