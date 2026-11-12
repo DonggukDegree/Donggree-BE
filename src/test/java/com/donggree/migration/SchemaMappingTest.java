@@ -47,7 +47,7 @@ class SchemaMappingTest extends MigrationDatabase {
                                     .current()
                                     .getVersion()
                                     .getVersion())
-                            .isEqualTo("6");
+                            .isEqualTo("7");
                 });
     }
 
@@ -173,6 +173,31 @@ class SchemaMappingTest extends MigrationDatabase {
                 .isInstanceOf(SQLException.class)
                 .extracting(e -> ((SQLException) e).getSQLState())
                 .isEqualTo("23505");
+    }
+
+    @Test
+    void V7은_없앤_상세카테고리를_기타로_옮기고_태그는_정의된_값만_받는다() throws Exception {
+        var beforeV7 = org.flywaydb.core.Flyway.configure()
+                .configuration(flyway().getConfiguration())
+                .target("6")
+                .load();
+        beforeV7.migrate();
+        execute(
+                """
+                INSERT INTO public.place (name, category, sub_category, latitude, longitude, status, version,
+                    created_by, info_updated_at, created_at, updated_at)
+                    VALUES ('migration-pocha', 'BAR', 'POCHA', 37.558, 127.0, 'VISIBLE', 0, 1, now(), now(), now()),
+                           ('migration-study', 'STUDY', 'STUDY_FRIENDLY_CAFE', 37.558, 127.0, 'VISIBLE', 0, 1, now(), now(), now());
+                """);
+        flyway().migrate();
+
+        assertThat(scalar("SELECT string_agg(sub_category, ',' ORDER BY id) FROM public.place"))
+                .isEqualTo("BAR_ETC,STUDY_ETC");
+        execute("INSERT INTO public.place_tag (place_id, tag) VALUES (1, 'SOLO_DINING'), (1, 'SHORTCUT')");
+        assertThatThrownBy(() -> execute("INSERT INTO public.place_tag (place_id, tag) VALUES (1, 'UNKNOWN')"))
+                .isInstanceOf(SQLException.class)
+                .extracting(e -> ((SQLException) e).getSQLState())
+                .isEqualTo("23514");
     }
 
     // 실제 Modulith 자동 설정과 같은 기본 이벤트 엔티티만 포함한다. archive 모드는 사용하지 않는다.

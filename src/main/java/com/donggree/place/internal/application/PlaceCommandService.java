@@ -65,7 +65,8 @@ public class PlaceCommandService {
                     point,
                     command.businessHours(),
                     command.description(),
-                    command.menus()));
+                    command.menus(),
+                    command.tags()));
         } catch (IllegalArgumentException exception) {
             throw new GeneralException(PlaceErrorCode.INVALID_PLACE);
         }
@@ -90,7 +91,8 @@ public class PlaceCommandService {
         Optional<PlaceEditHistory> history;
         try {
             history = place.editInfo(
-                    memberId, new PlaceInfo(command.businessHours(), command.description(), command.menus()));
+                    memberId,
+                    new PlaceInfo(command.businessHours(), command.description(), command.menus(), command.tags()));
         } catch (IllegalArgumentException exception) {
             throw new GeneralException(PlaceErrorCode.INVALID_PLACE);
         }

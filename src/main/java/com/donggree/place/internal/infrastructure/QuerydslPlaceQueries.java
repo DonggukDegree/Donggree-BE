@@ -8,8 +8,11 @@ import com.donggree.place.internal.domain.QPlace;
 import com.donggree.place.internal.domain.QPlaceReview;
 import com.donggree.place.internal.domain.enums.PlaceReviewStatus;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.EnumPath;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +47,8 @@ public class QuerydslPlaceQueries implements PlaceQueries {
                         row.get(PLACE.latitude),
                         row.get(PLACE.longitude),
                         null,
-                        0))
+                        0,
+                        List.of()))
                 .toList();
     }
 
@@ -58,6 +62,23 @@ public class QuerydslPlaceQueries implements PlaceQueries {
                 .fetch()
                 .stream()
                 .collect(Collectors.toMap(row -> row.get(REVIEW.placeId), QuerydslPlaceQueries::rating));
+    }
+
+    @Override
+    public Map<Long, List<PlaceTag>> findVisiblePlaceTags() {
+        EnumPath<PlaceTag> tag = Expressions.enumPath(PlaceTag.class, "tag");
+        return queryFactory
+                .select(PLACE.id, tag)
+                .from(PLACE)
+                .join(PLACE.tags, tag)
+                .where(PLACE.status.eq(PlaceStatus.VISIBLE))
+                .fetch()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        row -> row.get(PLACE.id),
+                        Collectors.collectingAndThen(
+                                Collectors.mapping(row -> row.get(tag), Collectors.toList()),
+                                list -> list.stream().sorted().toList())));
     }
 
     @Override

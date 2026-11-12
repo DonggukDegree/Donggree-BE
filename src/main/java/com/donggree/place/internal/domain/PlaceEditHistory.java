@@ -1,5 +1,6 @@
 package com.donggree.place.internal.domain;
 
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -64,6 +65,14 @@ public class PlaceEditHistory {
     @Column(name = "after_menus", nullable = false)
     private List<MenuItem> afterMenus;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "before_tags", nullable = false)
+    private List<PlaceTag> beforeTags;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "after_tags", nullable = false)
+    private List<PlaceTag> afterTags;
+
     @Column(name = "edited_at", nullable = false)
     private LocalDateTime editedAt;
 
@@ -76,14 +85,16 @@ public class PlaceEditHistory {
         this.afterDescription = after.description();
         this.beforeMenus = before.menus();
         this.afterMenus = after.menus();
+        this.beforeTags = before.tags();
+        this.afterTags = after.tags();
         this.editedAt = editedAt;
     }
 
     public PlaceInfo before() {
-        return new PlaceInfo(beforeBusinessHours, beforeDescription, beforeMenus);
+        return new PlaceInfo(beforeBusinessHours, beforeDescription, beforeMenus, beforeTags);
     }
 
     public PlaceInfo after() {
-        return new PlaceInfo(afterBusinessHours, afterDescription, afterMenus);
+        return new PlaceInfo(afterBusinessHours, afterDescription, afterMenus, afterTags);
     }
 }

@@ -3,6 +3,7 @@ package com.donggree.place.internal.application.readmodel;
 import com.donggree.place.internal.domain.Place;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,7 +26,8 @@ public record PlaceDetailReadModel(
         Long version,
         String registrantNickname,
         Double averageRating,
-        long reviewCount) {
+        long reviewCount,
+        List<PlaceTag> tags) {
 
     public static PlaceDetailReadModel from(Place place, String registrantNickname, RatingSummary rating) {
         return new PlaceDetailReadModel(
@@ -45,7 +47,8 @@ public record PlaceDetailReadModel(
                 place.getVersion(),
                 registrantNickname,
                 rating.averageRating(),
-                rating.reviewCount());
+                rating.reviewCount(),
+                place.info().tags());
     }
 
     public record Menu(String name, Integer price) {}
