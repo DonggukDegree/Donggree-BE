@@ -17,7 +17,7 @@ public interface AdminPlaceApi {
     })
     ApiResponse<Void> hidePlace(@Parameter(description = "장소 ID") Long placeId);
 
-    @Operation(summary = "장소 숨김 해제", description = "숨긴 장소를 다시 지도에 보이게 한다. 신고 상태는 바꾸지 않는다. 이미 보이는 장소도 성공.")
+    @Operation(summary = "장소 숨김 해제", description = "숨긴 장소를 다시 지도에 보이게 하고 그 장소의 처리 대기 신고를 기각한다. 이미 보이는 장소도 성공.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "숨김 해제 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "관리자 아님"),

@@ -199,6 +199,26 @@ class PlacePersistenceTest {
     }
 
     @Test
+    void 숨김_해제_시_처리_대기_신고만_기각하고_대기_신고_수를_다시_센다() {
+        Place place = save("동국반점", NEAR_CAMPUS);
+        reportRepository.save(PlaceReport.submit(place.getId(), 7L, PlaceReportReason.CLOSED, null));
+        reportRepository.save(PlaceReport.submit(place.getId(), 8L, PlaceReportReason.WRONG_NAME, null));
+        entityManager.flush();
+        assertThat(reportRepository.countByPlaceIdAndStatus(place.getId(), PlaceReportStatus.PENDING))
+                .isEqualTo(2);
+
+        assertThat(reportRepository.rejectPending(place.getId(), LocalDateTime.of(2026, 11, 13, 9, 0)))
+                .isEqualTo(2);
+
+        assertThat(reportRepository.countByPlaceIdAndStatus(place.getId(), PlaceReportStatus.PENDING))
+                .isZero();
+        assertThat(reportRepository.findByPlaceIdOrderByIdAsc(place.getId())).allSatisfy(report -> {
+            assertThat(report.getStatus()).isEqualTo(PlaceReportStatus.REJECTED);
+            assertThat(report.getProcessedAt()).isNotNull();
+        });
+    }
+
+    @Test
     void 탈퇴_회원의_신고자_연결만_끊고_신고는_유지한다() {
         Place place = save("동국반점", NEAR_CAMPUS);
         PlaceReport report =

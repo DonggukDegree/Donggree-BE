@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 동글맵 장소 신고 API. 로그인 필요, 학생 인증 여부는 응용 서비스가 검증한다. */
+/** 동글맵 장소 신고 API. 로그인 필요, 학생 인증 여부·자동 숨김은 응용 서비스가 처리한다. */
 @RestController
 @RequestMapping("/api/places/{placeId}/reports")
 @RequiredArgsConstructor

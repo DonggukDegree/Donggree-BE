@@ -37,7 +37,7 @@ class AdminPlaceCommandServiceTest {
     }
 
     @Test
-    void 숨김을_해제해도_신고_상태는_그대로_둔다() {
+    void 숨김을_해제하면_처리_대기_신고를_기각해_자동_숨김_집계를_다시_시작한다() {
         Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
         place.hide();
         given(placeRepository.findById(10L)).willReturn(Optional.of(place));
@@ -45,6 +45,7 @@ class AdminPlaceCommandServiceTest {
         service.show(10L);
 
         assertThat(place.isVisible()).isTrue();
+        verify(reportRepository).rejectPending(eq(10L), any());
         verify(reportRepository, never()).resolvePending(any(), any());
     }
 

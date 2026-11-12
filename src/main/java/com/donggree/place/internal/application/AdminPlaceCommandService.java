@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 관리자의 동글맵 장소 관리. 신고 확인 후 숨기거나 숨김을 해제한다.
+ * 관리자의 동글맵 장소 관리. 신고 확인 후 숨기거나(신고 처리 완료) 숨김을 해제한다(대기 신고 기각).
  * 이름·위치·카테고리 정정과 삭제·병합, 신고 기각은 MVP에서 DB로 처리한다.
  */
 @Service
@@ -29,10 +29,14 @@ public class AdminPlaceCommandService {
         reportRepository.resolvePending(placeId, LocalDateTime.now());
     }
 
-    /** 숨김을 해제한다. 신고 상태는 바꾸지 않는다. */
+    /**
+     * 숨김을 해제하고 그 장소의 처리 대기 신고를 기각한다.
+     * 자동 숨김을 관리자가 풀었다는 것은 신고를 받아들이지 않았다는 뜻이고, 대기로 두면 다음 신고 한 건에 다시 숨겨진다.
+     */
     @Transactional
     public void show(Long placeId) {
         find(placeId).show();
+        reportRepository.rejectPending(placeId, LocalDateTime.now());
     }
 
     private Place find(Long placeId) {

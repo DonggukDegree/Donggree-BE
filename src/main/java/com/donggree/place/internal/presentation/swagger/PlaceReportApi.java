@@ -12,7 +12,8 @@ public interface PlaceReportApi {
 
     @Operation(
             summary = "장소 신고",
-            description = "PDF 본인인증 또는 학교 이메일 인증 회원이 장소를 신고하고 신고 ID를 받는다. 신고만으로 숨기지 않으며 관리자가 확인한다. "
+            description = "PDF 본인인증 또는 학교 이메일 인증 회원이 장소를 신고하고 신고 ID를 받는다. "
+                    + "서로 다른 회원의 처리 대기 신고가 3건이 되면 장소를 자동 숨김하고, 그 밖의 처리는 관리자가 한다. "
                     + "같은 장소에 처리 대기 신고가 있으면 409, 처리된 뒤에는 다시 신고할 수 있다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "신고 접수"),

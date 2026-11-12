@@ -11,7 +11,9 @@ import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.place.internal.application.command.ReportPlaceCommand;
+import com.donggree.place.internal.application.event.PlaceReportedEvent;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
+import com.donggree.place.internal.domain.Place;
 import com.donggree.place.internal.domain.PlaceFixtures;
 import com.donggree.place.internal.domain.PlaceReport;
 import com.donggree.place.internal.domain.PlaceReportRepository;
@@ -25,6 +27,7 @@ import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -36,14 +39,18 @@ class PlaceReportCommandServiceTest {
     private final PlaceRepository placeRepository = mock(PlaceRepository.class);
     private final PlaceReportRepository reportRepository = mock(PlaceReportRepository.class);
     private final UserLookupService userLookupService = mock(UserLookupService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final PlaceReportCommandService service =
-            new PlaceReportCommandService(placeRepository, reportRepository, userLookupService);
+            new PlaceReportCommandService(placeRepository, reportRepository, userLookupService, eventPublisher);
+    private Place place;
 
     @BeforeEach
     void setUp() {
         given(userLookupService.isStudentVerified(MEMBER_ID)).willReturn(true);
-        given(placeRepository.findByIdAndStatus(PLACE_ID, PlaceStatus.VISIBLE))
-                .willReturn(Optional.of(PlaceFixtures.place(PLACE_ID, "동국반점", NEAR_CAMPUS)));
+        place = PlaceFixtures.place(PLACE_ID, "동국반점", NEAR_CAMPUS);
+        given(placeRepository.findByIdAndStatus(PLACE_ID, PlaceStatus.VISIBLE)).willReturn(Optional.of(place));
+        given(reportRepository.countByPlaceIdAndStatus(PLACE_ID, PlaceReportStatus.PENDING))
+                .willReturn(1L);
         given(reportRepository.saveAndFlush(any(PlaceReport.class))).willAnswer(invocation -> {
             PlaceReport report = invocation.getArgument(0);
             ReflectionTestUtils.setField(report, "id", 50L);
@@ -61,6 +68,24 @@ class PlaceReportCommandServiceTest {
         assertThat(saved.getValue().getPlaceId()).isEqualTo(PLACE_ID);
         assertThat(saved.getValue().getReporterId()).isEqualTo(MEMBER_ID);
         assertThat(saved.getValue().getStatus()).isEqualTo(PlaceReportStatus.PENDING);
+        assertThat(place.isVisible()).isTrue();
+        verify(eventPublisher)
+                .publishEvent(new PlaceReportedEvent(50L, PLACE_ID, "동국반점", PlaceReportReason.CLOSED, null, 1L, false));
+    }
+
+    @Test
+    void 서로_다른_회원의_처리_대기_신고가_3건이_되면_장소를_자동_숨긴다() {
+        given(reportRepository.countByPlaceIdAndStatus(PLACE_ID, PlaceReportStatus.PENDING))
+                .willReturn(2L, 3L);
+
+        service.report(MEMBER_ID, PLACE_ID, closed());
+        assertThat(place.isVisible()).isTrue();
+
+        service.report(MEMBER_ID, PLACE_ID, new ReportPlaceCommand(PlaceReportReason.OTHER, "주차장 입구"));
+        assertThat(place.isVisible()).isFalse();
+        verify(eventPublisher)
+                .publishEvent(
+                        new PlaceReportedEvent(50L, PLACE_ID, "동국반점", PlaceReportReason.OTHER, "주차장 입구", 3L, true));
     }
 
     @Test
@@ -112,5 +137,6 @@ class PlaceReportCommandServiceTest {
                 .isInstanceOf(GeneralException.class)
                 .satisfies(e -> assertThat(((GeneralException) e).getCode()).isEqualTo(code));
         verify(reportRepository, never()).saveAndFlush(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 }

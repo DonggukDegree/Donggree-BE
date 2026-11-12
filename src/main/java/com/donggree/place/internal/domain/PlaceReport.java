@@ -21,6 +21,8 @@ import lombok.NoArgsConstructor;
  * 장소 신고. 등록자를 포함한 인증 회원 누구나 제출하고, 관리자가 처리한다.
  *
  * <p>회원당 장소별 처리 대기 신고는 1건이며, 처리 후에는 다시 신고할 수 있다(DB 부분 유일 인덱스로도 막는다).
+ * 서로 다른 회원의 처리 대기 신고가 {@link #AUTO_HIDE_PENDING_COUNT}건 쌓이면 장소를 자동으로 숨기고,
+ * 신고는 관리자 확인을 위해 대기로 남긴다. 그 밖의 처리는 관리자가 한다.
  * 장소와는 ID로만 연결하고, 신고자는 회원 ID로만 참조하며 탈퇴 시 null로 익명화한다.
  */
 @Entity
@@ -36,6 +38,7 @@ import lombok.NoArgsConstructor;
 public class PlaceReport extends BaseEntity {
 
     public static final int DESCRIPTION_MAX_LENGTH = 200;
+    public static final int AUTO_HIDE_PENDING_COUNT = 3;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
