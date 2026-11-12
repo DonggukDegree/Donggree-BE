@@ -29,11 +29,19 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Query("select m.suspendedUntil from Member m where m.id = :id")
     Optional<java.time.LocalDateTime> findSuspendedUntilById(@Param("id") Long id);
 
-    /** 관리자 회원 검색. 학번·이름·닉네임 부분 일치, 가입 최신순. */
-    @Query("select m from Member m where :keyword is null or m.studentId like concat('%', :keyword, '%')"
-            + " or m.name like concat('%', :keyword, '%') or m.nickname like concat('%', :keyword, '%')")
+    /**
+     * 관리자 회원 검색. 학번·이름·닉네임 부분 일치, 가입 최신순.
+     *
+     * @param suspendedOnly true면 now 기준 정지 중인 회원만
+     */
+    @Query("select m from Member m where (:keyword is null or m.studentId like concat('%', :keyword, '%')"
+            + " or m.name like concat('%', :keyword, '%') or m.nickname like concat('%', :keyword, '%'))"
+            + " and (:suspendedOnly = false or m.suspendedUntil > :now)")
     org.springframework.data.domain.Page<Member> search(
-            @Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+            @Param("keyword") String keyword,
+            @Param("suspendedOnly") boolean suspendedOnly,
+            @Param("now") java.time.LocalDateTime now,
+            org.springframework.data.domain.Pageable pageable);
 
     @Query(value = "SELECT * FROM member WHERE oauth_id = :oauthId", nativeQuery = true)
     Optional<Member> findByOauthIdIncludingDeleted(@Param("oauthId") String oauthId);

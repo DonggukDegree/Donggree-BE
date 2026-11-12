@@ -98,4 +98,28 @@ public final class AdminReportModels {
             List<MemberSuspensionRecord> suspensions) {}
 
     public record MemberRow(AdminMemberSummary member, long receivedReportCount) {}
+
+    /** 관리자 장소 목록 한 행. registrant가 null이면 탈퇴한 회원이다. */
+    public record PlaceRow(
+            Long placeId,
+            String name,
+            PlaceCategory category,
+            PlaceSubCategory subCategory,
+            PlaceStatus status,
+            long pendingReportCount,
+            AdminMemberSummary registrant,
+            LocalDateTime createdAt) {}
+
+    /** 관리자 리뷰 목록 한 행. 관리자는 숨긴·지운 리뷰도 본문까지 본다. author가 null이면 탈퇴한 회원이다. */
+    public record ReviewRow(
+            Long reviewId,
+            Long placeId,
+            String placeName,
+            int rating,
+            String content,
+            PlaceReviewStatus status,
+            boolean deleted,
+            long pendingReportCount,
+            AdminMemberSummary author,
+            LocalDateTime createdAt) {}
 }

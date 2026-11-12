@@ -71,10 +71,13 @@ public class UserModerationServiceImpl implements UserModerationService, MemberA
 
     @Override
     @Transactional(readOnly = true)
-    public MemberSearchPage searchMembers(String keyword, int page, int size) {
+    public MemberSearchPage searchMembers(String keyword, boolean suspendedOnly, int page, int size) {
         String normalized = keyword == null || keyword.isBlank() ? null : keyword.strip();
         var result = memberRepository.search(
-                normalized, PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.DESC, "id")));
+                normalized,
+                suspendedOnly,
+                LocalDateTime.now(),
+                PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.DESC, "id")));
         return new MemberSearchPage(
                 result.getContent().stream()
                         .map(UserModerationServiceImpl::toProfile)

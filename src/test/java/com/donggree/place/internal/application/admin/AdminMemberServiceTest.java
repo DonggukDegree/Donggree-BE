@@ -64,10 +64,11 @@ class AdminMemberServiceTest {
 
     @Test
     void 회원_검색_행에도_학과와_받은_신고_수를_붙이고_성적표가_없으면_학과는_비운다() {
-        given(moderationService.searchMembers("김", 0, 20)).willReturn(new MemberSearchPage(List.of(profile), 1, 0, 20));
+        given(moderationService.searchMembers("김", false, 0, 20))
+                .willReturn(new MemberSearchPage(List.of(profile), 1, 0, 20));
         given(transcriptLookupService.findDepartmentIdsByMemberIds(List.of(7L))).willReturn(Map.of());
 
-        var page = service.searchMembers("김", 0);
+        var page = service.searchMembers("김", false, 0);
 
         assertThat(page.items()).hasSize(1);
         assertThat(page.items().getFirst().member().departmentName()).isNull();

@@ -35,8 +35,9 @@ public class AdminMemberService {
     private final ReviewReportRepository reviewReportRepository;
 
     @Transactional(readOnly = true)
-    public Page<MemberRow> searchMembers(String keyword, int page) {
-        MemberSearchPage result = moderationService.searchMembers(keyword, page, PAGE_SIZE);
+    /** @param suspendedOnly true면 지금 정지 중인 회원만 */
+    public Page<MemberRow> searchMembers(String keyword, boolean suspendedOnly, int page) {
+        MemberSearchPage result = moderationService.searchMembers(keyword, suspendedOnly, page, PAGE_SIZE);
         Map<Long, AdminMemberSummary> summaries = memberReader.toSummaries(result.members());
         List<Long> ids =
                 result.members().stream().map(MemberAdminProfile::memberId).toList();

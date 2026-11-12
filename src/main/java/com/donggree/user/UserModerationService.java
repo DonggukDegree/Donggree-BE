@@ -14,7 +14,8 @@ public interface UserModerationService {
     Map<Long, MemberAdminProfile> findAdminProfiles(Collection<Long> memberIds);
 
     /** 학번·이름·닉네임에 keyword가 들어간 회원을 가입 최신순으로 찾는다. keyword가 비면 전체. */
-    MemberSearchPage searchMembers(String keyword, int page, int size);
+    /** @param suspendedOnly true면 지금 정지 중인 회원만 */
+    MemberSearchPage searchMembers(String keyword, boolean suspendedOnly, int page, int size);
 
     /**
      * 회원을 정지한다. 지금부터 days일 동안 이용할 수 없고, 정지 중이면 새 일수로 바꾼다. 기존 로그인도 끊는다.

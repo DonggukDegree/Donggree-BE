@@ -58,7 +58,7 @@ class AdminMemberControllerTest extends RestDocsSupport {
 
     @Test
     void 회원을_검색해_이름_학번_단과대_학과와_받은_신고_수를_본다() throws Exception {
-        given(memberService.searchMembers("김", 0))
+        given(memberService.searchMembers("김", false, 0))
                 .willReturn(new Page<>(List.of(new MemberRow(AdminReportControllerTest.AUTHOR, 5)), 1, 0, 20));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/admin/members")
@@ -69,6 +69,7 @@ class AdminMemberControllerTest extends RestDocsSupport {
                         "admin-member-search",
                         queryParameters(
                                 parameterWithName("keyword").optional().description("학번·이름·닉네임 부분 일치(생략 시 전체)"),
+                                parameterWithName("suspended").optional().description("true면 지금 정지 중인 회원만(기본 false)"),
                                 parameterWithName("page").optional().description("0부터 시작하는 페이지(20개씩)")),
                         responseFields(AdminReportControllerTest.pageFields())
                                 .andWithPrefix("result.items[].member.", AdminReportControllerTest.memberFields())

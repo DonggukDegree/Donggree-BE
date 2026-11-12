@@ -222,6 +222,9 @@ class SecurityConfigTest {
     private com.donggree.place.internal.application.admin.AdminMemberService adminMemberService;
 
     @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminContentQueryService adminContentQueryService;
+
+    @MockitoBean
     private com.donggree.global.auth.MemberAccessGuard memberAccessGuard;
 
     @TestConfiguration

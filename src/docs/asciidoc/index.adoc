@@ -264,7 +264,7 @@ operation::place-report[]
 
 ==== 장소 리뷰 목록
 
-보이는 리뷰를 최신순으로 10개씩 반환한다. 다음 페이지는 `nextCursor`를 `cursor`로 넘기며 마지막 페이지면 `nextCursor`는 null이다. 작성자 닉네임·프로필은 저장하지 않고 조회 때 회원 정보에서 가져오며, 탈퇴한 작성자는 닉네임이 null이다(FE "탈퇴한 회원"). 프로필 사진은 아직 수집하지 않아 null이면 기본 아바타를 쓴다. 요청 회원의 리뷰는 숨겨졌어도 `myReview`로 함께 준다.
+작성자가 지우지 않은 리뷰를 최신순으로 10개씩 반환한다. 숨긴 리뷰(`hidden=true`)도 자리를 지키도록 넣되 `rating`·`content`는 null이다(FE "신고되어 숨겨진 리뷰입니다."). 평균 별점·리뷰 수에는 숨긴 리뷰를 세지 않는다. 다음 페이지는 `nextCursor`를 `cursor`로 넘기며 마지막 페이지면 `nextCursor`는 null이다. 작성자 닉네임·프로필은 저장하지 않고 조회 때 회원 정보에서 가져오며, 탈퇴한 작성자는 닉네임이 null이다(FE "탈퇴한 회원"). 프로필 사진은 아직 수집하지 않아 null이면 기본 아바타를 쓴다. 요청 회원의 리뷰는 숨겨졌어도 `myReview`로 함께 준다.
 
 operation::place-review-list[]
 
@@ -344,7 +344,21 @@ operation::admin-report-review-suspend[]
 
 `POST /api/admin/places/{placeId}/edit-histories/{historyId}/revert`. 수정 이력 한 건의 수정 전 영업시간·설명·메뉴·태그로 되돌리며, 되돌린 것도 관리자 수정으로 이력에 남는다.
 
+==== 전체 장소 목록
+
+신고 여부와 관계없이 모든 장소를 등록 최신순 20개씩 상태(VISIBLE·HIDDEN)·처리 대기 신고 수·등록자와 함께 반환한다. 숨김·해제는 관리자 장소 숨김 API를 쓴다.
+
+operation::admin-place-list[]
+
+==== 전체 리뷰 목록
+
+모든 리뷰를 작성 최신순 20개씩 반환한다. 관리자는 숨긴 리뷰와 작성자가 지운 리뷰도 본문까지 보며, `state`로 보임·숨김·삭제를 거른다. 검색어는 본문 또는 장소 이름에 맞춘다.
+
+operation::admin-review-list[]
+
 ==== 회원 검색
+
+`suspended=true`면 지금 정지 중인 회원만 반환한다.
 
 operation::admin-member-search[]
 

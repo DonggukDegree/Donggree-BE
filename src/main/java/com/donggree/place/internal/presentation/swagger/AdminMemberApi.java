@@ -13,9 +13,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Admin Member", description = "신고 대시보드 회원 관리·정지. ADMIN 이상")
 public interface AdminMemberApi {
 
-    @Operation(summary = "회원 검색", description = "학번·이름·닉네임 부분 일치, 가입 최신순 20개씩. 받은 신고 수 포함.")
+    @Operation(summary = "회원 검색", description = "학번·이름·닉네임 부분 일치, 정지 중 필터, 가입 최신순 20개씩. 받은 신고 수 포함.")
     ApiResponse<Page<MemberRow>> searchMembers(
-            @Parameter(description = "검색어(생략 시 전체)") String keyword, @Parameter(description = "0부터 시작하는 페이지") int page);
+            @Parameter(description = "검색어(생략 시 전체)") String keyword,
+            @Parameter(description = "true면 지금 정지 중인 회원만") boolean suspended,
+            @Parameter(description = "0부터 시작하는 페이지") int page);
 
     @Operation(summary = "회원 상세", description = "이름·학번·단과대·학과, 받은 신고(리뷰 신고 + 장소 신고 정지), 정지 이력.")
     ApiResponse<MemberDetail> getMember(@Parameter(description = "회원 ID") Long memberId);

@@ -107,6 +107,8 @@ class MemberRepositoryTest {
         assertThat(memberRepository.findSuspendedUntilById(bob.getId())).isEmpty();
         var byStudentId = memberRepository.search(
                 "2023",
+                false,
+                java.time.LocalDateTime.now(),
                 org.springframework.data.domain.PageRequest.of(
                         0,
                         20,
@@ -115,6 +117,8 @@ class MemberRepositoryTest {
         assertThat(byStudentId.getContent()).extracting(Member::getId).containsExactly(alice.getId());
         var all = memberRepository.search(
                 null,
+                false,
+                java.time.LocalDateTime.now(),
                 org.springframework.data.domain.PageRequest.of(
                         0,
                         20,
@@ -122,10 +126,22 @@ class MemberRepositoryTest {
                                 org.springframework.data.domain.Sort.Direction.DESC, "id")));
         assertThat(all.getContent()).extracting(Member::getId).containsExactly(bob.getId(), alice.getId());
         assertThat(memberRepository
-                        .search("아코", org.springframework.data.domain.PageRequest.of(0, 20))
+                        .search(
+                                "아코",
+                                false,
+                                java.time.LocalDateTime.now(),
+                                org.springframework.data.domain.PageRequest.of(0, 20))
                         .getContent())
                 .extracting(Member::getId)
                 .containsExactly(bob.getId());
+
+        // 정지 중 필터는 기준 시각보다 종료 시각이 늦은 회원만. 종료 시각이 지나면 빠진다.
+        var page = org.springframework.data.domain.PageRequest.of(0, 20);
+        assertThat(memberRepository.search(null, true, until.minusDays(1), page).getContent())
+                .extracting(Member::getId)
+                .containsExactly(alice.getId());
+        assertThat(memberRepository.search(null, true, until, page).getContent())
+                .isEmpty();
     }
 
     @Test

@@ -33,8 +33,10 @@ public class AdminMemberController implements AdminMemberApi {
     @Override
     @GetMapping
     public ApiResponse<Page<MemberRow>> searchMembers(
-            @RequestParam(required = false) String keyword, @RequestParam(defaultValue = "0") int page) {
-        return ApiResponse.onSuccess(GeneralSuccessCode.OK, memberService.searchMembers(keyword, page));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "false") boolean suspended,
+            @RequestParam(defaultValue = "0") int page) {
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, memberService.searchMembers(keyword, suspended, page));
     }
 
     @Override
