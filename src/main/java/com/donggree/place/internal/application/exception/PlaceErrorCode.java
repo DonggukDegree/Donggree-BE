@@ -15,6 +15,7 @@ public enum PlaceErrorCode implements BaseErrorCode {
     VERIFICATION_REQUIRED(HttpStatus.FORBIDDEN, "PLACE403_1", "학생 인증 후 이용할 수 있습니다."),
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "PLACE404_1", "존재하지 않는 장소입니다."),
     DUPLICATE_PLACE(HttpStatus.CONFLICT, "PLACE409_1", "이미 등록된 장소입니다."),
+    EDIT_CONFLICT(HttpStatus.CONFLICT, "PLACE409_2", "다른 회원이 먼저 수정했습니다. 최신 정보를 확인해주세요."),
     ;
 
     private final HttpStatus status;

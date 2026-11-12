@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,7 @@ import lombok.NoArgsConstructor;
  * 동글맵 장소. 인증 회원이 지도 중심 핀으로 직접 등록한다.
  *
  * <p>이름·위치·카테고리는 등록 후 사용자가 바꿀 수 없고 장소는 삭제하지 않는다.
+ * 영업시간·설명·메뉴는 인증 회원 누구나 고치며, 버전으로 동시 편집 충돌을 막는다.
  * 카카오 응답은 저장하지 않으며 좌표는 사용자가 지정한 값, 주소는 표시 시점에 FE가 조회한다.
  * 작성자는 회원 ID로만 참조하고 탈퇴 시 연결을 끊는다.
  */
@@ -103,9 +105,8 @@ public class Place extends BaseEntity {
         this.name = requireName(registration.name());
         assignCategory(registration.category(), registration.subCategory());
         assignLocation(registration.point());
-        this.businessHours = optionalText(registration.businessHours(), BUSINESS_HOURS_MAX_LENGTH, "businessHours");
-        this.description = optionalText(registration.description(), DESCRIPTION_MAX_LENGTH, "description");
-        replaceMenus(registration.menus());
+        applyInfo(normalize(
+                new PlaceInfo(registration.businessHours(), registration.description(), registration.menus())));
         this.status = PlaceStatus.VISIBLE;
         this.createdBy = registration.memberId();
         this.infoUpdatedAt = LocalDateTime.now();
@@ -130,15 +131,62 @@ public class Place extends BaseEntity {
         return Collections.unmodifiableList(menus);
     }
 
-    private void replaceMenus(List<MenuItem> items) {
-        List<MenuItem> source = items == null ? List.of() : items;
-        if (source.size() > MENU_MAX_COUNT) {
+    /** 현재 영업시간·설명·메뉴. */
+    public PlaceInfo info() {
+        return new PlaceInfo(
+                businessHours,
+                description,
+                menus.stream().map(PlaceMenu::toItem).toList());
+    }
+
+    /**
+     * 영업시간·설명·메뉴를 요청값으로 바꾼다. 메뉴는 전체를 교체하고, 비운 항목은 삭제로 본다.
+     * 정규화한 값이 지금과 같으면 아무것도 바꾸지 않아 버전·마지막 수정일도 그대로다.
+     *
+     * @return 실제로 바뀐 경우 저장할 수정 이력
+     */
+    public Optional<PlaceEditHistory> editInfo(Long editorId, PlaceInfo requested) {
+        if (editorId == null) {
+            throw new IllegalArgumentException("editorId must not be null");
+        }
+        if (requested == null) {
+            throw new IllegalArgumentException("info must not be null");
+        }
+        PlaceInfo before = info();
+        PlaceInfo after = normalize(requested);
+        if (before.equals(after)) {
+            return Optional.empty();
+        }
+        applyInfo(after);
+        this.infoUpdatedAt = LocalDateTime.now();
+        return Optional.of(new PlaceEditHistory(id, editorId, before, after, infoUpdatedAt));
+    }
+
+    private void applyInfo(PlaceInfo info) {
+        this.businessHours = info.businessHours();
+        this.description = info.description();
+        menus.clear();
+        List<MenuItem> items = info.menus();
+        for (int index = 0; index < items.size(); index++) {
+            menus.add(new PlaceMenu(this, items.get(index), index));
+        }
+    }
+
+    private static PlaceInfo normalize(PlaceInfo info) {
+        if (info.menus().size() > MENU_MAX_COUNT) {
             throw new IllegalArgumentException("menus must be " + MENU_MAX_COUNT + " or fewer");
         }
-        menus.clear();
-        for (int index = 0; index < source.size(); index++) {
-            menus.add(new PlaceMenu(this, source.get(index), index));
-        }
+        return new PlaceInfo(
+                optionalText(info.businessHours(), BUSINESS_HOURS_MAX_LENGTH, "businessHours"),
+                optionalText(info.description(), DESCRIPTION_MAX_LENGTH, "description"),
+                info.menus().stream()
+                        .map(item -> {
+                            if (item == null) {
+                                throw new IllegalArgumentException("menu must not be null");
+                            }
+                            return item.normalize();
+                        })
+                        .toList());
     }
 
     private void assignCategory(PlaceCategory category, PlaceSubCategory subCategory) {

@@ -29,6 +29,7 @@ abstract class MigrationDatabase {
             "graduation_rule",
             "member",
             "place",
+            "place_edit_history",
             "place_menu",
             "requirement_set",
             "requirement_set_rule",

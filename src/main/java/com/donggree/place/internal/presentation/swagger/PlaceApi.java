@@ -3,6 +3,7 @@ package com.donggree.place.internal.presentation.swagger;
 import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.place.internal.presentation.dto.PlaceDetailResponse;
 import com.donggree.place.internal.presentation.dto.PlaceDuplicatesResponse;
+import com.donggree.place.internal.presentation.dto.PlaceInfoEditRequest;
 import com.donggree.place.internal.presentation.dto.PlaceRegisterRequest;
 import com.donggree.place.internal.presentation.dto.PlaceSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,14 +12,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 
-@Tag(name = "Place", description = "동글맵 장소 조회·등록. 조회는 로그인 회원, 등록은 인증 학생")
+@Tag(name = "Place", description = "동글맵 장소 조회·등록·정보 수정. 조회는 로그인 회원, 등록·수정은 인증 학생")
 public interface PlaceApi {
 
     @Operation(summary = "지도 장소 목록 조회", description = "숨기지 않은 장소 전체를 지도 핀 표시용 최소 정보로 반환한다. 카테고리 필터는 FE에서 적용한다.")
     @ApiResponses({@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공")})
     ApiResponse<List<PlaceSummaryResponse>> getPlaces();
 
-    @Operation(summary = "장소 상세 조회", description = "장소 정보와 메뉴, 최초 등록일·마지막 수정일을 반환한다. 숨김 장소는 404.")
+    @Operation(summary = "장소 상세 조회", description = "장소 정보와 메뉴, 최초 등록일·마지막 수정일, 정보 수정에 쓸 버전을 반환한다. 숨김 장소는 404.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "없거나 숨김 장소")
@@ -44,4 +45,18 @@ public interface PlaceApi {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "반경 50m 안 같은 이름 장소 존재")
     })
     ApiResponse<Long> registerPlace(Long memberId, PlaceRegisterRequest request);
+
+    @Operation(
+            summary = "장소 정보 수정",
+            description = "PDF 본인인증 또는 학교 이메일 인증 회원 누구나 영업시간·설명·메뉴를 고친다. 메뉴는 전체를 교체한다. "
+                    + "상세 조회로 받은 버전이 현재와 다르면 409. 바뀐 값이 없으면 이력·버전을 그대로 두고 현재 정보를 반환한다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공, 최신 장소 정보"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "입력값 오류"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "학생 인증 미완료"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "없거나 숨김 장소"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "다른 회원이 먼저 수정함")
+    })
+    ApiResponse<PlaceDetailResponse> editPlaceInfo(
+            Long memberId, @Parameter(description = "장소 ID") Long placeId, PlaceInfoEditRequest request);
 }

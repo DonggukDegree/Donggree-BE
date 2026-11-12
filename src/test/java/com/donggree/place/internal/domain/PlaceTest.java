@@ -7,6 +7,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -111,6 +113,90 @@ class PlaceTest {
                         null,
                         null)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void 정보를_수정하면_메뉴를_전체_교체하고_변경_전후_이력을_만든다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+        LocalDateTime registeredAt = place.getInfoUpdatedAt();
+
+        PlaceEditHistory history = place.editInfo(
+                        2L,
+                        new PlaceInfo(
+                                " 매일 10:00-22:00 ",
+                                null,
+                                List.of(new MenuItem(" 짬뽕 ", 8000), new MenuItem("짜장면", 7500))))
+                .orElseThrow();
+
+        assertThat(place.getBusinessHours()).isEqualTo("매일 10:00-22:00");
+        assertThat(place.getDescription()).isNull();
+        assertThat(place.getMenus())
+                .extracting(PlaceMenu::getName, PlaceMenu::getPrice, PlaceMenu::getSortOrder)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("짬뽕", 8000, 0),
+                        org.assertj.core.groups.Tuple.tuple("짜장면", 7500, 1));
+        assertThat(place.getInfoUpdatedAt()).isAfterOrEqualTo(registeredAt);
+        assertThat(place.getName()).isEqualTo("동국반점");
+        assertThat(place.getCreatedBy()).isEqualTo(1L);
+
+        assertThat(history.getPlaceId()).isEqualTo(10L);
+        assertThat(history.getEditorId()).isEqualTo(2L);
+        assertThat(history.getEditedAt()).isEqualTo(place.getInfoUpdatedAt());
+        assertThat(history.before())
+                .isEqualTo(new PlaceInfo(
+                        "평일 11:00-21:00", "정문 맞은편", List.of(new MenuItem("짜장면", 7000), new MenuItem("탕수육", null))));
+        assertThat(history.after()).isEqualTo(place.info());
+    }
+
+    @Test
+    void 정규화한_값이_그대로면_수정하지_않고_이력도_만들지_않는다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+        LocalDateTime registeredAt = place.getInfoUpdatedAt();
+
+        assertThat(place.editInfo(
+                        2L,
+                        new PlaceInfo(
+                                "  평일 11:00-21:00",
+                                "정문 맞은편\n",
+                                List.of(new MenuItem("짜장면 ", 7000), new MenuItem("탕수육", null)))))
+                .isEmpty();
+        assertThat(place.getInfoUpdatedAt()).isEqualTo(registeredAt);
+    }
+
+    @Test
+    void 메뉴_순서만_바꿔도_수정으로_본다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+
+        assertThat(place.editInfo(
+                        2L,
+                        new PlaceInfo(
+                                "평일 11:00-21:00",
+                                "정문 맞은편",
+                                List.of(new MenuItem("탕수육", null), new MenuItem("짜장면", 7000)))))
+                .isPresent();
+    }
+
+    @Test
+    void 수정값도_등록과_같은_제약을_검사하고_실패하면_기존_값을_유지한다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+
+        assertThatThrownBy(() -> place.editInfo(2L, new PlaceInfo("가".repeat(101), null, List.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> place.editInfo(2L, new PlaceInfo(null, "가".repeat(301), List.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> place.editInfo(
+                        2L, new PlaceInfo(null, null, Collections.nCopies(51, new MenuItem("메뉴", 1000)))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> place.editInfo(
+                        2L, new PlaceInfo(null, null, List.of(new MenuItem("메뉴", 1000), new MenuItem("", 1000)))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> place.editInfo(2L, new PlaceInfo(null, null, Arrays.asList((MenuItem) null))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> place.editInfo(null, new PlaceInfo(null, null, List.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(place.getBusinessHours()).isEqualTo("평일 11:00-21:00");
+        assertThat(place.getMenus()).hasSize(2);
     }
 
     private static PlaceRegistration menus(List<MenuItem> menus) {

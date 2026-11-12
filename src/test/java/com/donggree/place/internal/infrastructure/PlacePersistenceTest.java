@@ -2,21 +2,28 @@ package com.donggree.place.internal.infrastructure;
 
 import static com.donggree.place.internal.domain.PlaceFixtures.NEAR_CAMPUS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.donggree.global.config.JpaAuditingConfig;
 import com.donggree.global.config.QueryDslConfig;
 import com.donggree.place.internal.application.readmodel.PlaceSummaryReadModel;
 import com.donggree.place.internal.domain.GeoPoint;
+import com.donggree.place.internal.domain.MenuItem;
 import com.donggree.place.internal.domain.Place;
+import com.donggree.place.internal.domain.PlaceEditHistory;
+import com.donggree.place.internal.domain.PlaceEditHistoryRepository;
 import com.donggree.place.internal.domain.PlaceFixtures;
+import com.donggree.place.internal.domain.PlaceInfo;
 import com.donggree.place.internal.domain.PlaceMenu;
 import com.donggree.place.internal.domain.PlaceRepository;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
 import jakarta.persistence.EntityManager;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 @DataJpaTest
 @Import({JpaAuditingConfig.class, QueryDslConfig.class, QuerydslPlaceQueries.class})
@@ -24,6 +31,9 @@ class PlacePersistenceTest {
 
     @Autowired
     private PlaceRepository placeRepository;
+
+    @Autowired
+    private PlaceEditHistoryRepository editHistoryRepository;
 
     @Autowired
     private QuerydslPlaceQueries placeQueries;
@@ -89,6 +99,68 @@ class PlacePersistenceTest {
         assertThat(found.getCreatedBy()).isNull();
         assertThat(found.getVersion()).isZero();
         assertThat(found.getInfoUpdatedAt()).isEqualTo(infoUpdatedAt);
+    }
+
+    @Test
+    void 정보를_수정하면_메뉴를_교체하고_버전을_올리며_메뉴_전후_목록을_이력에_저장한다() {
+        Long id = save("동국반점", NEAR_CAMPUS).getId();
+        entityManager.clear();
+
+        Place place = placeRepository.findById(id).orElseThrow();
+        PlaceEditHistory history = place.editInfo(2L, new PlaceInfo(null, "후문 쪽", List.of(new MenuItem("짬뽕", 8000))))
+                .orElseThrow();
+        placeRepository.flush();
+        editHistoryRepository.save(history);
+        entityManager.flush();
+        entityManager.clear();
+
+        Place found = placeRepository.findById(id).orElseThrow();
+        assertThat(found.getVersion()).isEqualTo(1L);
+        assertThat(found.getBusinessHours()).isNull();
+        assertThat(found.getMenus()).extracting(PlaceMenu::getName).containsExactly("짬뽕");
+        assertThat(entityManager
+                        .createNativeQuery("SELECT count(*) FROM place_menu WHERE place_id = :id")
+                        .setParameter("id", id)
+                        .getSingleResult())
+                .isEqualTo(1L);
+
+        PlaceEditHistory saved =
+                editHistoryRepository.findByPlaceIdOrderByEditedAtAsc(id).getFirst();
+        assertThat(saved.getEditorId()).isEqualTo(2L);
+        assertThat(saved.before().menus()).containsExactly(new MenuItem("짜장면", 7000), new MenuItem("탕수육", null));
+        assertThat(saved.after()).isEqualTo(found.info());
+    }
+
+    @Test
+    void 같은_버전을_읽은_다른_수정이_먼저_저장되면_나중_저장은_충돌한다() {
+        Long id = save("동국반점", NEAR_CAMPUS).getId();
+        entityManager.clear();
+        Place stale = placeRepository.findById(id).orElseThrow();
+        entityManager
+                .createNativeQuery("UPDATE place SET version = version + 1 WHERE id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+
+        stale.editInfo(2L, new PlaceInfo("매일 10:00-22:00", null, List.of()));
+
+        assertThatThrownBy(placeRepository::flush).isInstanceOf(OptimisticLockingFailureException.class);
+    }
+
+    @Test
+    void 탈퇴_회원의_수정자_연결만_끊고_이력은_유지한다() {
+        Place place = save("동국반점", NEAR_CAMPUS);
+        PlaceEditHistory history =
+                place.editInfo(2L, new PlaceInfo(null, null, List.of())).orElseThrow();
+        placeRepository.flush();
+        editHistoryRepository.save(history);
+        entityManager.flush();
+
+        assertThat(editHistoryRepository.clearEditor(2L)).isEqualTo(1);
+        assertThat(editHistoryRepository.clearEditor(2L)).isZero();
+
+        PlaceEditHistory found = editHistoryRepository.findById(history.getId()).orElseThrow();
+        assertThat(found.getEditorId()).isNull();
+        assertThat(found.getBeforeBusinessHours()).isEqualTo("평일 11:00-21:00");
     }
 
     private Place save(String name, GeoPoint point) {
