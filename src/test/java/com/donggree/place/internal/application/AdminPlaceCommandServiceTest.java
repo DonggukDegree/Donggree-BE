@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.domain.Place;
+import com.donggree.place.internal.domain.PlaceEditHistoryRepository;
 import com.donggree.place.internal.domain.PlaceFixtures;
 import com.donggree.place.internal.domain.PlaceReportRepository;
 import com.donggree.place.internal.domain.PlaceRepository;
@@ -23,7 +24,9 @@ class AdminPlaceCommandServiceTest {
 
     private final PlaceRepository placeRepository = mock(PlaceRepository.class);
     private final PlaceReportRepository reportRepository = mock(PlaceReportRepository.class);
-    private final AdminPlaceCommandService service = new AdminPlaceCommandService(placeRepository, reportRepository);
+    private final PlaceEditHistoryRepository editHistoryRepository = mock(PlaceEditHistoryRepository.class);
+    private final AdminPlaceCommandService service =
+            new AdminPlaceCommandService(placeRepository, reportRepository, editHistoryRepository);
 
     @Test
     void 숨기면_처리_대기_신고를_처리_완료로_바꾼다() {
@@ -57,5 +60,28 @@ class AdminPlaceCommandServiceTest {
                 .isInstanceOf(GeneralException.class)
                 .satisfies(e -> assertThat(((GeneralException) e).getCode()).isEqualTo(PlaceErrorCode.PLACE_NOT_FOUND));
         assertThatThrownBy(() -> service.show(99L)).isInstanceOf(GeneralException.class);
+    }
+
+    @Test
+    void 수정_이력의_수정_전_값으로_되돌리고_되돌린_것도_관리자_수정으로_남긴다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+        given(placeRepository.findById(10L)).willReturn(Optional.of(place));
+        var vandalized = place.editInfo(
+                        7L, new com.donggree.place.internal.domain.PlaceInfo("광고 문구", "광고 문구입니다", java.util.List.of()))
+                .orElseThrow();
+        org.springframework.test.util.ReflectionTestUtils.setField(vandalized, "id", 5L);
+        given(editHistoryRepository.findByIdAndPlaceId(5L, 10L)).willReturn(Optional.of(vandalized));
+
+        service.revertEdit(10L, 5L, 1L);
+
+        assertThat(place.getBusinessHours()).isEqualTo("평일 11:00-21:00");
+        assertThat(place.getMenus()).hasSize(2);
+        org.mockito.ArgumentCaptor<com.donggree.place.internal.domain.PlaceEditHistory> saved =
+                org.mockito.ArgumentCaptor.forClass(com.donggree.place.internal.domain.PlaceEditHistory.class);
+        verify(editHistoryRepository).save(saved.capture());
+        assertThat(saved.getValue().getEditorId()).isEqualTo(1L);
+
+        given(editHistoryRepository.findByIdAndPlaceId(6L, 10L)).willReturn(Optional.empty());
+        assertThatThrownBy(() -> service.revertEdit(10L, 6L, 1L)).isInstanceOf(GeneralException.class);
     }
 }

@@ -124,4 +124,35 @@ class PlaceReviewPersistenceTest {
     private PlaceReview review(Place place, Long authorId, int rating) {
         return reviewRepository.saveAndFlush(PlaceReview.write(place.getId(), authorId, rating, "맛있고 친절한 가게예요!"));
     }
+
+    @Test
+    void 관리자_목록은_상태별_최신순이고_작성자별로_받은_리뷰_신고를_센다() {
+        Place place = savePlace("동국반점");
+        PlaceReview first = review(place, 7L, 1);
+        PlaceReview second = review(place, 8L, 2);
+        ReviewReport pending =
+                reportRepository.save(ReviewReport.submit(first.getId(), 9L, ReviewReportReason.ABUSE, null));
+        ReviewReport resolved = ReviewReport.submit(first.getId(), 10L, ReviewReportReason.SPAM, null);
+        resolved.resolve(LocalDateTime.now());
+        reportRepository.save(resolved);
+        reportRepository.save(ReviewReport.submit(second.getId(), 9L, ReviewReportReason.PRIVACY, null));
+        entityManager.flush();
+
+        var pendingPage = reportRepository.findForAdmin(
+                PlaceReportStatus.PENDING,
+                org.springframework.data.domain.PageRequest.of(
+                        0,
+                        20,
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "id")));
+        assertThat(pendingPage.getTotalElements()).isEqualTo(2);
+        assertThat(pendingPage.getContent().getLast().getId()).isEqualTo(pending.getId());
+        assertThat(reportRepository
+                        .findForAdmin(null, org.springframework.data.domain.PageRequest.of(0, 20))
+                        .getTotalElements())
+                .isEqualTo(3);
+        assertThat(reportRepository.countReceivedByAuthorIds(java.util.List.of(7L, 8L, 11L)))
+                .extracting(row -> row[0] + ":" + row[1])
+                .containsExactlyInAnyOrder("7:2", "8:1");
+    }
 }

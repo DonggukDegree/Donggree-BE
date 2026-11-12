@@ -21,7 +21,7 @@ public enum PlaceSubCategory {
     RESTAURANT_ETC(PlaceCategory.RESTAURANT, "기타"),
     FRANCHISE(PlaceCategory.CAFE, "프랜차이즈"),
     DESSERT(PlaceCategory.CAFE, "디저트/베이커리"),
-    COFFEE(PlaceCategory.CAFE, "커피 맛집"),
+    COFFEE(PlaceCategory.CAFE, "커피 전문"),
     CAFE_ETC(PlaceCategory.CAFE, "기타"),
     PUB(PlaceCategory.BAR, "호프/요리주점"),
     IZAKAYA(PlaceCategory.BAR, "이자카야"),

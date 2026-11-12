@@ -26,6 +26,10 @@ operation::auth-refresh[]
 
 operation::auth-logout[]
 
+==== 이용 제한(정지) 회원
+
+신고 처리나 관리자 판단으로 정지된 회원은 정지 종료 시각까지 동그리를 이용할 수 없다. 로그인하면 토큰을 발급하지 않고 프론트 로그인 콜백으로 `suspendedUntil`·`suspensionDays`·`suspensionByReport` 쿼리를 넘긴다. 이미 로그인해 있던 회원의 API 요청과 토큰 재발급(`/auth/refresh`)은 403(AUTH403_2)을 반환하며 `result`에 `suspendedUntil`(다시 이용 가능 시각)·`days`(정지 일수)·`byReport`(신고 처리 정지 여부)를 담는다. 정지는 탈퇴 후 재가입(같은 회원 ID 재활성화)으로 풀리지 않는다.
+
 === 사용자 관리
 
 ==== 온보딩 정보 저장
@@ -307,3 +311,53 @@ ADMIN 이상만 호출한다. 숨기면 그 리뷰의 처리 대기 신고를 �
 operation::admin-review-hide[]
 
 operation::admin-review-unhide[]
+
+=== 관리자 통합 신고 대시보드
+
+ADMIN 이상만 호출한다. 장소·리뷰 신고를 상태별 최신순 20개씩 보고, 상세에서 같은 대상의 신고 전체·장소 수정 이력(수정자)·리뷰 작성자를 확인해 처리한다. 신고자·작성자·수정자는 이름·학번·닉네임과 성적표 주전공 기준 단과대·학과가 붙은 회원 행으로 내려가며, 탈퇴한 회원은 null이다. 처리는 신고 처리 완료·기각(이미 처리한 신고는 409, PLACE409_7), 장소·리뷰 숨김·해제, 수정 되돌리기, 신고를 근거로 한 회원 정지(정지하면 그 신고는 처리 완료)다.
+
+==== 장소 신고 목록
+
+operation::admin-report-place-list[]
+
+==== 장소 신고 상세
+
+operation::admin-report-place-detail[]
+
+==== 장소 신고 처리 완료·기각
+
+`POST /api/admin/reports/places/{reportId}/resolve`, `/reject`. 리뷰 신고도 `/api/admin/reports/reviews/{reportId}/resolve`·`/reject`로 같다.
+
+operation::admin-report-place-resolve[]
+
+==== 리뷰 신고 목록
+
+operation::admin-report-review-list[]
+
+==== 신고로 회원 정지
+
+리뷰 신고는 리뷰 작성자를, 장소 신고(`/api/admin/reports/places/{reportId}/suspensions`)는 요청 `memberId`로 고른 등록자·수정자를 지금부터 `days`일 정지한다. 일수는 1일 이상이며 업무 상한은 없다(날짜 계산이 넘치는 값만 400, USER400_1). 정지 중이면 지금부터 새 일수로 바꾼다. 탈퇴한 작성자는 409(PLACE409_8).
+
+operation::admin-report-review-suspend[]
+
+==== 장소 수정 되돌리기
+
+`POST /api/admin/places/{placeId}/edit-histories/{historyId}/revert`. 수정 이력 한 건의 수정 전 영업시간·설명·메뉴·태그로 되돌리며, 되돌린 것도 관리자 수정으로 이력에 남는다.
+
+==== 회원 검색
+
+operation::admin-member-search[]
+
+==== 회원 상세
+
+받은 신고는 그 회원 리뷰에 들어온 신고 수와 장소 신고 처리로 정지된 횟수의 합이다. 반복 위반 가중 규칙은 없고 관리자가 이력을 보고 일수를 정한다.
+
+operation::admin-member-detail[]
+
+==== 관리자 판단 정지·해제
+
+신고와 별개로 정지하며, 정지 중인 회원도 언제든 해제할 수 있다.
+
+operation::admin-member-suspend[]
+
+operation::admin-member-lift[]

@@ -67,6 +67,10 @@ public class Member extends BaseEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    /** 이용 제한(정지) 종료 시각. 이 시각 전까지 로그인·API 이용 불가. 탈퇴·재가입해도 유지한다. */
+    @Column(name = "suspended_until")
+    private LocalDateTime suspendedUntil;
+
     private Member(String oauthId, String email) {
         this.oauthId = requireText(oauthId, "oauthId", 255);
         this.email = requireText(email, "email", 50);
@@ -183,6 +187,21 @@ public class Member extends BaseEntity {
         this.identityVerified = false;
         this.schoolEmail = null;
         this.schoolEmailVerifiedAt = null;
+    }
+
+    /** 지금 정지 중인지. 종료 시각이 지나면 별도 처리 없이 다시 이용할 수 있다. */
+    public boolean isSuspended(LocalDateTime now) {
+        return suspendedUntil != null && suspendedUntil.isAfter(now);
+    }
+
+    /** 정지 종료 시각을 정한다. 이전 정지보다 짧아도 새 값으로 바꾸고, 기존 로그인 토큰은 끊는다. */
+    public void suspendUntil(LocalDateTime until) {
+        this.suspendedUntil = java.util.Objects.requireNonNull(until);
+        this.refreshToken = null;
+    }
+
+    public void liftSuspension() {
+        this.suspendedUntil = null;
     }
 
     public boolean isDeleted() {

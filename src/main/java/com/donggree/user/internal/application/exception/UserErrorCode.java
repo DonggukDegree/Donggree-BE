@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 public enum UserErrorCode implements BaseErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER404_1", "존재하지 않는 회원입니다."),
 
+    INVALID_SUSPENSION(HttpStatus.BAD_REQUEST, "USER400_1", "정지 일수를 확인해주세요. 1일 이상이어야 합니다."),
+
     ALREADY_ONBOARDED(HttpStatus.CONFLICT, "USER409_1", "이미 온보딩이 완료된 회원입니다."),
 
     DUPLICATE_STUDENT_ID(HttpStatus.CONFLICT, "USER409_2", "이미 사용 중인 학번입니다."),

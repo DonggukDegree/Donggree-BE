@@ -1,7 +1,9 @@
 package com.donggree.user.internal.application;
 
+import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.global.auth.MemberAccessGuard;
 import com.donggree.user.internal.application.exception.AuthErrorCode;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
@@ -19,6 +21,7 @@ public class AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberRepository memberRepository;
+    private final MemberAccessGuard accessGuard;
 
     /**
      * 리프레시 토큰을 검증하여 새 액세스 토큰을 발급한다.
@@ -38,6 +41,12 @@ public class AuthService {
         Member member = memberRepository
                 .findById(memberId)
                 .orElseThrow(() -> new GeneralException(AuthErrorCode.INVALID_REFRESH_TOKEN));
+
+        // 정지 회원은 토큰을 다시 받지 못한다. 화면 안내를 위해 정지 종료 시각을 함께 돌려준다.
+        var restriction = accessGuard.findRestriction(memberId);
+        if (restriction.isPresent()) {
+            throw new GeneralException(GeneralErrorCode.MEMBER_SUSPENDED, restriction.get());
+        }
 
         if (!refreshToken.equals(member.getRefreshToken())) {
             throw new GeneralException(AuthErrorCode.INVALID_REFRESH_TOKEN);

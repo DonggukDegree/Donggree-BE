@@ -96,4 +96,22 @@ public class PlaceReport extends BaseEntity {
     public boolean isPending() {
         return status == PlaceReportStatus.PENDING;
     }
+
+    /** 관리자가 신고를 인정해 처리 완료한다(숨김·수정·정지 등 조치 후). */
+    public void resolve(LocalDateTime now) {
+        process(PlaceReportStatus.RESOLVED, now);
+    }
+
+    /** 관리자가 신고를 받아들이지 않고 기각한다. */
+    public void reject(LocalDateTime now) {
+        process(PlaceReportStatus.REJECTED, now);
+    }
+
+    private void process(PlaceReportStatus next, LocalDateTime now) {
+        if (status != PlaceReportStatus.PENDING) {
+            throw new IllegalStateException("only pending report can be processed");
+        }
+        this.status = next;
+        this.processedAt = java.util.Objects.requireNonNull(now);
+    }
 }

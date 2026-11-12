@@ -3,6 +3,8 @@ package com.donggree.place.internal.application;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.domain.Place;
+import com.donggree.place.internal.domain.PlaceEditHistory;
+import com.donggree.place.internal.domain.PlaceEditHistoryRepository;
 import com.donggree.place.internal.domain.PlaceReportRepository;
 import com.donggree.place.internal.domain.PlaceRepository;
 import java.time.LocalDateTime;
@@ -20,6 +22,7 @@ public class AdminPlaceCommandService {
 
     private final PlaceRepository placeRepository;
     private final PlaceReportRepository reportRepository;
+    private final PlaceEditHistoryRepository editHistoryRepository;
 
     /** 장소를 숨기고 그 장소의 처리 대기 신고를 처리 완료로 바꾼다. 이미 숨긴 장소도 같은 결과다. */
     @Transactional
@@ -37,6 +40,19 @@ public class AdminPlaceCommandService {
     public void show(Long placeId) {
         find(placeId).show();
         reportRepository.rejectPending(placeId, LocalDateTime.now());
+    }
+
+    /**
+     * 수정 이력 한 건의 수정 전 값으로 장소 정보를 되돌린다(부적절한 수정 복구). 되돌린 것도 관리자 수정으로 이력에 남는다.
+     * 버전 충돌 확인 없이 관리자가 바로 덮어쓰며, 지금 값과 같으면 아무것도 바꾸지 않는다.
+     */
+    @Transactional
+    public void revertEdit(Long placeId, Long historyId, Long adminId) {
+        Place place = find(placeId);
+        PlaceEditHistory history = editHistoryRepository
+                .findByIdAndPlaceId(historyId, placeId)
+                .orElseThrow(() -> new GeneralException(PlaceErrorCode.EDIT_HISTORY_NOT_FOUND));
+        place.editInfo(adminId, history.before()).ifPresent(editHistoryRepository::save);
     }
 
     private Place find(Long placeId) {

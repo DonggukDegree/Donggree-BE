@@ -86,4 +86,79 @@ class MemberRepositoryTest {
         assertThat(result).isPresent();
         assertThat(result.get().isDeleted()).isTrue();
     }
+
+    @Autowired
+    private MemberSuspensionRepository suspensionRepository;
+
+    @Test
+    void 정지_종료_시각만_읽고_검색은_학번_이름_닉네임_부분_일치로_최신순이다() {
+        Member alice = Member.registerKakaoMember("kakao-alice", "alice@example.com");
+        alice.completeOnboarding("2023123456", "하승연");
+        Member bob = Member.registerKakaoMember("kakao-bob", "bob@example.com");
+        bob.completeOnboarding("2024000001", "김아코");
+        memberRepository.save(alice);
+        memberRepository.save(bob);
+        java.time.LocalDateTime until = java.time.LocalDateTime.of(2026, 12, 1, 9, 0);
+        alice.suspendUntil(until);
+        memberRepository.flush();
+        entityManager.clear();
+
+        assertThat(memberRepository.findSuspendedUntilById(alice.getId())).contains(until);
+        assertThat(memberRepository.findSuspendedUntilById(bob.getId())).isEmpty();
+        var byStudentId = memberRepository.search(
+                "2023",
+                org.springframework.data.domain.PageRequest.of(
+                        0,
+                        20,
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "id")));
+        assertThat(byStudentId.getContent()).extracting(Member::getId).containsExactly(alice.getId());
+        var all = memberRepository.search(
+                null,
+                org.springframework.data.domain.PageRequest.of(
+                        0,
+                        20,
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "id")));
+        assertThat(all.getContent()).extracting(Member::getId).containsExactly(bob.getId(), alice.getId());
+        assertThat(memberRepository
+                        .search("아코", org.springframework.data.domain.PageRequest.of(0, 20))
+                        .getContent())
+                .extracting(Member::getId)
+                .containsExactly(bob.getId());
+    }
+
+    @Test
+    void 장소_신고_정지_횟수를_회원별로_센다() {
+        Member alice = memberRepository.save(Member.registerKakaoMember("kakao-alice", "alice@example.com"));
+        java.time.LocalDateTime now = java.time.LocalDateTime.of(2026, 11, 13, 9, 0);
+        suspensionRepository.save(MemberSuspension.start(
+                alice.getId(),
+                3,
+                com.donggree.user.SuspensionSource.REPORT,
+                com.donggree.user.ReportTargetType.PLACE,
+                1L,
+                null,
+                99L,
+                now));
+        suspensionRepository.save(MemberSuspension.start(
+                alice.getId(),
+                3,
+                com.donggree.user.SuspensionSource.REPORT,
+                com.donggree.user.ReportTargetType.REVIEW,
+                2L,
+                null,
+                99L,
+                now));
+        suspensionRepository.save(MemberSuspension.start(
+                alice.getId(), 3, com.donggree.user.SuspensionSource.ADMIN, null, null, null, 99L, now));
+        entityManager.flush();
+
+        assertThat(suspensionRepository.countByMemberIdsAndReportType(
+                        java.util.List.of(alice.getId()), com.donggree.user.ReportTargetType.PLACE))
+                .singleElement()
+                .satisfies(row -> assertThat(row[1]).isEqualTo(1L));
+        assertThat(suspensionRepository.findByMemberIdOrderByIdDesc(alice.getId()))
+                .hasSize(3);
+    }
 }
