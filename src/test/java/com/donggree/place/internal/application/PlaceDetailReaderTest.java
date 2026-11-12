@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.donggree.place.internal.application.readmodel.RatingSummary;
 import com.donggree.place.internal.domain.Place;
 import com.donggree.place.internal.domain.PlaceFixtures;
 import com.donggree.user.MemberProfile;
@@ -20,7 +21,24 @@ import org.springframework.test.util.ReflectionTestUtils;
 class PlaceDetailReaderTest {
 
     private final UserLookupService userLookupService = mock(UserLookupService.class);
-    private final PlaceDetailReader reader = new PlaceDetailReader(userLookupService);
+    private final PlaceQueries placeQueries = mock(PlaceQueries.class);
+    private final PlaceDetailReader reader = new PlaceDetailReader(userLookupService, placeQueries);
+
+    @org.junit.jupiter.api.BeforeEach
+    void noReviews() {
+        given(placeQueries.findRatingSummary(any())).willReturn(RatingSummary.EMPTY);
+    }
+
+    @Test
+    void 별점_요약을_조회해_담는다() {
+        given(placeQueries.findRatingSummary(10L)).willReturn(new RatingSummary(4.3, 12));
+        given(userLookupService.findProfiles(List.of(1L))).willReturn(Map.of());
+
+        var detail = reader.read(PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS));
+
+        assertThat(detail.averageRating()).isEqualTo(4.3);
+        assertThat(detail.reviewCount()).isEqualTo(12);
+    }
 
     @Test
     void 등록자_닉네임을_조회해_담는다() {

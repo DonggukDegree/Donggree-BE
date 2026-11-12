@@ -23,9 +23,11 @@ public record PlaceDetailReadModel(
         LocalDateTime createdAt,
         LocalDateTime infoUpdatedAt,
         Long version,
-        String registrantNickname) {
+        String registrantNickname,
+        Double averageRating,
+        long reviewCount) {
 
-    public static PlaceDetailReadModel from(Place place, String registrantNickname) {
+    public static PlaceDetailReadModel from(Place place, String registrantNickname, RatingSummary rating) {
         return new PlaceDetailReadModel(
                 place.getId(),
                 place.getName(),
@@ -41,7 +43,9 @@ public record PlaceDetailReadModel(
                 place.getCreatedAt(),
                 place.getInfoUpdatedAt(),
                 place.getVersion(),
-                registrantNickname);
+                registrantNickname,
+                rating.averageRating(),
+                rating.reviewCount());
     }
 
     public record Menu(String name, Integer price) {}

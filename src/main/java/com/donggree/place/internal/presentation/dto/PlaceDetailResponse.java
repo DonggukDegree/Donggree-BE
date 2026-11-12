@@ -23,7 +23,9 @@ public record PlaceDetailResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         Long version,
-        String registrantNickname) {
+        String registrantNickname,
+        Double averageRating,
+        long reviewCount) {
 
     public static PlaceDetailResponse from(PlaceDetailReadModel place) {
         return new PlaceDetailResponse(
@@ -41,7 +43,9 @@ public record PlaceDetailResponse(
                 place.createdAt(),
                 place.infoUpdatedAt(),
                 place.version(),
-                place.registrantNickname());
+                place.registrantNickname(),
+                place.averageRating(),
+                place.reviewCount());
     }
 
     public record Menu(String name, Integer price) {}

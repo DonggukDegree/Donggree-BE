@@ -9,7 +9,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.donggree.place.internal.application.event.PlaceReportedEvent;
+import com.donggree.place.internal.application.event.ReviewReportedEvent;
 import com.donggree.place.internal.domain.enums.PlaceReportReason;
+import com.donggree.place.internal.domain.enums.ReviewReportReason;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -72,5 +74,24 @@ class DiscordReportNotifierTest {
         assertThat(DiscordReportNotifier.content(
                         new PlaceReportedEvent(1L, 3L, "동국반점", PlaceReportReason.CLOSED, null, 1L, false)))
                 .endsWith("처리 대기 신고 1건");
+    }
+
+    @Test
+    void 리뷰_신고는_리뷰_ID와_별점과_본문_앞부분을_보낸다() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(WEBHOOK))
+                .andExpect(jsonPath("$.allowed_mentions.parse", Matchers.empty()))
+                .andExpect(jsonPath("$.content", Matchers.containsString("🚨 동글맵 리뷰 신고 #60")))
+                .andExpect(jsonPath("$.content", Matchers.containsString("리뷰: ID 30 · ★1 · 별로예요")))
+                .andExpect(jsonPath("$.content", Matchers.containsString("사유: 욕설·비방")))
+                .andExpect(jsonPath("$.content", Matchers.containsString("처리 대기 신고 3건 · 리뷰 자동 숨김됨")))
+                .andRespond(withSuccess());
+
+        new DiscordReportNotifier(new ReportNotificationProperties(WEBHOOK), builder.build())
+                .notifyReviewReported(new ReviewReportedEvent(
+                        60L, 30L, 3L, "동국반점", 1, "별로예요", ReviewReportReason.ABUSE, null, 3L, true));
+
+        server.verify();
     }
 }

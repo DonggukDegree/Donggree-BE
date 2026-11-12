@@ -17,6 +17,7 @@ import com.donggree.place.internal.application.command.EditPlaceInfoCommand;
 import com.donggree.place.internal.application.command.RegisterPlaceCommand;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.application.readmodel.PlaceDetailReadModel;
+import com.donggree.place.internal.application.readmodel.RatingSummary;
 import com.donggree.place.internal.domain.MenuItem;
 import com.donggree.place.internal.domain.Place;
 import com.donggree.place.internal.domain.PlaceEditHistory;
@@ -44,15 +45,17 @@ class PlaceCommandServiceTest {
     private final PlaceRepository placeRepository = mock(PlaceRepository.class);
     private final PlaceEditHistoryRepository editHistoryRepository = mock(PlaceEditHistoryRepository.class);
     private final UserLookupService userLookupService = mock(UserLookupService.class);
+    private final PlaceQueries placeQueries = mock(PlaceQueries.class);
     private final PlaceCommandService service = new PlaceCommandService(
             placeRepository,
             editHistoryRepository,
             new PlaceDuplicateFinder(placeRepository),
             userLookupService,
-            new PlaceDetailReader(userLookupService));
+            new PlaceDetailReader(userLookupService, placeQueries));
 
     @BeforeEach
     void setUp() {
+        given(placeQueries.findRatingSummary(any())).willReturn(RatingSummary.EMPTY);
         given(userLookupService.isStudentVerified(MEMBER_ID)).willReturn(true);
         given(placeRepository.findByStatusAndLatitudeBetweenAndLongitudeBetween(
                         eq(PlaceStatus.VISIBLE), anyDouble(), anyDouble(), anyDouble(), anyDouble()))
