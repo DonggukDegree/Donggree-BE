@@ -267,10 +267,10 @@ class PlacePersistenceTest {
                         .orElseThrow()
                         .info()
                         .tags())
-                .containsExactly(PlaceTag.COFFEE, PlaceTag.SOLO_DINING);
+                .containsExactly(PlaceTag.SOLO_DINING, PlaceTag.COFFEE);
         assertThat(placeQueries.findVisiblePlaceTags())
                 .containsOnlyKeys(visible.getId())
-                .containsEntry(visible.getId(), List.of(PlaceTag.COFFEE, PlaceTag.SOLO_DINING));
+                .containsEntry(visible.getId(), List.of(PlaceTag.SOLO_DINING, PlaceTag.COFFEE));
     }
 
     @Test

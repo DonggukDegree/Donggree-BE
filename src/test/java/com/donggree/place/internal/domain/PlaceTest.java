@@ -228,7 +228,7 @@ class PlaceTest {
                 null,
                 List.of(PlaceTag.SOLO_DINING, PlaceTag.COFFEE, PlaceTag.SOLO_DINING)));
 
-        assertThat(place.info().tags()).containsExactly(PlaceTag.COFFEE, PlaceTag.SOLO_DINING);
+        assertThat(place.info().tags()).containsExactly(PlaceTag.SOLO_DINING, PlaceTag.COFFEE);
         assertThat(place.getTags()).hasSize(2);
     }
 
@@ -246,7 +246,7 @@ class PlaceTest {
                                 List.of(PlaceTag.MEAL_DATE, PlaceTag.MOOD)))
                 .orElseThrow();
         assertThat(history.before().tags()).isEmpty();
-        assertThat(history.after().tags()).containsExactly(PlaceTag.MOOD, PlaceTag.MEAL_DATE);
+        assertThat(history.after().tags()).containsExactly(PlaceTag.MEAL_DATE, PlaceTag.MOOD);
 
         assertThat(place.editInfo(
                         2L,
