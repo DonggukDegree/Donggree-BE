@@ -21,6 +21,7 @@ import com.donggree.place.internal.domain.PlaceRepository;
 import com.donggree.place.internal.domain.enums.PlaceReportReason;
 import com.donggree.place.internal.domain.enums.PlaceReportStatus;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -232,6 +233,67 @@ class PlacePersistenceTest {
         assertThat(found.getReporterId()).isNull();
         assertThat(found.getDescription()).isEqualTo("주차장 입구");
         assertThat(found.getCreatedAt()).isNotNull();
+    }
+
+    @Test
+    void 숨은_맛집_태그를_저장하고_지도_목록용으로_숨기지_않은_장소만_모은다() {
+        Place visible = placeRepository.save(Place.register(new com.donggree.place.internal.domain.PlaceRegistration(
+                1L,
+                "동국반점",
+                com.donggree.place.internal.domain.enums.PlaceCategory.RESTAURANT,
+                com.donggree.place.internal.domain.enums.PlaceSubCategory.CHINESE,
+                NEAR_CAMPUS,
+                null,
+                null,
+                List.of(),
+                List.of(PlaceTag.SOLO_DINING, PlaceTag.COFFEE))));
+        Place hidden = placeRepository.save(Place.register(new com.donggree.place.internal.domain.PlaceRegistration(
+                1L,
+                "숨김식당",
+                com.donggree.place.internal.domain.enums.PlaceCategory.RESTAURANT,
+                com.donggree.place.internal.domain.enums.PlaceSubCategory.CHINESE,
+                NEAR_CAMPUS,
+                null,
+                null,
+                List.of(),
+                List.of(PlaceTag.MOOD))));
+        save("태그없음", NEAR_CAMPUS);
+        hidden.hide();
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(placeRepository
+                        .findById(visible.getId())
+                        .orElseThrow()
+                        .info()
+                        .tags())
+                .containsExactly(PlaceTag.COFFEE, PlaceTag.SOLO_DINING);
+        assertThat(placeQueries.findVisiblePlaceTags())
+                .containsOnlyKeys(visible.getId())
+                .containsEntry(visible.getId(), List.of(PlaceTag.COFFEE, PlaceTag.SOLO_DINING));
+    }
+
+    @Test
+    void 태그를_수정하면_버전이_오르고_이력에_태그_전후가_남는다() {
+        Long id = save("동국반점", NEAR_CAMPUS).getId();
+        entityManager.clear();
+        Place place = placeRepository.findById(id).orElseThrow();
+        PlaceInfo base = place.info();
+
+        PlaceEditHistory history = place.editInfo(
+                        2L,
+                        new PlaceInfo(base.businessHours(), base.description(), base.menus(), List.of(PlaceTag.STUDY)))
+                .orElseThrow();
+        placeRepository.flush();
+        editHistoryRepository.save(history);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(placeRepository.findById(id).orElseThrow().getVersion()).isEqualTo(1L);
+        PlaceEditHistory saved =
+                editHistoryRepository.findByPlaceIdOrderByEditedAtAsc(id).getFirst();
+        assertThat(saved.before().tags()).isEmpty();
+        assertThat(saved.after().tags()).containsExactly(PlaceTag.STUDY);
     }
 
     private Place save(String name, GeoPoint point) {

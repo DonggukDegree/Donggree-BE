@@ -4,8 +4,11 @@ import com.donggree.global.entity.BaseEntity;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -13,6 +16,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -20,8 +24,12 @@ import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,7 +38,7 @@ import lombok.NoArgsConstructor;
  * 동글맵 장소. 인증 회원이 지도 중심 핀으로 직접 등록한다.
  *
  * <p>이름·위치·카테고리는 등록 후 사용자가 바꿀 수 없고 장소는 삭제하지 않는다.
- * 영업시간·설명·메뉴는 인증 회원 누구나 고치며, 버전으로 동시 편집 충돌을 막는다.
+ * 영업시간·설명·메뉴·숨은 맛집 태그는 인증 회원 누구나 고치며, 버전으로 동시 편집 충돌을 막는다.
  * 카카오 응답은 저장하지 않으며 좌표는 사용자가 지정한 값, 주소는 표시 시점에 FE가 조회한다.
  * 작성자는 회원 ID로만 참조하고 탈퇴 시 연결을 끊는다.
  */
@@ -94,6 +102,13 @@ public class Place extends BaseEntity {
     @Column(name = "info_updated_at", nullable = false)
     private LocalDateTime infoUpdatedAt;
 
+    /** 숨은 맛집 태그. 메인 카테고리와 별개인 추가 범주(0개 이상). */
+    @ElementCollection
+    @CollectionTable(name = "place_tag", joinColumns = @JoinColumn(name = "place_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tag", nullable = false, length = 20)
+    private Set<PlaceTag> tags = new HashSet<>();
+
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     private List<PlaceMenu> menus = new ArrayList<>();
@@ -105,8 +120,8 @@ public class Place extends BaseEntity {
         this.name = requireName(registration.name());
         assignCategory(registration.category(), registration.subCategory());
         assignLocation(registration.point());
-        applyInfo(normalize(
-                new PlaceInfo(registration.businessHours(), registration.description(), registration.menus())));
+        applyInfo(normalize(new PlaceInfo(
+                registration.businessHours(), registration.description(), registration.menus(), registration.tags())));
         this.status = PlaceStatus.VISIBLE;
         this.createdBy = registration.memberId();
         this.infoUpdatedAt = LocalDateTime.now();
@@ -146,7 +161,8 @@ public class Place extends BaseEntity {
         return new PlaceInfo(
                 businessHours,
                 description,
-                menus.stream().map(PlaceMenu::toItem).toList());
+                menus.stream().map(PlaceMenu::toItem).toList(),
+                tags.stream().sorted(Comparator.naturalOrder()).toList());
     }
 
     /**
@@ -175,6 +191,8 @@ public class Place extends BaseEntity {
     private void applyInfo(PlaceInfo info) {
         this.businessHours = info.businessHours();
         this.description = info.description();
+        tags.clear();
+        tags.addAll(info.tags());
         menus.clear();
         List<MenuItem> items = info.menus();
         for (int index = 0; index < items.size(); index++) {
@@ -196,7 +214,16 @@ public class Place extends BaseEntity {
                             }
                             return item.normalize();
                         })
-                        .toList());
+                        .toList(),
+                normalizeTags(info.tags()));
+    }
+
+    /** 중복을 없애고 enum 순서로 정렬한다. 비교·이력이 입력 순서에 흔들리지 않게 하기 위함이다. */
+    private static List<PlaceTag> normalizeTags(List<PlaceTag> tags) {
+        if (tags.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("tag must not be null");
+        }
+        return tags.stream().distinct().sorted().toList();
     }
 
     private void assignCategory(PlaceCategory category, PlaceSubCategory subCategory) {

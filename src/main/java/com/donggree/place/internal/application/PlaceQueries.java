@@ -3,6 +3,7 @@ package com.donggree.place.internal.application;
 import com.donggree.place.internal.application.readmodel.PlaceSummaryReadModel;
 import com.donggree.place.internal.application.readmodel.RatingSummary;
 import com.donggree.place.internal.domain.PlaceReview;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,9 @@ public interface PlaceQueries {
 
     /** 리뷰가 있는 장소별 별점 요약. 숨기거나 지운 리뷰는 세지 않는다. */
     Map<Long, RatingSummary> findRatingSummaries();
+
+    /** 숨기지 않은 장소의 숨은 맛집 태그(장소별, enum 순서). 태그가 없는 장소는 넣지 않는다. */
+    Map<Long, List<PlaceTag>> findVisiblePlaceTags();
 
     RatingSummary findRatingSummary(Long placeId);
 

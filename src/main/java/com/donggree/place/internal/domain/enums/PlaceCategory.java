@@ -12,6 +12,7 @@ public enum PlaceCategory {
     BAR("술집"),
     STUDY("스터디"),
     LIFE("생활"),
+    ENTERTAINMENT("오락"),
     ETC("기타");
 
     private final String label;

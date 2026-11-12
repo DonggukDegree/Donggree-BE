@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -212,6 +213,68 @@ class PlaceTest {
         place.show();
         assertThat(place.isVisible()).isTrue();
         assertThat(place.getInfoUpdatedAt()).isEqualTo(infoUpdatedAt);
+    }
+
+    @Test
+    void 숨은_맛집_태그는_중복을_없애고_enum_순서로_저장한다() {
+        Place place = Place.register(new PlaceRegistration(
+                1L,
+                "동국반점",
+                PlaceCategory.RESTAURANT,
+                PlaceSubCategory.CHINESE,
+                NEAR_CAMPUS,
+                null,
+                null,
+                null,
+                List.of(PlaceTag.SOLO_DINING, PlaceTag.COFFEE, PlaceTag.SOLO_DINING)));
+
+        assertThat(place.info().tags()).containsExactly(PlaceTag.COFFEE, PlaceTag.SOLO_DINING);
+        assertThat(place.getTags()).hasSize(2);
+    }
+
+    @Test
+    void 태그도_공동_편집_대상이며_순서만_다르면_바뀐_것으로_보지_않는다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+        PlaceInfo base = place.info();
+
+        PlaceEditHistory history = place.editInfo(
+                        2L,
+                        new PlaceInfo(
+                                base.businessHours(),
+                                base.description(),
+                                base.menus(),
+                                List.of(PlaceTag.MEAL_DATE, PlaceTag.MOOD)))
+                .orElseThrow();
+        assertThat(history.before().tags()).isEmpty();
+        assertThat(history.after().tags()).containsExactly(PlaceTag.MOOD, PlaceTag.MEAL_DATE);
+
+        assertThat(place.editInfo(
+                        2L,
+                        new PlaceInfo(
+                                base.businessHours(),
+                                base.description(),
+                                base.menus(),
+                                List.of(PlaceTag.MOOD, PlaceTag.MEAL_DATE, PlaceTag.MOOD))))
+                .isEmpty();
+        assertThatThrownBy(() -> place.editInfo(
+                        2L, new PlaceInfo(null, null, List.of(), java.util.Arrays.asList((PlaceTag) null))))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void 개편된_상세카테고리는_각_카테고리에만_속한다() {
+        assertThat(PlaceSubCategory.FRANCHISE.belongsTo(PlaceCategory.CAFE)).isTrue();
+        assertThat(PlaceSubCategory.LIBRARY.belongsTo(PlaceCategory.STUDY)).isTrue();
+        assertThat(PlaceSubCategory.FITNESS.belongsTo(PlaceCategory.LIFE)).isTrue();
+        assertThat(PlaceSubCategory.PC_ROOM.belongsTo(PlaceCategory.ENTERTAINMENT))
+                .isTrue();
+        assertThat(java.util.Arrays.stream(PlaceSubCategory.values()).map(Enum::name))
+                .doesNotContain("POCHA", "STUDY_FRIENDLY_CAFE");
+        for (PlaceCategory category : PlaceCategory.values()) {
+            assertThat(java.util.Arrays.stream(PlaceSubCategory.values()).filter(sub -> sub.belongsTo(category)))
+                    .as(category.name())
+                    .isNotEmpty();
+        }
     }
 
     private static PlaceRegistration menus(List<MenuItem> menus) {

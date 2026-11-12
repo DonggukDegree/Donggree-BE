@@ -19,6 +19,7 @@ import com.donggree.place.internal.domain.PlaceRepository;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import com.donggree.user.MemberProfile;
 import com.donggree.user.UserLookupService;
 import java.util.List;
@@ -54,7 +55,7 @@ class PlaceQueryServiceTest {
     }
 
     @Test
-    void 지도_목록에_장소별_평균_별점과_리뷰_수를_붙이고_리뷰가_없으면_null과_0이다() {
+    void 지도_목록에_장소별_평균_별점과_리뷰_수와_태그를_붙이고_없으면_null과_0과_빈_목록이다() {
         given(placeQueries.findVisibleSummaries())
                 .willReturn(List.of(
                         new PlaceSummaryReadModel(
@@ -65,10 +66,20 @@ class PlaceQueryServiceTest {
                                 37.5585,
                                 127.0,
                                 null,
-                                0),
+                                0,
+                                List.of()),
                         new PlaceSummaryReadModel(
-                                2L, "필동커피", PlaceCategory.CAFE, PlaceSubCategory.COFFEE, 37.5586, 127.0, null, 0)));
+                                2L,
+                                "필동커피",
+                                PlaceCategory.CAFE,
+                                PlaceSubCategory.COFFEE,
+                                37.5586,
+                                127.0,
+                                null,
+                                0,
+                                List.of())));
         given(placeQueries.findRatingSummaries()).willReturn(Map.of(1L, new RatingSummary(4.3, 3)));
+        given(placeQueries.findVisiblePlaceTags()).willReturn(Map.of(2L, List.of(PlaceTag.STUDY, PlaceTag.COFFEE)));
 
         List<PlaceSummaryReadModel> places = service.getPlaces();
 
@@ -76,6 +87,8 @@ class PlaceQueryServiceTest {
         assertThat(places.get(0).reviewCount()).isEqualTo(3);
         assertThat(places.get(1).averageRating()).isNull();
         assertThat(places.get(1).reviewCount()).isZero();
+        assertThat(places.get(0).tags()).isEmpty();
+        assertThat(places.get(1).tags()).containsExactly(PlaceTag.STUDY, PlaceTag.COFFEE);
     }
 
     @Test

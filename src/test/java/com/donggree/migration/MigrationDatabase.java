@@ -34,6 +34,7 @@ abstract class MigrationDatabase {
             "place_report",
             "place_review",
             "place_review_report",
+            "place_tag",
             "requirement_set",
             "requirement_set_rule",
             "rule_type",

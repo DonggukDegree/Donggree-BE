@@ -9,6 +9,7 @@ import com.donggree.place.internal.application.readmodel.RatingSummary;
 import com.donggree.place.internal.domain.GeoPoint;
 import com.donggree.place.internal.domain.PlaceRepository;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,11 @@ public class PlaceQueryService {
     @Transactional(readOnly = true)
     public List<PlaceSummaryReadModel> getPlaces() {
         Map<Long, RatingSummary> ratings = placeQueries.findRatingSummaries();
+        Map<Long, List<PlaceTag>> tags = placeQueries.findVisiblePlaceTags();
         return placeQueries.findVisibleSummaries().stream()
-                .map(summary -> summary.withRating(ratings.getOrDefault(summary.id(), RatingSummary.EMPTY)))
+                .map(summary -> summary.withRatingAndTags(
+                        ratings.getOrDefault(summary.id(), RatingSummary.EMPTY),
+                        tags.getOrDefault(summary.id(), List.of())))
                 .toList();
     }
 

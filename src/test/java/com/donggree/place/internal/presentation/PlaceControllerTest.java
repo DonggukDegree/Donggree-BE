@@ -28,6 +28,7 @@ import com.donggree.place.internal.application.readmodel.PlaceDuplicatesReadMode
 import com.donggree.place.internal.application.readmodel.PlaceSummaryReadModel;
 import com.donggree.place.internal.domain.enums.PlaceCategory;
 import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import com.donggree.place.internal.domain.enums.PlaceTag;
 import com.donggree.place.internal.presentation.dto.PlaceInfoEditRequest;
 import com.donggree.place.internal.presentation.dto.PlaceMenuRequest;
 import com.donggree.place.internal.presentation.dto.PlaceRegisterRequest;
@@ -49,6 +50,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class PlaceControllerTest extends RestDocsSupport {
 
     private static final Long MEMBER_ID = 1L;
+    private static final String TAGS_DESCRIPTION = "숨은 맛집 태그: COFFEE(커피 맛집), STUDY(카공 맛집), GATHERING(회식 맛집), "
+            + "MOOD(분위기 맛집), BAR_SNACK(안주 맛집), MEAL_DATE(밥약 맛집), SOLO_DINING(혼밥 맛집)";
 
     private final PlaceQueryService placeQueryService = Mockito.mock(PlaceQueryService.class);
     private final PlaceCommandService placeCommandService = Mockito.mock(PlaceCommandService.class);
@@ -79,7 +82,15 @@ class PlaceControllerTest extends RestDocsSupport {
     void 지도_장소_목록을_조회한다() throws Exception {
         given(placeQueryService.getPlaces())
                 .willReturn(List.of(new PlaceSummaryReadModel(
-                        1L, "동국반점", PlaceCategory.RESTAURANT, PlaceSubCategory.CHINESE, 37.5585, 126.999, 4.3, 12)));
+                        1L,
+                        "동국반점",
+                        PlaceCategory.RESTAURANT,
+                        PlaceSubCategory.CHINESE,
+                        37.5585,
+                        126.999,
+                        4.3,
+                        12,
+                        List.of(PlaceTag.SOLO_DINING))));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/places"))
                 .andExpect(status().isOk())
@@ -100,7 +111,8 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result[].averageRating")
                                         .optional()
                                         .description("평균 별점(소수 첫째 자리). 리뷰가 없으면 null"),
-                                fieldWithPath("result[].reviewCount").description("리뷰 수"))));
+                                fieldWithPath("result[].reviewCount").description("리뷰 수"),
+                                fieldWithPath("result[].tags[]").description(TAGS_DESCRIPTION))));
     }
 
     @Test
@@ -121,7 +133,8 @@ class PlaceControllerTest extends RestDocsSupport {
                         3L,
                         "김아코",
                         4.3,
-                        12));
+                        12,
+                        List.of(PlaceTag.SOLO_DINING, PlaceTag.MEAL_DATE)));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/places/{placeId}", 1L))
                 .andExpect(status().isOk())
@@ -155,7 +168,8 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.averageRating")
                                         .optional()
                                         .description("평균 별점(소수 첫째 자리). 리뷰가 없으면 null"),
-                                fieldWithPath("result.reviewCount").description("리뷰 수"))));
+                                fieldWithPath("result.reviewCount").description("리뷰 수"),
+                                fieldWithPath("result.tags[]").description(TAGS_DESCRIPTION))));
     }
 
     @Test
@@ -211,7 +225,8 @@ class PlaceControllerTest extends RestDocsSupport {
                 126.999,
                 "평일 11:00-21:00",
                 "정문 맞은편 골목 2층",
-                List.of(new PlaceMenuRequest("짜장면", 7000), new PlaceMenuRequest("탕수육", null)));
+                List.of(new PlaceMenuRequest("짜장면", 7000), new PlaceMenuRequest("탕수육", null)),
+                List.of(PlaceTag.SOLO_DINING));
         given(placeCommandService.register(eq(MEMBER_ID), any(RegisterPlaceCommand.class)))
                 .willReturn(10L);
 
@@ -232,7 +247,8 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("description").optional().description("설명(최대 300자, 선택)"),
                                 fieldWithPath("menus[]").optional().description("메뉴 목록(최대 50개, 입력 순서 저장)"),
                                 fieldWithPath("menus[].name").description("메뉴명(1~30자)"),
-                                fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동")),
+                                fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동"),
+                                fieldWithPath("tags[]").optional().description(TAGS_DESCRIPTION + " 선택, 0개 이상")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
@@ -273,7 +289,8 @@ class PlaceControllerTest extends RestDocsSupport {
                 3L,
                 "매일 10:00-22:00",
                 "정문 맞은편 골목 2층",
-                List.of(new PlaceMenuRequest("짬뽕", 8000), new PlaceMenuRequest("탕수육", null)));
+                List.of(new PlaceMenuRequest("짬뽕", 8000), new PlaceMenuRequest("탕수육", null)),
+                List.of(PlaceTag.SOLO_DINING, PlaceTag.MEAL_DATE));
         given(placeCommandService.editInfo(eq(MEMBER_ID), eq(1L), any(EditPlaceInfoCommand.class)))
                 .willReturn(new PlaceDetailReadModel(
                         1L,
@@ -290,7 +307,8 @@ class PlaceControllerTest extends RestDocsSupport {
                         4L,
                         "김아코",
                         4.3,
-                        12));
+                        12,
+                        List.of(PlaceTag.SOLO_DINING, PlaceTag.MEAL_DATE)));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -307,7 +325,8 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("description").optional().description("설명(최대 300자). 비우거나 null이면 삭제"),
                                 fieldWithPath("menus[]").description("메뉴 전체 목록(최대 50개, 입력 순서 저장). 빈 배열이면 전체 삭제"),
                                 fieldWithPath("menus[].name").description("메뉴명(1~30자)"),
-                                fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동")),
+                                fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동"),
+                                fieldWithPath("tags[]").description(TAGS_DESCRIPTION + " 전체. 빈 배열이면 모두 삭제")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
@@ -329,7 +348,8 @@ class PlaceControllerTest extends RestDocsSupport {
                                         .optional()
                                         .description("최초 등록자 닉네임. 없으면 null"),
                                 fieldWithPath("result.averageRating").optional().description("평균 별점"),
-                                fieldWithPath("result.reviewCount").description("리뷰 수"))));
+                                fieldWithPath("result.reviewCount").description("리뷰 수"),
+                                fieldWithPath("result.tags[]").description(TAGS_DESCRIPTION))));
 
         ArgumentCaptor<EditPlaceInfoCommand> command = ArgumentCaptor.forClass(EditPlaceInfoCommand.class);
         then(placeCommandService).should().editInfo(eq(MEMBER_ID), eq(1L), command.capture());
@@ -344,7 +364,7 @@ class PlaceControllerTest extends RestDocsSupport {
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"version\":3,\"menus\":[]}"))
+                        .content("{\"version\":3,\"menus\":[],\"tags\":[]}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("PLACE409_2"));
     }
