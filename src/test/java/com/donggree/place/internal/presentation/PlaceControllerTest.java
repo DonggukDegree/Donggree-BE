@@ -114,10 +114,12 @@ class PlaceControllerTest extends RestDocsSupport {
                         List.of(new PlaceDetailReadModel.Menu("짜장면", 7000), new PlaceDetailReadModel.Menu("탕수육", null)),
                         LocalDateTime.of(2026, 10, 26, 12, 0),
                         LocalDateTime.of(2026, 10, 27, 9, 30),
-                        3L));
+                        3L,
+                        "김아코"));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/places/{placeId}", 1L))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.registrantNickname").value("김아코"))
                 .andExpect(jsonPath("$.result.menus[1].price").isEmpty())
                 .andDo(document(
                         "place-detail",
@@ -140,7 +142,10 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.menus[].price").optional().description("가격(원). null이면 가격 변동"),
                                 fieldWithPath("result.createdAt").description("최초 등록 시각"),
                                 fieldWithPath("result.updatedAt").description("마지막 정보 수정 시각"),
-                                fieldWithPath("result.version").description("장소 버전. 정보 수정 요청에 그대로 보냄"))));
+                                fieldWithPath("result.version").description("장소 버전. 정보 수정 요청에 그대로 보냄"),
+                                fieldWithPath("result.registrantNickname")
+                                        .optional()
+                                        .description("최초 등록자 닉네임. 탈퇴 등으로 없으면 null(\"탈퇴한 회원\"으로 표시)"))));
     }
 
     @Test
@@ -272,7 +277,8 @@ class PlaceControllerTest extends RestDocsSupport {
                         List.of(new PlaceDetailReadModel.Menu("짬뽕", 8000), new PlaceDetailReadModel.Menu("탕수육", null)),
                         LocalDateTime.of(2026, 10, 26, 12, 0),
                         LocalDateTime.of(2026, 11, 12, 18, 0),
-                        4L));
+                        4L,
+                        "김아코"));
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/places/{placeId}/info", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -306,7 +312,10 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.menus[].price").optional().description("가격(원). null이면 가격 변동"),
                                 fieldWithPath("result.createdAt").description("최초 등록 시각"),
                                 fieldWithPath("result.updatedAt").description("마지막 정보 수정 시각"),
-                                fieldWithPath("result.version").description("수정 후 장소 버전. 바뀐 값이 없으면 그대로"))));
+                                fieldWithPath("result.version").description("수정 후 장소 버전. 바뀐 값이 없으면 그대로"),
+                                fieldWithPath("result.registrantNickname")
+                                        .optional()
+                                        .description("최초 등록자 닉네임. 없으면 null"))));
 
         ArgumentCaptor<EditPlaceInfoCommand> command = ArgumentCaptor.forClass(EditPlaceInfoCommand.class);
         then(placeCommandService).should().editInfo(eq(MEMBER_ID), eq(1L), command.capture());
