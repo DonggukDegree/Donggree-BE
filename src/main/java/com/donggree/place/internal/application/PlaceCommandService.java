@@ -34,6 +34,7 @@ public class PlaceCommandService {
     private final PlaceEditHistoryRepository editHistoryRepository;
     private final PlaceDuplicateFinder duplicateFinder;
     private final UserLookupService userLookupService;
+    private final PlaceDetailReader detailReader;
 
     /**
      * 장소를 등록하고 ID를 반환한다. 반경 50m 안에 정규화 이름이 같은 장소가 있으면 막는다.
@@ -94,7 +95,7 @@ public class PlaceCommandService {
             throw new GeneralException(PlaceErrorCode.INVALID_PLACE);
         }
         if (history.isEmpty()) {
-            return PlaceDetailReadModel.from(place);
+            return detailReader.read(place);
         }
         try {
             // 버전 조건 UPDATE를 여기서 실행해 동시 수정 충돌을 응답 코드로 바꾼다.
@@ -103,7 +104,7 @@ public class PlaceCommandService {
             throw new GeneralException(PlaceErrorCode.EDIT_CONFLICT);
         }
         editHistoryRepository.save(history.get());
-        return PlaceDetailReadModel.from(place);
+        return detailReader.read(place);
     }
 
     private void requireStudentVerified(Long memberId) {

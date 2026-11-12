@@ -45,7 +45,11 @@ class PlaceCommandServiceTest {
     private final PlaceEditHistoryRepository editHistoryRepository = mock(PlaceEditHistoryRepository.class);
     private final UserLookupService userLookupService = mock(UserLookupService.class);
     private final PlaceCommandService service = new PlaceCommandService(
-            placeRepository, editHistoryRepository, new PlaceDuplicateFinder(placeRepository), userLookupService);
+            placeRepository,
+            editHistoryRepository,
+            new PlaceDuplicateFinder(placeRepository),
+            userLookupService,
+            new PlaceDetailReader(userLookupService));
 
     @BeforeEach
     void setUp() {

@@ -3,13 +3,20 @@ package com.donggree.user.internal.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+import com.donggree.user.MemberProfile;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
 import com.donggree.user.internal.domain.SchoolEmailAddress;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class UserLookupServiceImplTest {
 
@@ -36,6 +43,20 @@ class UserLookupServiceImplTest {
 
         assertThat(service.isStudentVerified(1L)).isFalse();
         assertThat(service.isStudentVerified(2L)).isFalse();
+    }
+
+    @Test
+    void 회원_표시_정보는_조회된_활동_회원만_ID별로_돌려준다() {
+        Member member = onboarded();
+        ReflectionTestUtils.setField(member, "id", 1L);
+        given(memberRepository.findAllById(List.of(1L, 2L))).willReturn(List.of(member));
+
+        Map<Long, MemberProfile> profiles = service.findProfiles(Arrays.asList(1L, null, 2L, 1L));
+
+        assertThat(profiles).containsOnlyKeys(1L);
+        assertThat(profiles.get(1L)).isEqualTo(new MemberProfile(1L, "테스트", null));
+        assertThat(service.findProfiles(Arrays.asList((Long) null))).isEmpty();
+        verify(memberRepository, never()).findAllById(List.of());
     }
 
     private static Member onboarded() {

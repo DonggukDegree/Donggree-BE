@@ -15,7 +15,10 @@ import com.donggree.place.internal.application.readmodel.PlaceDuplicatesReadMode
 import com.donggree.place.internal.domain.PlaceFixtures;
 import com.donggree.place.internal.domain.PlaceRepository;
 import com.donggree.place.internal.domain.enums.PlaceStatus;
+import com.donggree.user.MemberProfile;
+import com.donggree.user.UserLookupService;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -23,17 +26,23 @@ class PlaceQueryServiceTest {
 
     private final PlaceQueries placeQueries = mock(PlaceQueries.class);
     private final PlaceRepository placeRepository = mock(PlaceRepository.class);
-    private final PlaceQueryService service =
-            new PlaceQueryService(placeQueries, placeRepository, new PlaceDuplicateFinder(placeRepository));
+    private final UserLookupService userLookupService = mock(UserLookupService.class);
+    private final PlaceQueryService service = new PlaceQueryService(
+            placeQueries,
+            placeRepository,
+            new PlaceDuplicateFinder(placeRepository),
+            new PlaceDetailReader(userLookupService));
 
     @Test
-    void 노출_장소의_상세와_메뉴를_반환한다() {
+    void 노출_장소의_상세와_메뉴와_등록자_닉네임을_반환한다() {
         given(placeRepository.findByIdAndStatus(1L, PlaceStatus.VISIBLE))
                 .willReturn(Optional.of(PlaceFixtures.place(1L, "동국반점", NEAR_CAMPUS)));
+        given(userLookupService.findProfiles(List.of(1L))).willReturn(Map.of(1L, new MemberProfile(1L, "김아코", null)));
 
         PlaceDetailReadModel detail = service.getPlace(1L);
 
         assertThat(detail.name()).isEqualTo("동국반점");
+        assertThat(detail.registrantNickname()).isEqualTo("김아코");
         assertThat(detail.menus())
                 .containsExactly(
                         new PlaceDetailReadModel.Menu("짜장면", 7000), new PlaceDetailReadModel.Menu("탕수육", null));

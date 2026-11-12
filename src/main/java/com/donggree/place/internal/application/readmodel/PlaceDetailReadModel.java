@@ -6,7 +6,10 @@ import com.donggree.place.internal.domain.enums.PlaceSubCategory;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** 장소 정보 화면용 상세. 등록자·수정자는 공개하지 않는다. 버전은 정보 수정 요청에 그대로 돌려받는다. */
+/**
+ * 장소 정보 화면용 상세. 최초 등록자는 닉네임만 공개하고(탈퇴 등으로 없으면 null), 수정자는 공개하지 않는다.
+ * 버전은 정보 수정 요청에 그대로 돌려받는다.
+ */
 public record PlaceDetailReadModel(
         Long id,
         String name,
@@ -19,9 +22,10 @@ public record PlaceDetailReadModel(
         List<Menu> menus,
         LocalDateTime createdAt,
         LocalDateTime infoUpdatedAt,
-        Long version) {
+        Long version,
+        String registrantNickname) {
 
-    public static PlaceDetailReadModel from(Place place) {
+    public static PlaceDetailReadModel from(Place place, String registrantNickname) {
         return new PlaceDetailReadModel(
                 place.getId(),
                 place.getName(),
@@ -36,7 +40,8 @@ public record PlaceDetailReadModel(
                         .toList(),
                 place.getCreatedAt(),
                 place.getInfoUpdatedAt(),
-                place.getVersion());
+                place.getVersion(),
+                registrantNickname);
     }
 
     public record Menu(String name, Integer price) {}
