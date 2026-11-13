@@ -29,11 +29,7 @@ import org.springframework.http.HttpStatus;
 // 실제 컨테이너의 필터 초기화와 Modulith 관측을 함께 검증한다.
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {
-            "spring.datasource.url=jdbc:h2:mem:filter-registration-test",
-            "spring.jpa.show-sql=false",
-            "management.tracing.enabled=true"
-        })
+        properties = {"spring.jpa.show-sql=false", "management.tracing.enabled=true"})
 @AutoConfigureObservability
 @ExtendWith(OutputCaptureExtension.class)
 class DonggreeApplicationTests {

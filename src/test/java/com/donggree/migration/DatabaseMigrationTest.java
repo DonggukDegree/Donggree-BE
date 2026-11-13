@@ -8,11 +8,9 @@ import java.nio.file.Path;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.ClassPathResource;
 
-@EnabledIfEnvironmentVariable(named = "DONGGREE_TEST_POSTGRES_URL", matches = ".+")
 class DatabaseMigrationTest extends MigrationDatabase {
     @Test
     void 빈_DB에는_데이터_없이_최신_스키마를_적용하고_재시작_시_재실행하지_않는다() throws Exception {

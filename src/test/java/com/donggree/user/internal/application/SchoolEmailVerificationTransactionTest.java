@@ -28,7 +28,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -42,12 +41,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** 실제 서비스 프록시·트랜잭션으로 코드 실패 횟수와 비동기 메일 발송 상태를 검증한다. */
 @DataJpaTest(
         properties = {
-            "spring.datasource.url=jdbc:h2:mem:school-email-transaction;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
             "app.school-email.code-secret=school-email-test-secret-only",
             "app.mail.enabled=true",
             "spring.jpa.show-sql=false"
         })
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({
     SchoolEmailVerificationCommandService.class,
     InMemorySchoolEmailMailQueue.class,
