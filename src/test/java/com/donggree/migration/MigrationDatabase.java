@@ -2,6 +2,7 @@ package com.donggree.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.donggree.testsupport.TestPostgres;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,14 +10,13 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 
-/** 로컬 PostgreSQL에서 이 테스트가 생성한 임시 DB만 사용하고 정리한다. */
+/** 공용 PostgreSQL 테스트 컨테이너에 이 테스트용 임시 DB를 만들어 쓰고 정리한다. */
 abstract class MigrationDatabase {
     static final List<String> TABLES = List.of(
             "area_type",
@@ -28,6 +28,14 @@ abstract class MigrationDatabase {
             "faq",
             "graduation_rule",
             "member",
+            "member_suspension",
+            "place",
+            "place_edit_history",
+            "place_menu",
+            "place_report",
+            "place_review",
+            "place_review_report",
+            "place_tag",
             "requirement_set",
             "requirement_set_rule",
             "rule_type",
@@ -41,19 +49,14 @@ abstract class MigrationDatabase {
     private boolean created;
 
     @BeforeEach
-    void createDatabase() throws SQLException {
-        adminUrl = System.getenv("DONGGREE_TEST_POSTGRES_URL");
-        assertThat(adminUrl).startsWith("jdbc:postgresql://").endsWith("/postgres");
+    void createDatabase() {
+        adminUrl = TestPostgres.adminUrl();
         assertThat(URI.create(adminUrl.substring("jdbc:".length())).getHost()).isIn("127.0.0.1", "localhost");
-        user = System.getenv("DONGGREE_TEST_POSTGRES_USER");
-        password = System.getenv("DONGGREE_TEST_POSTGRES_PASSWORD");
-        databaseName = "donggree_migration_test_" + UUID.randomUUID().toString().replace("-", "");
-        databaseUrl = adminUrl.substring(0, adminUrl.lastIndexOf('/') + 1) + databaseName;
-        try (var connection = DriverManager.getConnection(adminUrl, user, password);
-                var statement = connection.createStatement()) {
-            statement.execute("CREATE DATABASE " + databaseName);
-            created = true;
-        }
+        user = TestPostgres.username();
+        password = TestPostgres.password();
+        databaseName = TestPostgres.createDatabase("donggree_migration_test_");
+        databaseUrl = TestPostgres.urlOf(databaseName);
+        created = true;
     }
 
     @AfterEach
@@ -108,11 +111,16 @@ abstract class MigrationDatabase {
     Map<String, String> dataSnapshot() throws SQLException {
         Map<String, String> snapshot = new LinkedHashMap<>();
         for (String table : TABLES) {
+            // 이후 버전에서 생기는 테이블은 baseline 전 스냅샷에서 빈 테이블과 같게 본다.
+            if (scalar("SELECT to_regclass('public." + table + "')") == null) {
+                snapshot.put(table, "[]");
+                continue;
+            }
             snapshot.put(
                     table,
                     scalar("SELECT coalesce(jsonb_agg("
                             + (table.equals("member")
-                                    ? "to_jsonb(t) - 'school_email' - 'school_email_verified_at'"
+                                    ? "to_jsonb(t) - 'school_email' - 'school_email_verified_at' - 'suspended_until'"
                                     : "to_jsonb(t)")
                             + " ORDER BY to_jsonb(t)::text), '[]'::jsonb)::text FROM public." + table + " t"));
         }

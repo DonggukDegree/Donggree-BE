@@ -1,6 +1,7 @@
 package com.donggree.user.internal.infrastructure;
 
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.global.auth.MemberAccessGuard;
 import com.donggree.global.metrics.OperationMetricsContext;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
@@ -28,6 +29,7 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberRepository memberRepository;
+    private final MemberAccessGuard accessGuard;
 
     @Value("${app.frontend-redirect-url}")
     private String frontendRedirectUrl;
@@ -40,6 +42,23 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
         OAuthMember oAuthMember = (OAuthMember) authentication.getPrincipal();
         Member member = oAuthMember.getMember();
         Long memberId = member.getId();
+
+        // 정지 회원은 토큰을 발급하지 않고, 안내에 필요한 정지 종료 시각·일수·사유 구분만 프론트에 넘긴다.
+        var restriction = accessGuard.findRestriction(memberId);
+        if (restriction.isPresent()) {
+            String suspendedUrl = UriComponentsBuilder.fromUriString(frontendRedirectUrl)
+                    .queryParam(
+                            "suspendedUntil", restriction.get().suspendedUntil().toString())
+                    .queryParam("suspensionDays", restriction.get().days())
+                    .queryParam("suspensionByReport", restriction.get().byReport())
+                    .build()
+                    .encode()
+                    .toUriString();
+            response.sendRedirect(suspendedUrl);
+            request.setAttribute(OperationMetricsContext.CODE, "MEMBER_SUSPENDED");
+            request.setAttribute(OperationMetricsContext.OUTCOME, "failure");
+            return;
+        }
 
         String accessToken =
                 jwtTokenProvider.generateAccessToken(memberId, member.getRole().name());

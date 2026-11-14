@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.global.auth.JwtProperties;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.global.auth.MemberAccessGuard;
 import com.donggree.user.internal.application.exception.AuthErrorCode;
 import com.donggree.user.internal.domain.Member;
 import com.donggree.user.internal.domain.MemberRepository;
@@ -23,7 +24,9 @@ class AuthServiceTest {
 
     private final MemberRepository memberRepository = Mockito.mock(MemberRepository.class);
 
-    private final AuthService authService = new AuthService(jwtTokenProvider, memberRepository);
+    private final MemberAccessGuard accessGuard = Mockito.mock(MemberAccessGuard.class);
+
+    private final AuthService authService = new AuthService(jwtTokenProvider, memberRepository, accessGuard);
 
     @Test
     void 유효한_리프레시_토큰으로_새_액세스_토큰을_발급한다() {
@@ -79,7 +82,7 @@ class AuthServiceTest {
     @Test
     void 만료된_리프레시_토큰이면_예외를_던진다() {
         JwtTokenProvider shortLivedProvider = new JwtTokenProvider(new JwtProperties(TEST_SECRET, -60_000L, -60_000L));
-        AuthService shortLivedAuthService = new AuthService(shortLivedProvider, memberRepository);
+        AuthService shortLivedAuthService = new AuthService(shortLivedProvider, memberRepository, accessGuard);
 
         String refreshToken = shortLivedProvider.generateRefreshToken(1L);
 
@@ -107,5 +110,25 @@ class AuthServiceTest {
         authService.logout(memberId);
 
         assertThat(member.getRefreshToken()).isNull();
+    }
+
+    @Test
+    void 정지_회원은_토큰을_다시_받지_못하고_정지_내용을_함께_받는다() {
+        Long memberId = 1L;
+        String refreshToken = jwtTokenProvider.generateRefreshToken(memberId);
+        Member member = Member.registerKakaoMember("oauth-suspended", "suspended@example.invalid");
+        member.updateRefreshToken(refreshToken);
+        Mockito.when(memberRepository.findById(memberId)).thenReturn(java.util.Optional.of(member));
+        var restriction = new com.donggree.global.auth.AccessRestriction(
+                java.time.LocalDateTime.of(2026, 12, 13, 10, 0), 30, true);
+        Mockito.when(accessGuard.findRestriction(memberId)).thenReturn(java.util.Optional.of(restriction));
+
+        assertThatThrownBy(() -> authService.refreshAccessToken(refreshToken))
+                .isInstanceOf(GeneralException.class)
+                .satisfies(e -> {
+                    assertThat(((GeneralException) e).getCode())
+                            .isEqualTo(com.donggree.global.apiPayload.code.GeneralErrorCode.MEMBER_SUSPENDED);
+                    assertThat(((GeneralException) e).getResult()).isEqualTo(restriction);
+                });
     }
 }

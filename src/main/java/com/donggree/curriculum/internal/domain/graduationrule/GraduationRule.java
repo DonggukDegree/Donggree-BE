@@ -41,8 +41,7 @@ public class GraduationRule {
     @Column(name = "rule_name", nullable = false, length = 100)
     private String ruleName;
 
-    // columnDefinition을 지정하지 않고 방언이 SqlTypes.JSON을 매핑하게 둔다(Postgres→jsonb, H2→json).
-    // jsonb로 하드코딩하면 H2 테스트에서 DDL이 실패한다.
+    // PostgreSQL 방언이 SqlTypes.JSON을 jsonb로 매핑한다. 컬럼은 Flyway 마이그레이션이 만들고, 테스트도 같은 스키마로 검증한다.
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "rule_config", nullable = false)
     private String ruleConfig;

@@ -88,7 +88,8 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
-    testRuntimeOnly("com.h2database:h2")
+    // DB 테스트는 운영과 같은 PostgreSQL 16 컨테이너에서 Flyway 스키마로 실행한다(Docker 필요).
+    testImplementation 'org.testcontainers:postgresql'
 }
 
 ext {
@@ -107,8 +108,6 @@ spotless {
 
 tasks.named('test') {
 	useJUnitPlatform()
-    inputs.property('postgresMigrationTestsEnabled', providers.environmentVariable('DONGGREE_TEST_POSTGRES_URL')
-            .map { !it.isBlank() }.orElse(false))
 	outputs.dir snippetsDir
 }
 

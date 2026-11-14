@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +43,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest
+// 운영처럼 클래스 프록시를 쓰게 한다. 없으면 Swagger 인터페이스를 구현한 @PreAuthorize 컨트롤러가
+// 인터페이스 프록시가 되어 핸들러 매핑에서 빠진다.
+@ImportAutoConfiguration(AopAutoConfiguration.class)
 @Import({SecurityConfig.class, ServletFilterConfig.class, SecurityConfigTest.TestConfig.class})
 class SecurityConfigTest {
     @Autowired
@@ -182,6 +187,45 @@ class SecurityConfigTest {
 
     @MockitoBean
     private com.donggree.support.internal.application.FaqCommandService faqCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceQueryService placeQueryService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceCommandService placeCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceReportCommandService placeReportCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.AdminPlaceCommandService adminPlaceCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceReviewQueryService placeReviewQueryService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.PlaceReviewCommandService placeReviewCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.ReviewReportCommandService reviewReportCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.AdminReviewCommandService adminReviewCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminReportQueryService adminReportQueryService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminReportCommandService adminReportCommandService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminMemberService adminMemberService;
+
+    @MockitoBean
+    private com.donggree.place.internal.application.admin.AdminContentQueryService adminContentQueryService;
+
+    @MockitoBean
+    private com.donggree.global.auth.MemberAccessGuard memberAccessGuard;
 
     @TestConfiguration
     static class TestConfig {
@@ -349,6 +393,68 @@ class SecurityConfigTest {
     @Test
     void FAQ_조회는_인증_없이_접근할_수_있다() throws Exception {
         mockMvc.perform(get("/api/faqs")).andExpect(status().isOk());
+    }
+
+    // 동글맵은 열람도 로그인 회원만 가능하다. 쓰기의 학생 인증 여부는 응용 서비스가 검증한다.
+    @Test
+    void 동글맵_장소_API는_로그인이_필요하다() throws Exception {
+        mockMvc.perform(get("/api/places")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/places")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/places").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isOk());
+        verifyNoInteractions(placeCommandService);
+    }
+
+    @Test
+    void 동글맵_신고는_로그인이_필요하고_장소_숨김은_관리자만_가능하다() throws Exception {
+        mockMvc.perform(post("/api/places/1/reports")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"CLOSED\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/admin/places/1/hide")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/admin/places/1/hide").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/admin/places/1/unhide").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(placeReportCommandService, adminPlaceCommandService);
+
+        mockMvc.perform(post("/api/admin/places/1/hide").header("Authorization", bearer("ADMIN")))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(adminPlaceCommandService).hide(1L);
+    }
+
+    @Test
+    void 정지_회원은_기존_토큰으로도_요청할_수_없고_정지_내용을_받는다() throws Exception {
+        org.mockito.BDDMockito.given(memberAccessGuard.findRestriction(1L))
+                .willReturn(java.util.Optional.of(new com.donggree.global.auth.AccessRestriction(
+                        java.time.LocalDateTime.of(2026, 12, 13, 10, 0), 30, true)));
+
+        mockMvc.perform(get("/api/places").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH403_2"))
+                .andExpect(jsonPath("$.result.days").value(30))
+                .andExpect(jsonPath("$.result.byReport").value(true))
+                .andExpect(jsonPath("$.result.suspendedUntil").exists());
+        verifyNoInteractions(placeQueryService);
+    }
+
+    @Test
+    void 리뷰_API는_로그인이_필요하고_리뷰_숨김은_관리자만_가능하다() throws Exception {
+        mockMvc.perform(get("/api/places/1/reviews")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/places/1/reviews")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rating\":4,\"content\":\"짜장면이 맛있고 양이 많아요\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/admin/reviews/1/hide").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(placeReviewCommandService, adminReviewCommandService);
+
+        mockMvc.perform(post("/api/admin/reviews/1/unhide").header("Authorization", bearer("ADMIN")))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(adminReviewCommandService).show(1L);
     }
 
     // 읽기를 연 것이 쓰기까지 열어버리지 않았는지 확인한다. (쓰기는 /api/admin/faqs)

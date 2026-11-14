@@ -24,14 +24,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-/** 실제 운영 DB와 분리된 H2에서 미식별 학과의 저장·조회·수정 및 회원별 격리 검증. */
-@DataJpaTest(properties = "spring.datasource.url=jdbc:h2:mem:unresolved-transcript;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+/** 테스트용 PostgreSQL에서 미식별 학과의 저장·조회·수정 및 회원별 격리 검증. */
+@DataJpaTest
 @Import({
     JpaAuditingConfig.class,
     TranscriptCommandService.class,
@@ -115,7 +113,8 @@ class UnresolvedDepartmentTranscriptIntegrationTest {
         assertThat(updated.totalCredits()).isEqualTo(1);
         assertThat(updated.gpa()).isEqualByComparingTo("2.00");
         entityManager.clear();
-        assertThat(repository.findByMemberId(8L).orElseThrow().getRawData()).isEqualTo(parsed.rawDataJson());
+        assertThat(json(repository.findByMemberId(8L).orElseThrow().getRawData()))
+                .isEqualTo(json(parsed.rawDataJson()));
     }
 
     @Test
@@ -168,6 +167,16 @@ class UnresolvedDepartmentTranscriptIntegrationTest {
         entityManager.clear();
 
         assertThat(queryService.getTranscriptRawReport(7L).meta().majorGpa()).isEqualByComparingTo("3.00");
-        assertThat(repository.findByMemberId(7L).orElseThrow().getRawData()).isEqualTo(rawData);
+        assertThat(json(repository.findByMemberId(7L).orElseThrow().getRawData()))
+                .isEqualTo(json(rawData));
+    }
+
+    // raw_data는 jsonb라 PostgreSQL이 키 순서·공백을 정규화해 돌려준다. 문자열이 아니라 JSON 값으로 비교한다.
+    private static com.fasterxml.jackson.databind.JsonNode json(String value) {
+        try {
+            return new ObjectMapper().readTree(value);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {
+            throw new IllegalArgumentException(exception);
+        }
     }
 }

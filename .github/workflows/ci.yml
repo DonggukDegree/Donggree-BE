@@ -15,26 +15,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: donggree_test
-          POSTGRES_PASSWORD: donggree_test
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U donggree_test -d postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    env:
-      DONGGREE_TEST_POSTGRES_URL: jdbc:postgresql://127.0.0.1:5432/postgres
-      DONGGREE_TEST_POSTGRES_USER: donggree_test
-      DONGGREE_TEST_POSTGRES_PASSWORD: donggree_test
-
+    # DB 테스트는 Testcontainers가 러너의 Docker로 PostgreSQL 16 컨테이너를 직접 띄운다.
     steps:
       - uses: actions/checkout@v4
 

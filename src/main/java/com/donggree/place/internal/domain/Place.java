@@ -1,0 +1,270 @@
+package com.donggree.place.internal.domain;
+
+import com.donggree.global.entity.BaseEntity;
+import com.donggree.place.internal.domain.enums.PlaceCategory;
+import com.donggree.place.internal.domain.enums.PlaceStatus;
+import com.donggree.place.internal.domain.enums.PlaceSubCategory;
+import com.donggree.place.internal.domain.enums.PlaceTag;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+/**
+ * 동글맵 장소. 인증 회원이 지도 중심 핀으로 직접 등록한다.
+ *
+ * <p>이름·위치·카테고리는 등록 후 사용자가 바꿀 수 없고 장소는 삭제하지 않는다.
+ * 영업시간·설명·메뉴·숨은 맛집 태그는 인증 회원 누구나 고치며, 버전으로 동시 편집 충돌을 막는다.
+ * 카카오 응답은 저장하지 않으며 좌표는 사용자가 지정한 값, 주소는 표시 시점에 FE가 조회한다.
+ * 작성자는 회원 ID로만 참조하고 탈퇴 시 연결을 끊는다.
+ */
+@Entity
+@Table(
+        name = "place",
+        indexes = {
+            @Index(name = "idx_place_status_location", columnList = "status, latitude, longitude"),
+            @Index(name = "idx_place_created_by", columnList = "created_by")
+        })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Place extends BaseEntity {
+
+    public static final int NAME_MAX_LENGTH = 30;
+    public static final int BUSINESS_HOURS_MAX_LENGTH = 100;
+    public static final int DESCRIPTION_MAX_LENGTH = 300;
+    public static final int MENU_MAX_COUNT = 50;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "name", nullable = false, length = NAME_MAX_LENGTH)
+    private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", nullable = false, length = 20)
+    private PlaceCategory category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sub_category", nullable = false, length = 30)
+    private PlaceSubCategory subCategory;
+
+    @Column(name = "latitude", nullable = false)
+    private double latitude;
+
+    @Column(name = "longitude", nullable = false)
+    private double longitude;
+
+    @Column(name = "business_hours", length = BUSINESS_HOURS_MAX_LENGTH)
+    private String businessHours;
+
+    @Column(name = "description", length = DESCRIPTION_MAX_LENGTH)
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 10)
+    private PlaceStatus status;
+
+    /** 공동 편집 충돌 감지용 버전. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
+    /** 최초 등록 회원 ID. 탈퇴 시 null로 익명화한다. */
+    @Column(name = "created_by")
+    private Long createdBy;
+
+    /** 사용자에게 보여주는 마지막 정보 수정 시각. 숨김·익명화 같은 관리 변경으로는 바뀌지 않는다. */
+    @Column(name = "info_updated_at", nullable = false)
+    private LocalDateTime infoUpdatedAt;
+
+    /** 숨은 맛집 태그. 메인 카테고리와 별개인 추가 범주(0개 이상). */
+    @ElementCollection
+    @CollectionTable(name = "place_tag", joinColumns = @JoinColumn(name = "place_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tag", nullable = false, length = 20)
+    private Set<PlaceTag> tags = new HashSet<>();
+
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    private List<PlaceMenu> menus = new ArrayList<>();
+
+    private Place(PlaceRegistration registration) {
+        if (registration.memberId() == null) {
+            throw new IllegalArgumentException("memberId must not be null");
+        }
+        this.name = requireName(registration.name());
+        assignCategory(registration.category(), registration.subCategory());
+        assignLocation(registration.point());
+        applyInfo(normalize(new PlaceInfo(
+                registration.businessHours(), registration.description(), registration.menus(), registration.tags())));
+        this.status = PlaceStatus.VISIBLE;
+        this.createdBy = registration.memberId();
+        this.infoUpdatedAt = LocalDateTime.now();
+    }
+
+    public static Place register(PlaceRegistration registration) {
+        if (registration == null) {
+            throw new IllegalArgumentException("registration must not be null");
+        }
+        return new Place(registration);
+    }
+
+    public GeoPoint point() {
+        return new GeoPoint(latitude, longitude);
+    }
+
+    public boolean isVisible() {
+        return status == PlaceStatus.VISIBLE;
+    }
+
+    /** 관리자가 지도에서 숨긴다. 정보·마지막 수정일은 그대로 두고, 이미 숨긴 장소면 바꾸지 않는다. */
+    public void hide() {
+        this.status = PlaceStatus.HIDDEN;
+    }
+
+    /** 관리자가 숨김을 해제해 다시 지도에 보인다. */
+    public void show() {
+        this.status = PlaceStatus.VISIBLE;
+    }
+
+    public List<PlaceMenu> getMenus() {
+        return Collections.unmodifiableList(menus);
+    }
+
+    /** 현재 영업시간·설명·메뉴. */
+    public PlaceInfo info() {
+        return new PlaceInfo(
+                businessHours,
+                description,
+                menus.stream().map(PlaceMenu::toItem).toList(),
+                tags.stream().sorted(Comparator.naturalOrder()).toList());
+    }
+
+    /**
+     * 영업시간·설명·메뉴를 요청값으로 바꾼다. 메뉴는 전체를 교체하고, 비운 항목은 삭제로 본다.
+     * 정규화한 값이 지금과 같으면 아무것도 바꾸지 않아 버전·마지막 수정일도 그대로다.
+     *
+     * @return 실제로 바뀐 경우 저장할 수정 이력
+     */
+    public Optional<PlaceEditHistory> editInfo(Long editorId, PlaceInfo requested) {
+        if (editorId == null) {
+            throw new IllegalArgumentException("editorId must not be null");
+        }
+        if (requested == null) {
+            throw new IllegalArgumentException("info must not be null");
+        }
+        PlaceInfo before = info();
+        PlaceInfo after = normalize(requested);
+        if (before.equals(after)) {
+            return Optional.empty();
+        }
+        applyInfo(after);
+        this.infoUpdatedAt = LocalDateTime.now();
+        return Optional.of(new PlaceEditHistory(id, editorId, before, after, infoUpdatedAt));
+    }
+
+    private void applyInfo(PlaceInfo info) {
+        this.businessHours = info.businessHours();
+        this.description = info.description();
+        tags.clear();
+        tags.addAll(info.tags());
+        menus.clear();
+        List<MenuItem> items = info.menus();
+        for (int index = 0; index < items.size(); index++) {
+            menus.add(new PlaceMenu(this, items.get(index), index));
+        }
+    }
+
+    private static PlaceInfo normalize(PlaceInfo info) {
+        if (info.menus().size() > MENU_MAX_COUNT) {
+            throw new IllegalArgumentException("menus must be " + MENU_MAX_COUNT + " or fewer");
+        }
+        return new PlaceInfo(
+                optionalText(info.businessHours(), BUSINESS_HOURS_MAX_LENGTH, "businessHours"),
+                optionalText(info.description(), DESCRIPTION_MAX_LENGTH, "description"),
+                info.menus().stream()
+                        .map(item -> {
+                            if (item == null) {
+                                throw new IllegalArgumentException("menu must not be null");
+                            }
+                            return item.normalize();
+                        })
+                        .toList(),
+                normalizeTags(info.tags()));
+    }
+
+    /** 중복을 없애고 enum 순서로 정렬한다. 비교·이력이 입력 순서에 흔들리지 않게 하기 위함이다. */
+    private static List<PlaceTag> normalizeTags(List<PlaceTag> tags) {
+        if (tags.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("tag must not be null");
+        }
+        return tags.stream().distinct().sorted().toList();
+    }
+
+    private void assignCategory(PlaceCategory category, PlaceSubCategory subCategory) {
+        if (category == null || subCategory == null) {
+            throw new IllegalArgumentException("category and subCategory must not be null");
+        }
+        if (!subCategory.belongsTo(category)) {
+            throw new IllegalArgumentException("subCategory must belong to category");
+        }
+        this.category = category;
+        this.subCategory = subCategory;
+    }
+
+    private void assignLocation(GeoPoint point) {
+        if (point == null) {
+            throw new IllegalArgumentException("point must not be null");
+        }
+        if (!CampusArea.contains(point)) {
+            throw new IllegalArgumentException("point must be inside the campus area");
+        }
+        this.latitude = point.latitude();
+        this.longitude = point.longitude();
+    }
+
+    private static String requireName(String value) {
+        String trimmed = value == null ? "" : value.trim();
+        if (trimmed.isEmpty() || trimmed.length() > NAME_MAX_LENGTH) {
+            throw new IllegalArgumentException("name must be 1 to " + NAME_MAX_LENGTH + " characters");
+        }
+        return trimmed;
+    }
+
+    /** 공백만 입력한 선택 항목은 미입력으로 저장한다. */
+    private static String optionalText(String value, int maxLength, String fieldName) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.strip();
+        if (trimmed.length() > maxLength) {
+            throw new IllegalArgumentException(fieldName + " must be " + maxLength + " characters or less");
+        }
+        return trimmed;
+    }
+}

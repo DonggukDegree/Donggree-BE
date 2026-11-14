@@ -16,7 +16,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -25,11 +24,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** 실제 서비스 프록시·H2로 성적표 저장과 회원 본인 인증의 동시 커밋·롤백 검증. */
-@DataJpaTest(
-        properties =
-                "spring.datasource.url=jdbc:h2:mem:transcript-identity-transaction;MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+/** 실제 서비스 프록시·PostgreSQL로 성적표 저장과 회원 본인 인증의 동시 커밋·롤백 검증. */
+@DataJpaTest
 @Import({TranscriptCommandService.class, UserIdentityServiceImpl.class, JpaAuditingConfig.class})
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class TranscriptIdentityTransactionIntegrationTest {

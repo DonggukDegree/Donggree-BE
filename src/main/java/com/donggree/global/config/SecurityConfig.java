@@ -4,6 +4,7 @@ import com.donggree.global.apiPayload.ApiResponse;
 import com.donggree.global.apiPayload.code.GeneralErrorCode;
 import com.donggree.global.auth.JwtAuthFilter;
 import com.donggree.global.auth.JwtTokenProvider;
+import com.donggree.global.auth.MemberAccessGuard;
 import com.donggree.global.logging.RequestDiagnostics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -72,9 +74,11 @@ public class SecurityConfig {
             AuthenticationSuccessHandler oAuthSuccessHandler,
             AuthenticationFailureHandler oAuthFailureHandler,
             ObjectMapper objectMapper,
-            Environment env)
+            Environment env,
+            ObjectProvider<MemberAccessGuard> accessGuard)
             throws Exception {
-        JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtTokenProvider);
+        // 정지 회원은 기존 로그인 토큰으로도 요청하지 못하게 필터에서 바로 막는다.
+        JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtTokenProvider, accessGuard.getIfAvailable(), objectMapper);
         boolean isLocal = Arrays.asList(env.getActiveProfiles()).contains("local");
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
