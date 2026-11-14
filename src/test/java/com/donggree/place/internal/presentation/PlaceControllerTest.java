@@ -50,7 +50,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class PlaceControllerTest extends RestDocsSupport {
 
     private static final Long MEMBER_ID = 1L;
-    private static final String TAGS_DESCRIPTION = "숨은 맛집 태그: SHORTCUT(지름길 맛집), STUDY(카공 맛집), GATHERING(회식 맛집), "
+    private static final String TAGS_DESCRIPTION = "숨은 맛집 태그: SHORTCUT(지름길 맛집), STUDY(공부 맛집), GATHERING(회식 맛집), "
             + "MEAL_DATE(밥약 맛집), MOOD(분위기 맛집), SOLO_DINING(혼밥 맛집), COFFEE(커피 맛집), GENUINE(진짜 맛집)";
 
     private final PlaceQueryService placeQueryService = Mockito.mock(PlaceQueryService.class);
