@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum PlaceTag {
     SHORTCUT("지름길 맛집"),
-    STUDY("카공 맛집"),
+    STUDY("공부 맛집"),
     GATHERING("회식 맛집"),
     MEAL_DATE("밥약 맛집"),
     MOOD("분위기 맛집"),

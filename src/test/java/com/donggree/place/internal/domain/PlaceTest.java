@@ -264,6 +264,9 @@ class PlaceTest {
     @Test
     void 개편된_상세카테고리는_각_카테고리에만_속한다() {
         assertThat(PlaceSubCategory.FRANCHISE.belongsTo(PlaceCategory.CAFE)).isTrue();
+        assertThat(PlaceSubCategory.CAFETERIA.belongsTo(PlaceCategory.RESTAURANT))
+                .isTrue();
+        assertThat(PlaceSubCategory.CAFETERIA.getLabel()).isEqualTo("학식당");
         assertThat(PlaceSubCategory.LIBRARY.belongsTo(PlaceCategory.STUDY)).isTrue();
         assertThat(PlaceSubCategory.FITNESS.belongsTo(PlaceCategory.LIFE)).isTrue();
         assertThat(PlaceSubCategory.PC_ROOM.belongsTo(PlaceCategory.ENTERTAINMENT))
