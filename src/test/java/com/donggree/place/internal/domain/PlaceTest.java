@@ -178,6 +178,23 @@ class PlaceTest {
     }
 
     @Test
+    void 메뉴_추천_여부만_바꿔도_수정으로_보고_이력에_남긴다() {
+        Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
+
+        PlaceEditHistory history = place.editInfo(
+                        2L,
+                        new PlaceInfo(
+                                "평일 11:00-21:00",
+                                "정문 맞은편",
+                                List.of(new MenuItem("짜장면", 7000, true), new MenuItem("탕수육", null))))
+                .orElseThrow();
+
+        assertThat(place.getMenus()).extracting(PlaceMenu::isRecommended).containsExactly(true, false);
+        assertThat(history.before().menus()).extracting(MenuItem::recommended).containsExactly(false, false);
+        assertThat(history.after().menus()).extracting(MenuItem::recommended).containsExactly(true, false);
+    }
+
+    @Test
     void 수정값도_등록과_같은_제약을_검사하고_실패하면_기존_값을_유지한다() {
         Place place = PlaceFixtures.place(10L, "동국반점", NEAR_CAMPUS);
 

@@ -40,7 +40,7 @@ public record PlaceDetailResponse(
                 place.businessHours(),
                 place.description(),
                 place.menus().stream()
-                        .map(menu -> new Menu(menu.name(), menu.price()))
+                        .map(menu -> new Menu(menu.name(), menu.price(), menu.recommended()))
                         .toList(),
                 place.createdAt(),
                 place.infoUpdatedAt(),
@@ -51,5 +51,5 @@ public record PlaceDetailResponse(
                 place.tags());
     }
 
-    public record Menu(String name, Integer price) {}
+    public record Menu(String name, Integer price, boolean recommended) {}
 }
