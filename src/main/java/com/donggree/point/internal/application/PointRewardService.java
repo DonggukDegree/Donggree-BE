@@ -1,9 +1,11 @@
 package com.donggree.point.internal.application;
 
+import com.donggree.point.internal.domain.PointHistory;
 import com.donggree.point.internal.domain.PointHistoryRepository;
 import com.donggree.point.internal.domain.PointReason;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,6 +81,22 @@ public class PointRewardService {
         } else {
             historyRepository.revokeOfMember(authorId, placeId, REVIEW_REASONS, LocalDateTime.now());
         }
+    }
+
+    /**
+     * 화면이 아직 안내하지 않은 적립이면 안내한 것으로 기록하고 적립액을 돌려준다.
+     * 적립이 없거나, 이미 안내했거나, 회수된 적립이면 비어 있다. 같은 적립을 두 번 안내하지 않기 위함이다.
+     *
+     * @param targetId 장소 활동이면 장소 ID, 졸업 리포트 최초 확인이면 null
+     */
+    @Transactional
+    public Optional<Integer> acknowledge(Long memberId, PointReason reason, Long targetId) {
+        Optional<PointHistory> history = targetId == null
+                ? historyRepository.findByMemberIdAndReasonAndTargetIdIsNull(memberId, reason)
+                : historyRepository.findByMemberIdAndReasonAndTargetId(memberId, reason, targetId);
+        return history.filter(found -> !found.isRevoked())
+                .filter(found -> historyRepository.markNotified(found.getId(), LocalDateTime.now()) > 0)
+                .map(PointHistory::getAmount);
     }
 
     @Transactional

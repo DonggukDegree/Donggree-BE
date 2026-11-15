@@ -3,6 +3,7 @@ package com.donggree.point.internal.domain;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -30,6 +31,15 @@ public interface PointHistoryRepository extends JpaRepository<PointHistory, Long
             @Param("createdAt") LocalDateTime createdAt);
 
     boolean existsByMemberIdAndReason(Long memberId, PointReason reason);
+
+    Optional<PointHistory> findByMemberIdAndReasonAndTargetId(Long memberId, PointReason reason, Long targetId);
+
+    Optional<PointHistory> findByMemberIdAndReasonAndTargetIdIsNull(Long memberId, PointReason reason);
+
+    /** 아직 안내하지 않은 적립이면 안내 시각을 기록한다. 동시에 두 번 불려도 한쪽만 1을 받는다. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE PointHistory h SET h.notifiedAt = :at WHERE h.id = :id AND h.notifiedAt IS NULL")
+    int markNotified(@Param("id") Long id, @Param("at") LocalDateTime at);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE PointHistory h SET h.revokedAt = :at "

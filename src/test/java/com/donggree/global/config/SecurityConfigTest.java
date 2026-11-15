@@ -186,6 +186,9 @@ class SecurityConfigTest {
     private com.donggree.point.internal.application.PointQueryService pointQueryService;
 
     @MockitoBean
+    private com.donggree.point.internal.application.PointRewardService pointRewardService;
+
+    @MockitoBean
     private com.donggree.support.internal.application.FaqQueryService faqQueryService;
 
     @MockitoBean

@@ -128,6 +128,34 @@ class PointRewardPersistenceTest {
     }
 
     @Test
+    void 적립_안내는_적립이_있고_아직_안내하지_않았을_때_한_번만_한다() {
+        rewardService.rewardInfoEdit(A, PLACE);
+        rewardService.rewardReportFirstView(A);
+
+        assertThat(rewardService.acknowledge(A, PointReason.PLACE_INFO_EDIT, PLACE))
+                .contains(100);
+        assertThat(rewardService.acknowledge(A, PointReason.PLACE_INFO_EDIT, PLACE))
+                .isEmpty();
+        assertThat(rewardService.acknowledge(A, PointReason.PLACE_INFO_EDIT, 11L))
+                .isEmpty();
+        assertThat(rewardService.acknowledge(B, PointReason.PLACE_INFO_EDIT, PLACE))
+                .isEmpty();
+        assertThat(rewardService.acknowledge(A, PointReason.GRADUATION_REPORT_FIRST_VIEW, null))
+                .contains(500);
+        assertThat(rewardService.acknowledge(A, PointReason.GRADUATION_REPORT_FIRST_VIEW, null))
+                .isEmpty();
+    }
+
+    @Test
+    void 회수된_적립은_안내하지_않는다() {
+        rewardService.rewardPlaceRegister(A, PLACE);
+        rewardService.onPlaceVisibilityChanged(PLACE, false);
+
+        assertThat(rewardService.acknowledge(A, PointReason.PLACE_REGISTER, PLACE))
+                .isEmpty();
+    }
+
+    @Test
     void 탈퇴하면_그_회원의_내역만_지운다() {
         rewardService.rewardPlaceRegister(A, PLACE);
         rewardService.rewardReview(B, PLACE, true);

@@ -3,6 +3,7 @@ package com.donggree.point.internal.presentation;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
@@ -12,15 +13,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.donggree.global.handler.GeneralExceptionAdvice;
 import com.donggree.global.support.RestDocsSupport;
 import com.donggree.point.internal.application.PointQueryService;
+import com.donggree.point.internal.application.PointRewardService;
 import com.donggree.point.internal.application.readmodel.PointHistoryPageReadModel;
 import com.donggree.point.internal.domain.PointReason;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.MediaType;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,10 +35,11 @@ class PointControllerTest extends RestDocsSupport {
     private static final Long MEMBER_ID = 1L;
 
     private final PointQueryService queryService = Mockito.mock(PointQueryService.class);
+    private final PointRewardService rewardService = Mockito.mock(PointRewardService.class);
 
     @Override
     protected Object initController() {
-        return new PointController(queryService);
+        return new PointController(queryService, rewardService);
     }
 
     @Override
@@ -67,6 +72,44 @@ class PointControllerTest extends RestDocsSupport {
                                 fieldWithPath("code").description("응답 코드"),
                                 fieldWithPath("message").description("응답 메시지"),
                                 fieldWithPath("result.totalPoints").description("총 포인트(숨김으로 회수된 적립 제외)"))));
+    }
+
+    @Test
+    void 방금_한_활동의_적립을_안내했다고_기록한다() throws Exception {
+        given(rewardService.acknowledge(MEMBER_ID, PointReason.PLACE_INFO_EDIT, 10L))
+                .willReturn(Optional.of(100));
+
+        mockMvc.perform(RestDocumentationRequestBuilders.post("/api/points/me/rewards/acknowledge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"PLACE_INFO_EDIT\",\"targetId\":10}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.rewarded").value(true))
+                .andExpect(jsonPath("$.result.amount").value(100))
+                .andDo(document(
+                        "point-reward-acknowledge",
+                        requestFields(
+                                fieldWithPath("reason").description("방금 한 활동의 적립 사유"),
+                                fieldWithPath("targetId").optional().description("장소 활동이면 장소 ID, 졸업 리포트 최초 확인이면 생략")),
+                        responseFields(
+                                fieldWithPath("isSuccess").description("성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("result.rewarded")
+                                        .description("이번에 처음 안내하는 적립이면 true. 적립 없음·이미 안내·회수면 false"),
+                                fieldWithPath("result.amount").description("적립액. rewarded가 false면 0"))));
+    }
+
+    @Test
+    void 적립이_없거나_이미_안내했으면_rewarded_false() throws Exception {
+        given(rewardService.acknowledge(MEMBER_ID, PointReason.GRADUATION_REPORT_FIRST_VIEW, null))
+                .willReturn(Optional.empty());
+
+        mockMvc.perform(RestDocumentationRequestBuilders.post("/api/points/me/rewards/acknowledge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"GRADUATION_REPORT_FIRST_VIEW\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.rewarded").value(false))
+                .andExpect(jsonPath("$.result.amount").value(0));
     }
 
     @Test
