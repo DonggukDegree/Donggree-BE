@@ -6,6 +6,7 @@ import com.donggree.curriculum.CurriculumLookupService;
 import com.donggree.curriculum.GraduationRuleView;
 import com.donggree.curriculum.RequirementSetView;
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.graduation.event.GraduationReportViewedEvent;
 import com.donggree.graduation.internal.application.evaluation.EvaluationInputMapper;
 import com.donggree.graduation.internal.application.exception.GraduationErrorCode;
 import com.donggree.graduation.internal.application.readmodel.AreaDetailReadModel;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 /**
@@ -44,13 +46,16 @@ public class GraduationQueryService {
     private final GraduationReportAssembler reportAssembler;
     private final EvaluationInputMapper inputMapper;
     private final Map<String, RuleEvaluator> evaluatorByTypeName;
+    private final ApplicationEventPublisher eventPublisher;
 
     public GraduationQueryService(
             TranscriptLookupService transcriptLookupService,
             CurriculumLookupService curriculumLookupService,
             List<RuleEvaluator> evaluators,
             GraduationReportAssembler reportAssembler,
-            EvaluationInputMapper inputMapper) {
+            EvaluationInputMapper inputMapper,
+            ApplicationEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.transcriptLookupService = transcriptLookupService;
         this.curriculumLookupService = curriculumLookupService;
         this.reportAssembler = reportAssembler;
@@ -59,8 +64,11 @@ public class GraduationQueryService {
                 evaluators.stream().collect(Collectors.toMap(RuleEvaluator::supportedTypeName, Function.identity()));
     }
 
+    /** 요약 조회에 성공하면 조회 이벤트를 동기로 발행한다(포인트 최초 확인 적립). 리스너 실패는 응답에 영향을 주지 않는다. */
     public GraduationReportReadModel getReport(Long memberId) {
-        return assembleReport(evaluateTranscript(findTranscript(memberId)));
+        GraduationReportReadModel report = assembleReport(evaluateTranscript(findTranscript(memberId)));
+        eventPublisher.publishEvent(new GraduationReportViewedEvent(memberId));
+        return report;
     }
 
     public AreaDetailReadModel getAreaDetail(Long memberId, CourseType courseType) {

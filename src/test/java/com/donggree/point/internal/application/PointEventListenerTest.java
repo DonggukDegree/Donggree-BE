@@ -1,0 +1,47 @@
+package com.donggree.point.internal.application;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import com.donggree.graduation.event.GraduationReportViewedEvent;
+import com.donggree.place.event.PlaceInfoEditedEvent;
+import com.donggree.place.event.PlaceRegisteredEvent;
+import com.donggree.place.event.PlaceReviewVisibilityChangedEvent;
+import com.donggree.place.event.PlaceReviewWrittenEvent;
+import com.donggree.place.event.PlaceVisibilityChangedEvent;
+import com.donggree.user.event.MemberWithdrawnEvent;
+import org.junit.jupiter.api.Test;
+
+class PointEventListenerTest {
+
+    private final PointRewardService rewardService = mock(PointRewardService.class);
+    private final PointEventListener listener = new PointEventListener(rewardService);
+
+    @Test
+    void 활동_이벤트를_적립_회수로_넘긴다() {
+        listener.on(new GraduationReportViewedEvent(1L));
+        listener.on(new PlaceRegisteredEvent(10L, 1L));
+        listener.on(new PlaceReviewWrittenEvent(30L, 10L, 1L, true));
+        listener.on(new PlaceInfoEditedEvent(10L, 2L));
+        listener.on(new PlaceVisibilityChangedEvent(10L, false));
+        listener.on(new PlaceReviewVisibilityChangedEvent(30L, 10L, 1L, true));
+        listener.on(new MemberWithdrawnEvent(1L));
+
+        verify(rewardService).rewardReportFirstView(1L);
+        verify(rewardService).rewardPlaceRegister(1L, 10L);
+        verify(rewardService).rewardReview(1L, 10L, true);
+        verify(rewardService).rewardInfoEdit(2L, 10L);
+        verify(rewardService).onPlaceVisibilityChanged(10L, false);
+        verify(rewardService).onReviewVisibilityChanged(1L, 10L, true);
+        verify(rewardService).deleteAllOfMember(1L);
+    }
+
+    @Test
+    void 리포트_조회_적립이_실패해도_조회를_막지_않는다() {
+        willThrow(new IllegalStateException("db down")).given(rewardService).rewardReportFirstView(1L);
+
+        assertThatCode(() -> listener.on(new GraduationReportViewedEvent(1L))).doesNotThrowAnyException();
+    }
+}

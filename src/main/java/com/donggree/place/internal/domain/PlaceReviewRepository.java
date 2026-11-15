@@ -11,6 +11,9 @@ public interface PlaceReviewRepository extends JpaRepository<PlaceReview, Long> 
     /** 회원당 장소별 1건 확인. 숨긴 리뷰도 포함하고, 작성자가 지운 리뷰만 뺀다. */
     boolean existsByPlaceIdAndAuthorIdAndDeletedAtIsNull(Long placeId, Long authorId);
 
+    /** 이 리뷰 말고 그 장소에 쓰인 리뷰가 있는지. 지운·숨긴 리뷰도 포함한다(첫 리뷰 판단용). */
+    boolean existsByPlaceIdAndIdNot(Long placeId, Long reviewId);
+
     Optional<PlaceReview> findByIdAndPlaceIdAndDeletedAtIsNull(Long id, Long placeId);
 
     Optional<PlaceReview> findByPlaceIdAndAuthorIdAndDeletedAtIsNull(Long placeId, Long authorId);

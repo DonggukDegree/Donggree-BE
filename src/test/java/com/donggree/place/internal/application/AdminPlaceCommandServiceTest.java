@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceVisibilityChangedEvent;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.domain.Place;
 import com.donggree.place.internal.domain.PlaceEditHistoryRepository;
@@ -19,14 +20,16 @@ import com.donggree.place.internal.domain.PlaceReportRepository;
 import com.donggree.place.internal.domain.PlaceRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 class AdminPlaceCommandServiceTest {
 
     private final PlaceRepository placeRepository = mock(PlaceRepository.class);
     private final PlaceReportRepository reportRepository = mock(PlaceReportRepository.class);
     private final PlaceEditHistoryRepository editHistoryRepository = mock(PlaceEditHistoryRepository.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AdminPlaceCommandService service =
-            new AdminPlaceCommandService(placeRepository, reportRepository, editHistoryRepository);
+            new AdminPlaceCommandService(placeRepository, reportRepository, editHistoryRepository, eventPublisher);
 
     @Test
     void 숨기면_처리_대기_신고를_처리_완료로_바꾼다() {
@@ -37,6 +40,7 @@ class AdminPlaceCommandServiceTest {
 
         assertThat(place.isVisible()).isFalse();
         verify(reportRepository).resolvePending(eq(10L), any());
+        verify(eventPublisher).publishEvent(new PlaceVisibilityChangedEvent(10L, false));
     }
 
     @Test
@@ -50,6 +54,7 @@ class AdminPlaceCommandServiceTest {
         assertThat(place.isVisible()).isTrue();
         verify(reportRepository).rejectPending(eq(10L), any());
         verify(reportRepository, never()).resolvePending(any(), any());
+        verify(eventPublisher).publishEvent(new PlaceVisibilityChangedEvent(10L, true));
     }
 
     @Test

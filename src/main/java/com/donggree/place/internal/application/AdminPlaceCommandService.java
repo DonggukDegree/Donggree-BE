@@ -1,6 +1,7 @@
 package com.donggree.place.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceVisibilityChangedEvent;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.domain.Place;
 import com.donggree.place.internal.domain.PlaceEditHistory;
@@ -9,6 +10,7 @@ import com.donggree.place.internal.domain.PlaceReportRepository;
 import com.donggree.place.internal.domain.PlaceRepository;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ public class AdminPlaceCommandService {
     private final PlaceRepository placeRepository;
     private final PlaceReportRepository reportRepository;
     private final PlaceEditHistoryRepository editHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** 장소를 숨기고 그 장소의 처리 대기 신고를 처리 완료로 바꾼다. 이미 숨긴 장소도 같은 결과다. */
     @Transactional
@@ -30,6 +33,7 @@ public class AdminPlaceCommandService {
         Place place = find(placeId);
         place.hide();
         reportRepository.resolvePending(placeId, LocalDateTime.now());
+        eventPublisher.publishEvent(new PlaceVisibilityChangedEvent(placeId, false));
     }
 
     /**
@@ -40,6 +44,7 @@ public class AdminPlaceCommandService {
     public void show(Long placeId) {
         find(placeId).show();
         reportRepository.rejectPending(placeId, LocalDateTime.now());
+        eventPublisher.publishEvent(new PlaceVisibilityChangedEvent(placeId, true));
     }
 
     /**

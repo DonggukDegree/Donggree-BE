@@ -1,6 +1,7 @@
 package com.donggree.place.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceVisibilityChangedEvent;
 import com.donggree.place.internal.application.command.ReportPlaceCommand;
 import com.donggree.place.internal.application.event.PlaceReportedEvent;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
@@ -62,6 +63,7 @@ public class PlaceReportCommandService {
         boolean autoHidden = pendingCount >= PlaceReport.AUTO_HIDE_PENDING_COUNT;
         if (autoHidden) {
             place.hide();
+            eventPublisher.publishEvent(new PlaceVisibilityChangedEvent(placeId, false));
         }
         eventPublisher.publishEvent(new PlaceReportedEvent(
                 reportId,

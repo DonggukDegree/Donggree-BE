@@ -1,6 +1,7 @@
 package com.donggree.place.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceReviewWrittenEvent;
 import com.donggree.place.internal.application.command.WriteReviewCommand;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.domain.PlaceRepository;
@@ -10,6 +11,7 @@ import com.donggree.place.internal.domain.enums.PlaceStatus;
 import com.donggree.user.UserLookupService;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class PlaceReviewCommandService {
     private final PlaceRepository placeRepository;
     private final PlaceReviewRepository reviewRepository;
     private final UserLookupService userLookupService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** 동시에 두 번 작성해도 DB 부분 유일 인덱스(장소·작성자·미삭제)가 한 건만 남긴다. */
     @Transactional
@@ -40,11 +43,16 @@ public class PlaceReviewCommandService {
         } catch (IllegalArgumentException exception) {
             throw new GeneralException(PlaceErrorCode.INVALID_REVIEW);
         }
+        Long reviewId;
         try {
-            return reviewRepository.saveAndFlush(review).getId();
+            reviewId = reviewRepository.saveAndFlush(review).getId();
         } catch (DataIntegrityViolationException exception) {
             throw new GeneralException(PlaceErrorCode.DUPLICATE_REVIEW);
         }
+        // 지운·숨긴 리뷰도 있었던 리뷰로 본다. 동시에 두 명이 첫 리뷰를 써도 포인트 쪽 유일 제약이 한 명만 인정한다.
+        boolean firstReviewOfPlace = !reviewRepository.existsByPlaceIdAndIdNot(placeId, reviewId);
+        eventPublisher.publishEvent(new PlaceReviewWrittenEvent(reviewId, placeId, memberId, firstReviewOfPlace));
+        return reviewId;
     }
 
     /** 숨겨진 리뷰는 고쳐서 다시 드러내지 못하게 막는다(삭제는 가능). */

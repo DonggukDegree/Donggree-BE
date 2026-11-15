@@ -62,7 +62,8 @@ abstract class GraduationQueryTestSupport {
                         new PrerequisiteEvaluator(),
                         new TotalCreditsEvaluator()),
                 EvaluationTestInputs.assembler(),
-                EvaluationTestInputs.mapper());
+                EvaluationTestInputs.mapper(),
+                event -> {});
     }
 
     void givenMinCreditsRule(CourseType courseType, String ruleName, String ruleConfig) {

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceReviewVisibilityChangedEvent;
 import com.donggree.place.internal.application.command.ReportReviewCommand;
 import com.donggree.place.internal.application.event.ReviewReportedEvent;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
@@ -92,6 +93,7 @@ class ReviewReportCommandServiceTest {
         service.report(REPORTER_ID, PLACE_ID, REVIEW_ID, ABUSE);
 
         assertThat(review.isVisible()).isFalse();
+        verify(eventPublisher).publishEvent(new PlaceReviewVisibilityChangedEvent(REVIEW_ID, PLACE_ID, 7L, false));
     }
 
     @Test
@@ -122,16 +124,19 @@ class ReviewReportCommandServiceTest {
 
     @Test
     void 관리자_숨김과_해제는_대기_신고를_처리_완료와_기각으로_바꾼다() {
-        AdminReviewCommandService admin = new AdminReviewCommandService(reviewRepository, reportRepository);
+        AdminReviewCommandService admin =
+                new AdminReviewCommandService(reviewRepository, reportRepository, eventPublisher);
         given(reviewRepository.findById(REVIEW_ID)).willReturn(Optional.of(review));
 
         admin.hide(REVIEW_ID);
         assertThat(review.isVisible()).isFalse();
         verify(reportRepository).resolvePending(eq(REVIEW_ID), any());
+        verify(eventPublisher).publishEvent(new PlaceReviewVisibilityChangedEvent(REVIEW_ID, PLACE_ID, 7L, false));
 
         admin.show(REVIEW_ID);
         assertThat(review.isVisible()).isTrue();
         verify(reportRepository).rejectPending(eq(REVIEW_ID), any());
+        verify(eventPublisher).publishEvent(new PlaceReviewVisibilityChangedEvent(REVIEW_ID, PLACE_ID, 7L, true));
 
         given(reviewRepository.findById(99L)).willReturn(Optional.empty());
         assertError(() -> admin.hide(99L), PlaceErrorCode.REVIEW_NOT_FOUND);

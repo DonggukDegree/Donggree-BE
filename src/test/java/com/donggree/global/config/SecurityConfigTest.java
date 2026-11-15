@@ -183,6 +183,9 @@ class SecurityConfigTest {
     private com.donggree.curriculum.internal.application.DepartmentQueryService departmentQueryService;
 
     @MockitoBean
+    private com.donggree.point.internal.application.PointQueryService pointQueryService;
+
+    @MockitoBean
     private com.donggree.support.internal.application.FaqQueryService faqQueryService;
 
     @MockitoBean
@@ -406,6 +409,14 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/places").header("Authorization", bearer("STUDENT")))
                 .andExpect(status().isOk());
         verifyNoInteractions(placeCommandService);
+    }
+
+    @Test
+    void 내_포인트_API는_로그인이_필요하다() throws Exception {
+        mockMvc.perform(get("/api/points/me")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/points/me/histories")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/points/me").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isOk());
     }
 
     @Test
