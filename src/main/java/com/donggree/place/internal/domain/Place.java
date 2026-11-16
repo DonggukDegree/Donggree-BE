@@ -55,7 +55,7 @@ public class Place extends BaseEntity {
 
     public static final int NAME_MAX_LENGTH = 30;
     public static final int BUSINESS_HOURS_MAX_LENGTH = 100;
-    public static final int DESCRIPTION_MAX_LENGTH = 300;
+    public static final int DESCRIPTION_MAX_LENGTH = 500;
     public static final int MENU_MAX_COUNT = 50;
 
     @Id

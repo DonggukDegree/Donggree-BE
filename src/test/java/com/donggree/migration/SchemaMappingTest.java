@@ -45,7 +45,7 @@ class SchemaMappingTest extends MigrationDatabase {
                                     .current()
                                     .getVersion()
                                     .getVersion())
-                            .isEqualTo("11");
+                            .isEqualTo("12");
                 });
     }
 
@@ -196,6 +196,32 @@ class SchemaMappingTest extends MigrationDatabase {
                 .isInstanceOf(SQLException.class)
                 .extracting(e -> ((SQLException) e).getSQLState())
                 .isEqualTo("23514");
+    }
+
+    @Test
+    void V12는_장소_설명과_수정_이력_설명을_500자까지_담는다() throws Exception {
+        flyway().migrate();
+        execute(
+                """
+                INSERT INTO public.place (name, category, sub_category, latitude, longitude, description, status, version,
+                    created_by, info_updated_at, created_at, updated_at)
+                    VALUES ('migration-place', 'ETC', 'SMOKING_AREA', 37.558, 127.0, repeat('가', 500), 'VISIBLE', 0, 1,
+                    now(), now(), now());
+                """);
+        assertThat(scalar("SELECT length(description) FROM public.place")).isEqualTo("500");
+        assertThat(
+                        scalar(
+                                """
+                SELECT string_agg(character_maximum_length::text, ',' ORDER BY column_name)
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'place_edit_history'
+                    AND column_name IN ('before_description', 'after_description')
+                """))
+                .isEqualTo("500,500");
+        assertThatThrownBy(() -> execute("UPDATE public.place SET description = repeat('가', 501)"))
+                .isInstanceOf(SQLException.class)
+                .extracting(e -> ((SQLException) e).getSQLState())
+                .isEqualTo("22001");
     }
 
     // 실제 Modulith 자동 설정과 같은 기본 이벤트 엔티티만 포함한다. archive 모드는 사용하지 않는다.
