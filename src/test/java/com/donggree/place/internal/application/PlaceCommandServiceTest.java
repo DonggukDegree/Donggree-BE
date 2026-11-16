@@ -13,6 +13,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceInfoEditedEvent;
+import com.donggree.place.event.PlaceRegisteredEvent;
 import com.donggree.place.internal.application.command.EditPlaceInfoCommand;
 import com.donggree.place.internal.application.command.RegisterPlaceCommand;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
@@ -33,6 +35,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -46,12 +49,14 @@ class PlaceCommandServiceTest {
     private final PlaceEditHistoryRepository editHistoryRepository = mock(PlaceEditHistoryRepository.class);
     private final UserLookupService userLookupService = mock(UserLookupService.class);
     private final PlaceQueries placeQueries = mock(PlaceQueries.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final PlaceCommandService service = new PlaceCommandService(
             placeRepository,
             editHistoryRepository,
             new PlaceDuplicateFinder(placeRepository),
             userLookupService,
-            new PlaceDetailReader(userLookupService, placeQueries));
+            new PlaceDetailReader(userLookupService, placeQueries),
+            eventPublisher);
 
     @BeforeEach
     void setUp() {
@@ -76,6 +81,7 @@ class PlaceCommandServiceTest {
         verify(placeRepository).save(saved.capture());
         assertThat(saved.getValue().getCreatedBy()).isEqualTo(MEMBER_ID);
         assertThat(saved.getValue().getMenus()).hasSize(1);
+        verify(eventPublisher).publishEvent(new PlaceRegisteredEvent(100L, MEMBER_ID));
     }
 
     @Test
@@ -146,6 +152,7 @@ class PlaceCommandServiceTest {
         assertThat(saved.getValue().getPlaceId()).isEqualTo(PLACE_ID);
         assertThat(saved.getValue().getBeforeBusinessHours()).isEqualTo("평일 11:00-21:00");
         assertThat(place.getCreatedBy()).isEqualTo(1L);
+        verify(eventPublisher).publishEvent(new PlaceInfoEditedEvent(PLACE_ID, MEMBER_ID));
     }
 
     @Test
@@ -163,6 +170,7 @@ class PlaceCommandServiceTest {
 
         verify(placeRepository, never()).flush();
         verify(editHistoryRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -247,5 +255,6 @@ class PlaceCommandServiceTest {
                 .isInstanceOf(GeneralException.class)
                 .satisfies(e -> assertThat(((GeneralException) e).getCode()).isEqualTo(code));
         verify(placeRepository, never()).save(any(Place.class));
+        verify(eventPublisher, never()).publishEvent(any());
     }
 }

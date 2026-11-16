@@ -1,6 +1,8 @@
 package com.donggree.place.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceInfoEditedEvent;
+import com.donggree.place.event.PlaceRegisteredEvent;
 import com.donggree.place.internal.application.command.EditPlaceInfoCommand;
 import com.donggree.place.internal.application.command.RegisterPlaceCommand;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
@@ -18,6 +20,7 @@ import com.donggree.user.UserLookupService;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +38,7 @@ public class PlaceCommandService {
     private final PlaceDuplicateFinder duplicateFinder;
     private final UserLookupService userLookupService;
     private final PlaceDetailReader detailReader;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 장소를 등록하고 ID를 반환한다. 반경 50m 안에 정규화 이름이 같은 장소가 있으면 막는다.
@@ -70,7 +74,9 @@ public class PlaceCommandService {
         } catch (IllegalArgumentException exception) {
             throw new GeneralException(PlaceErrorCode.INVALID_PLACE);
         }
-        return placeRepository.save(place).getId();
+        Long placeId = placeRepository.save(place).getId();
+        eventPublisher.publishEvent(new PlaceRegisteredEvent(placeId, memberId));
+        return placeId;
     }
 
     /**
@@ -106,6 +112,7 @@ public class PlaceCommandService {
             throw new GeneralException(PlaceErrorCode.EDIT_CONFLICT);
         }
         editHistoryRepository.save(history.get());
+        eventPublisher.publishEvent(new PlaceInfoEditedEvent(placeId, memberId));
         return detailReader.read(place);
     }
 
