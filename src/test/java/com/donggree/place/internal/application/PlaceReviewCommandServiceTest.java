@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceReviewWrittenEvent;
 import com.donggree.place.internal.application.command.WriteReviewCommand;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.domain.PlaceFixtures;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -34,8 +36,9 @@ class PlaceReviewCommandServiceTest {
     private final PlaceRepository placeRepository = mock(PlaceRepository.class);
     private final PlaceReviewRepository reviewRepository = mock(PlaceReviewRepository.class);
     private final UserLookupService userLookupService = mock(UserLookupService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final PlaceReviewCommandService service =
-            new PlaceReviewCommandService(placeRepository, reviewRepository, userLookupService);
+            new PlaceReviewCommandService(placeRepository, reviewRepository, userLookupService, eventPublisher);
 
     @BeforeEach
     void setUp() {
@@ -52,6 +55,16 @@ class PlaceReviewCommandServiceTest {
     @Test
     void 인증_회원은_장소마다_리뷰를_한_건_작성한다() {
         assertThat(service.write(MEMBER_ID, PLACE_ID, GOOD)).isEqualTo(30L);
+        verify(eventPublisher).publishEvent(new PlaceReviewWrittenEvent(30L, PLACE_ID, MEMBER_ID, true));
+    }
+
+    @Test
+    void 그_장소에_다른_리뷰가_있었으면_첫_리뷰가_아니다() {
+        given(reviewRepository.existsByPlaceIdAndIdNot(PLACE_ID, 30L)).willReturn(true);
+
+        service.write(MEMBER_ID, PLACE_ID, GOOD);
+
+        verify(eventPublisher).publishEvent(new PlaceReviewWrittenEvent(30L, PLACE_ID, MEMBER_ID, false));
     }
 
     @Test
@@ -72,6 +85,7 @@ class PlaceReviewCommandServiceTest {
         given(userLookupService.isStudentVerified(MEMBER_ID)).willReturn(false);
         assertError(() -> service.write(MEMBER_ID, PLACE_ID, GOOD), PlaceErrorCode.VERIFICATION_REQUIRED);
         verify(reviewRepository, never()).saveAndFlush(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

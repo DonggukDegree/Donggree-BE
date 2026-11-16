@@ -1,12 +1,14 @@
 package com.donggree.place.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceReviewVisibilityChangedEvent;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
 import com.donggree.place.internal.domain.PlaceReview;
 import com.donggree.place.internal.domain.PlaceReviewRepository;
 import com.donggree.place.internal.domain.ReviewReportRepository;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,17 +22,27 @@ public class AdminReviewCommandService {
 
     private final PlaceReviewRepository reviewRepository;
     private final ReviewReportRepository reportRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void hide(Long reviewId) {
-        find(reviewId).hide();
+        PlaceReview review = find(reviewId);
+        review.hide();
         reportRepository.resolvePending(reviewId, LocalDateTime.now());
+        eventPublisher.publishEvent(visibilityChanged(review));
     }
 
     @Transactional
     public void show(Long reviewId) {
-        find(reviewId).show();
+        PlaceReview review = find(reviewId);
+        review.show();
         reportRepository.rejectPending(reviewId, LocalDateTime.now());
+        eventPublisher.publishEvent(visibilityChanged(review));
+    }
+
+    private static PlaceReviewVisibilityChangedEvent visibilityChanged(PlaceReview review) {
+        return new PlaceReviewVisibilityChangedEvent(
+                review.getId(), review.getPlaceId(), review.getAuthorId(), review.isVisible());
     }
 
     private PlaceReview find(Long reviewId) {

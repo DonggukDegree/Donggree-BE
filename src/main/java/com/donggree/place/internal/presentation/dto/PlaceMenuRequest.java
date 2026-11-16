@@ -15,13 +15,14 @@ public record PlaceMenuRequest(
         @Min(value = 0, message = "가격은 0원 이상이어야 합니다.")
                 @Max(value = 1_000_000, message = "가격은 1,000,000원 이하여야 합니다.")
                 @Schema(example = "7000", description = "가격(원). 비우면 가격 변동")
-                Integer price) {
+                Integer price,
+        @Schema(example = "true", description = "추천 메뉴 여부. 생략하면 추천 아님") Boolean recommended) {
 
     static List<MenuItem> toItems(List<PlaceMenuRequest> menus) {
         return menus == null
                 ? List.of()
                 : menus.stream()
-                        .map(menu -> new MenuItem(menu.name(), menu.price()))
+                        .map(menu -> new MenuItem(menu.name(), menu.price(), Boolean.TRUE.equals(menu.recommended())))
                         .toList();
     }
 }

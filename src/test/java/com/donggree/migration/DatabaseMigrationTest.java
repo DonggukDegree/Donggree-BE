@@ -12,14 +12,27 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.ClassPathResource;
 
 class DatabaseMigrationTest extends MigrationDatabase {
+    // 이미 로컬 DB에 적용된 V10을 고치면 그 DB는 체크섬 불일치로 기동하지 못한다. 변경은 새 버전 파일로만 한다.
+    @Test
+    void 적용된_V10_포인트_내역_마이그레이션은_체크섬이_바뀌지_않는다() {
+        var v10 = java.util.Arrays.stream(flyway().info().all())
+                .filter(info -> info.getVersion() != null
+                        && info.getVersion().getVersion().equals("10"))
+                .findFirst()
+                .orElseThrow();
+        assertThat(v10.getChecksum()).isEqualTo(-30288797);
+    }
+
     @Test
     void 빈_DB에는_데이터_없이_최신_스키마를_적용하고_재시작_시_재실행하지_않는다() throws Exception {
         var flyway = flyway();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(8);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(12);
         for (String table : TABLES)
             assertThat(scalar("SELECT count(*) FROM public." + table)).isEqualTo("0");
-        assertThat(scalar("SELECT max(version) FROM public.flyway_schema_history WHERE success AND type='SQL'"))
-                .isEqualTo("8");
+        assertThat(
+                        scalar(
+                                "SELECT version FROM public.flyway_schema_history WHERE success AND type='SQL' ORDER BY installed_rank DESC LIMIT 1"))
+                .isEqualTo("12");
         assertThat(scalar("SELECT to_regclass('public.school_email_verification')"))
                 .isNull();
         execute("INSERT INTO public.college (college_name) VALUES ('migration-test')");
@@ -48,7 +61,7 @@ class DatabaseMigrationTest extends MigrationDatabase {
         var before = dataSnapshot();
         var flyway = flyway();
         flyway.baseline();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(7);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(11);
         assertThat(dataSnapshot()).isEqualTo(before);
         assertThat(scalar("SELECT last_value FROM public.college_id_seq")).isEqualTo("9000");
         assertThat(scalar("SELECT nextval('public.college_id_seq')")).isEqualTo("9001");
@@ -90,6 +103,6 @@ class DatabaseMigrationTest extends MigrationDatabase {
                 .isInstanceOf(FlywayException.class)
                 .hasMessageContaining("checksum");
         assertThat(scalar("SELECT count(*) FROM public.flyway_schema_history WHERE success"))
-                .isEqualTo("8");
+                .isEqualTo("12");
     }
 }

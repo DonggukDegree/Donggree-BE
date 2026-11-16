@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.place.event.PlaceVisibilityChangedEvent;
 import com.donggree.place.internal.application.command.ReportPlaceCommand;
 import com.donggree.place.internal.application.event.PlaceReportedEvent;
 import com.donggree.place.internal.application.exception.PlaceErrorCode;
@@ -86,6 +87,7 @@ class PlaceReportCommandServiceTest {
         verify(eventPublisher)
                 .publishEvent(
                         new PlaceReportedEvent(50L, PLACE_ID, "동국반점", PlaceReportReason.OTHER, "주차장 입구", 3L, true));
+        verify(eventPublisher).publishEvent(new PlaceVisibilityChangedEvent(PLACE_ID, false));
     }
 
     @Test

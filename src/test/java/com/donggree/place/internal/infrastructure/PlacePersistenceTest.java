@@ -141,6 +141,34 @@ class PlacePersistenceTest {
     }
 
     @Test
+    void 메뉴_추천_여부를_저장하고_추천_키가_없는_이전_이력은_추천_아님으로_읽는다() {
+        Long id = save("동국반점", NEAR_CAMPUS).getId();
+        entityManager.clear();
+        Place place = placeRepository.findById(id).orElseThrow();
+        PlaceEditHistory history = place.editInfo(
+                        2L,
+                        new PlaceInfo(null, null, List.of(new MenuItem("짬뽕", 8000, true), new MenuItem("군만두", 5000))))
+                .orElseThrow();
+        placeRepository.flush();
+        editHistoryRepository.save(history);
+        entityManager.flush();
+        entityManager
+                .createNativeQuery(
+                        "UPDATE place_edit_history SET before_menus = '[{\"name\":\"짜장면\",\"price\":7000}]'::jsonb WHERE place_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+        entityManager.clear();
+
+        assertThat(placeRepository.findById(id).orElseThrow().getMenus())
+                .extracting(PlaceMenu::isRecommended)
+                .containsExactly(true, false);
+        PlaceEditHistory saved =
+                editHistoryRepository.findByPlaceIdOrderByEditedAtAsc(id).getFirst();
+        assertThat(saved.before().menus()).containsExactly(new MenuItem("짜장면", 7000, false));
+        assertThat(saved.after().menus()).containsExactly(new MenuItem("짬뽕", 8000, true), new MenuItem("군만두", 5000));
+    }
+
+    @Test
     void 같은_버전을_읽은_다른_수정이_먼저_저장되면_나중_저장은_충돌한다() {
         Long id = save("동국반점", NEAR_CAMPUS).getId();
         entityManager.clear();

@@ -35,6 +35,9 @@ public class PlaceMenu {
     @Column(name = "price")
     private Integer price;
 
+    @Column(name = "recommended", nullable = false)
+    private boolean recommended;
+
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
@@ -46,10 +49,11 @@ public class PlaceMenu {
         this.place = place;
         this.name = validated.name();
         this.price = validated.price();
+        this.recommended = validated.recommended();
         this.sortOrder = sortOrder;
     }
 
     MenuItem toItem() {
-        return new MenuItem(name, price);
+        return new MenuItem(name, price, recommended);
     }
 }

@@ -127,7 +127,9 @@ class PlaceControllerTest extends RestDocsSupport {
                         126.999,
                         "평일 11:00-21:00",
                         "정문 맞은편 골목 2층",
-                        List.of(new PlaceDetailReadModel.Menu("짜장면", 7000), new PlaceDetailReadModel.Menu("탕수육", null)),
+                        List.of(
+                                new PlaceDetailReadModel.Menu("짜장면", 7000, true),
+                                new PlaceDetailReadModel.Menu("탕수육", null, false)),
                         LocalDateTime.of(2026, 10, 26, 12, 0),
                         LocalDateTime.of(2026, 10, 27, 9, 30),
                         3L,
@@ -140,6 +142,7 @@ class PlaceControllerTest extends RestDocsSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.registrantNickname").value("김아코"))
                 .andExpect(jsonPath("$.result.menus[1].price").isEmpty())
+                .andExpect(jsonPath("$.result.menus[0].recommended").value(true))
                 .andDo(document(
                         "place-detail",
                         pathParameters(parameterWithName("placeId").description("장소 ID")),
@@ -159,6 +162,7 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.description").optional().description("설명. 미입력 시 null"),
                                 fieldWithPath("result.menus[].name").description("메뉴명(입력 순서)"),
                                 fieldWithPath("result.menus[].price").optional().description("가격(원). null이면 가격 변동"),
+                                fieldWithPath("result.menus[].recommended").description("추천 메뉴 여부"),
                                 fieldWithPath("result.createdAt").description("최초 등록 시각"),
                                 fieldWithPath("result.updatedAt").description("마지막 정보 수정 시각"),
                                 fieldWithPath("result.version").description("장소 버전. 정보 수정 요청에 그대로 보냄"),
@@ -225,7 +229,7 @@ class PlaceControllerTest extends RestDocsSupport {
                 126.999,
                 "평일 11:00-21:00",
                 "정문 맞은편 골목 2층",
-                List.of(new PlaceMenuRequest("짜장면", 7000), new PlaceMenuRequest("탕수육", null)),
+                List.of(new PlaceMenuRequest("짜장면", 7000, true), new PlaceMenuRequest("탕수육", null, null)),
                 List.of(PlaceTag.SOLO_DINING));
         given(placeCommandService.register(eq(MEMBER_ID), any(RegisterPlaceCommand.class)))
                 .willReturn(10L);
@@ -244,10 +248,11 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("latitude").description("지도 중심 핀 위도. 캠퍼스 반경 1.5km 이내"),
                                 fieldWithPath("longitude").description("지도 중심 핀 경도"),
                                 fieldWithPath("businessHours").optional().description("영업시간(최대 100자, 선택)"),
-                                fieldWithPath("description").optional().description("설명(최대 300자, 선택)"),
+                                fieldWithPath("description").optional().description("설명(최대 500자, 선택)"),
                                 fieldWithPath("menus[]").optional().description("메뉴 목록(최대 50개, 입력 순서 저장)"),
                                 fieldWithPath("menus[].name").description("메뉴명(1~30자)"),
                                 fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동"),
+                                fieldWithPath("menus[].recommended").optional().description("추천 메뉴 여부. 생략하면 추천 아님"),
                                 fieldWithPath("tags[]").optional().description(TAGS_DESCRIPTION + " 선택, 0개 이상")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
@@ -289,7 +294,7 @@ class PlaceControllerTest extends RestDocsSupport {
                 3L,
                 "매일 10:00-22:00",
                 "정문 맞은편 골목 2층",
-                List.of(new PlaceMenuRequest("짬뽕", 8000), new PlaceMenuRequest("탕수육", null)),
+                List.of(new PlaceMenuRequest("짬뽕", 8000, true), new PlaceMenuRequest("탕수육", null, null)),
                 List.of(PlaceTag.SOLO_DINING, PlaceTag.MEAL_DATE));
         given(placeCommandService.editInfo(eq(MEMBER_ID), eq(1L), any(EditPlaceInfoCommand.class)))
                 .willReturn(new PlaceDetailReadModel(
@@ -301,7 +306,9 @@ class PlaceControllerTest extends RestDocsSupport {
                         126.999,
                         "매일 10:00-22:00",
                         "정문 맞은편 골목 2층",
-                        List.of(new PlaceDetailReadModel.Menu("짬뽕", 8000), new PlaceDetailReadModel.Menu("탕수육", null)),
+                        List.of(
+                                new PlaceDetailReadModel.Menu("짬뽕", 8000, true),
+                                new PlaceDetailReadModel.Menu("탕수육", null, false)),
                         LocalDateTime.of(2026, 10, 26, 12, 0),
                         LocalDateTime.of(2026, 11, 12, 18, 0),
                         4L,
@@ -322,10 +329,11 @@ class PlaceControllerTest extends RestDocsSupport {
                         requestFields(
                                 fieldWithPath("version").description("상세 조회로 받은 장소 버전. 현재와 다르면 409"),
                                 fieldWithPath("businessHours").optional().description("영업시간(최대 100자). 비우거나 null이면 삭제"),
-                                fieldWithPath("description").optional().description("설명(최대 300자). 비우거나 null이면 삭제"),
+                                fieldWithPath("description").optional().description("설명(최대 500자). 비우거나 null이면 삭제"),
                                 fieldWithPath("menus[]").description("메뉴 전체 목록(최대 50개, 입력 순서 저장). 빈 배열이면 전체 삭제"),
                                 fieldWithPath("menus[].name").description("메뉴명(1~30자)"),
                                 fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동"),
+                                fieldWithPath("menus[].recommended").optional().description("추천 메뉴 여부. 생략하면 추천 아님"),
                                 fieldWithPath("tags[]").description(TAGS_DESCRIPTION + " 전체. 빈 배열이면 모두 삭제")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("요청 성공 여부"),
@@ -341,6 +349,7 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.description").optional().description("수정된 설명"),
                                 fieldWithPath("result.menus[].name").description("메뉴명(입력 순서)"),
                                 fieldWithPath("result.menus[].price").optional().description("가격(원). null이면 가격 변동"),
+                                fieldWithPath("result.menus[].recommended").description("추천 메뉴 여부"),
                                 fieldWithPath("result.createdAt").description("최초 등록 시각"),
                                 fieldWithPath("result.updatedAt").description("마지막 정보 수정 시각"),
                                 fieldWithPath("result.version").description("수정 후 장소 버전. 바뀐 값이 없으면 그대로"),
