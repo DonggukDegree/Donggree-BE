@@ -40,7 +40,7 @@ public record PlaceDetailReadModel(
                 place.getBusinessHours(),
                 place.getDescription(),
                 place.getMenus().stream()
-                        .map(menu -> new Menu(menu.getName(), menu.getPrice()))
+                        .map(menu -> new Menu(menu.getName(), menu.getPrice(), menu.isRecommended()))
                         .toList(),
                 place.getCreatedAt(),
                 place.getInfoUpdatedAt(),
@@ -51,5 +51,5 @@ public record PlaceDetailReadModel(
                 place.info().tags());
     }
 
-    public record Menu(String name, Integer price) {}
+    public record Menu(String name, Integer price, boolean recommended) {}
 }

@@ -15,11 +15,11 @@ class DatabaseMigrationTest extends MigrationDatabase {
     @Test
     void 빈_DB에는_데이터_없이_최신_스키마를_적용하고_재시작_시_재실행하지_않는다() throws Exception {
         var flyway = flyway();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(8);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(9);
         for (String table : TABLES)
             assertThat(scalar("SELECT count(*) FROM public." + table)).isEqualTo("0");
         assertThat(scalar("SELECT max(version) FROM public.flyway_schema_history WHERE success AND type='SQL'"))
-                .isEqualTo("8");
+                .isEqualTo("9");
         assertThat(scalar("SELECT to_regclass('public.school_email_verification')"))
                 .isNull();
         execute("INSERT INTO public.college (college_name) VALUES ('migration-test')");
@@ -48,7 +48,7 @@ class DatabaseMigrationTest extends MigrationDatabase {
         var before = dataSnapshot();
         var flyway = flyway();
         flyway.baseline();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(7);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(8);
         assertThat(dataSnapshot()).isEqualTo(before);
         assertThat(scalar("SELECT last_value FROM public.college_id_seq")).isEqualTo("9000");
         assertThat(scalar("SELECT nextval('public.college_id_seq')")).isEqualTo("9001");
@@ -90,6 +90,6 @@ class DatabaseMigrationTest extends MigrationDatabase {
                 .isInstanceOf(FlywayException.class)
                 .hasMessageContaining("checksum");
         assertThat(scalar("SELECT count(*) FROM public.flyway_schema_history WHERE success"))
-                .isEqualTo("8");
+                .isEqualTo("9");
     }
 }

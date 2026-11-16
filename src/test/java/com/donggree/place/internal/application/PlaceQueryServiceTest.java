@@ -51,7 +51,8 @@ class PlaceQueryServiceTest {
         assertThat(detail.registrantNickname()).isEqualTo("김아코");
         assertThat(detail.menus())
                 .containsExactly(
-                        new PlaceDetailReadModel.Menu("짜장면", 7000), new PlaceDetailReadModel.Menu("탕수육", null));
+                        new PlaceDetailReadModel.Menu("짜장면", 7000, false),
+                        new PlaceDetailReadModel.Menu("탕수육", null, false));
     }
 
     @Test
