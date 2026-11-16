@@ -18,7 +18,7 @@ public record PlaceInfoEditRequest(
                 Long version,
         @Size(max = 100, message = "영업시간은 100자 이하여야 합니다.") @Schema(example = "평일 11:00-21:00, 일요일 휴무")
                 String businessHours,
-        @Size(max = 300, message = "설명은 300자 이하여야 합니다.") @Schema(example = "정문 맞은편 골목 2층") String description,
+        @Size(max = 500, message = "설명은 500자 이하여야 합니다.") @Schema(example = "정문 맞은편 골목 2층") String description,
         @NotNull(message = "메뉴 목록은 필수입니다.")
                 @Size(max = 50, message = "메뉴는 50개 이하여야 합니다.")
                 @Schema(requiredMode = Schema.RequiredMode.REQUIRED)

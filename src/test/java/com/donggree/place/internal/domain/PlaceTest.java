@@ -82,7 +82,7 @@ class PlaceTest {
                         PlaceSubCategory.CHINESE,
                         NEAR_CAMPUS,
                         null,
-                        "가".repeat(301),
+                        "가".repeat(501),
                         null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -200,7 +200,7 @@ class PlaceTest {
 
         assertThatThrownBy(() -> place.editInfo(2L, new PlaceInfo("가".repeat(101), null, List.of())))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> place.editInfo(2L, new PlaceInfo(null, "가".repeat(301), List.of())))
+        assertThatThrownBy(() -> place.editInfo(2L, new PlaceInfo(null, "가".repeat(501), List.of())))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> place.editInfo(
                         2L, new PlaceInfo(null, null, Collections.nCopies(51, new MenuItem("메뉴", 1000)))))

@@ -248,7 +248,7 @@ class PlaceControllerTest extends RestDocsSupport {
                                 fieldWithPath("latitude").description("지도 중심 핀 위도. 캠퍼스 반경 1.5km 이내"),
                                 fieldWithPath("longitude").description("지도 중심 핀 경도"),
                                 fieldWithPath("businessHours").optional().description("영업시간(최대 100자, 선택)"),
-                                fieldWithPath("description").optional().description("설명(최대 300자, 선택)"),
+                                fieldWithPath("description").optional().description("설명(최대 500자, 선택)"),
                                 fieldWithPath("menus[]").optional().description("메뉴 목록(최대 50개, 입력 순서 저장)"),
                                 fieldWithPath("menus[].name").description("메뉴명(1~30자)"),
                                 fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동"),
@@ -329,7 +329,7 @@ class PlaceControllerTest extends RestDocsSupport {
                         requestFields(
                                 fieldWithPath("version").description("상세 조회로 받은 장소 버전. 현재와 다르면 409"),
                                 fieldWithPath("businessHours").optional().description("영업시간(최대 100자). 비우거나 null이면 삭제"),
-                                fieldWithPath("description").optional().description("설명(최대 300자). 비우거나 null이면 삭제"),
+                                fieldWithPath("description").optional().description("설명(최대 500자). 비우거나 null이면 삭제"),
                                 fieldWithPath("menus[]").description("메뉴 전체 목록(최대 50개, 입력 순서 저장). 빈 배열이면 전체 삭제"),
                                 fieldWithPath("menus[].name").description("메뉴명(1~30자)"),
                                 fieldWithPath("menus[].price").optional().description("가격(0~1,000,000원). 비우면 가격 변동"),

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
  * 동글맵 상세카테고리. 각 값은 하나의 상위 카테고리에만 속한다.
  * 2026-11-12 개편으로 포차(POCHA)·카공 카페(STUDY_FRIENDLY_CAFE)를 없앴고, 기존 데이터는 V7에서 각 카테고리의 기타로 옮긴다.
  * 2026-11-14 음식점에 학식당(CAFETERIA)을 추가했다. DB는 상세카테고리 값을 제한하지 않아 마이그레이션이 없다.
+ * 2026-11-16 기타에 흡연장(SMOKING_AREA)·길찾기(WAYFINDING)·나들이(OUTING)를 추가했다.
  */
 @Getter
 @RequiredArgsConstructor
@@ -46,6 +47,9 @@ public enum PlaceSubCategory {
     KARAOKE(PlaceCategory.ENTERTAINMENT, "노래방"),
     PC_ROOM(PlaceCategory.ENTERTAINMENT, "PC방"),
     ENTERTAINMENT_ETC(PlaceCategory.ENTERTAINMENT, "기타"),
+    SMOKING_AREA(PlaceCategory.ETC, "흡연장"),
+    WAYFINDING(PlaceCategory.ETC, "길찾기"),
+    OUTING(PlaceCategory.ETC, "나들이"),
     ETC(PlaceCategory.ETC, "기타");
 
     private final PlaceCategory category;
