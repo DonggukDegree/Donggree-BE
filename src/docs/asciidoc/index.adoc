@@ -408,3 +408,15 @@ operation::admin-member-detail[]
 operation::admin-member-suspend[]
 
 operation::admin-member-lift[]
+
+== 정각원의 비밀
+
+=== 오늘의 사건
+include::{snippets}/mystery-today/http-request.adoc[]
+include::{snippets}/mystery-today/http-response.adoc[]
+include::{snippets}/mystery-today/response-fields.adoc[]
+
+=== 추리 제출
+include::{snippets}/mystery-guess/http-request.adoc[]
+include::{snippets}/mystery-guess/request-fields.adoc[]
+include::{snippets}/mystery-guess/http-response.adoc[]
