@@ -87,11 +87,39 @@ class SecurityConfigTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    void 추리게임은_로그인이_필요하고_학교인증_서비스는_호출하지_않는다() throws Exception {
+        mockMvc.perform(get("/api/games/mystery/today")).andExpect(status().isUnauthorized());
+        var options = java.util.List.of(
+                new com.donggree.mystery.internal.application.readmodel.MysteryTodayReadModel.Option("D1", "학과"));
+        given(mysteryQueryService.today(999L))
+                .willReturn(new com.donggree.mystery.internal.application.readmodel.MysteryTodayReadModel(
+                        java.time.LocalDate.of(2026, 11, 19),
+                        java.time.Instant.parse("2026-11-19T15:00:00Z"),
+                        "NOT_STARTED",
+                        options,
+                        options,
+                        options,
+                        java.util.List.of(),
+                        new com.donggree.mystery.internal.application.readmodel.MysteryTodayReadModel.Statistics(
+                                0, 0, 0, null, 0, "BRONZE"),
+                        null));
+        mockMvc.perform(get("/api/games/mystery/today")
+                        .header("Authorization", "Bearer " + jwtTokenProvider.generateAccessToken(999L, "STUDENT")))
+                .andExpect(status().isOk());
+    }
+
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private com.donggree.mystery.internal.application.MysteryQueryService mysteryQueryService;
+
+    @MockitoBean
+    private com.donggree.mystery.internal.application.MysteryCommandService mysteryCommandService;
 
     @MockitoBean
     private AuthService authService;
