@@ -89,7 +89,9 @@ class PointControllerTest extends RestDocsSupport {
                         "point-reward-acknowledge",
                         requestFields(
                                 fieldWithPath("reason").description("방금 한 활동의 적립 사유"),
-                                fieldWithPath("targetId").optional().description("장소 활동이면 장소 ID, 졸업 리포트 최초 확인이면 생략")),
+                                fieldWithPath("targetId")
+                                        .optional()
+                                        .description("장소 ID 또는 추리 문제 날짜(yyyyMMdd), 졸업 리포트 최초 확인이면 생략")),
                         responseFields(
                                 fieldWithPath("isSuccess").description("성공 여부"),
                                 fieldWithPath("code").description("응답 코드"),
@@ -97,6 +99,19 @@ class PointControllerTest extends RestDocsSupport {
                                 fieldWithPath("result.rewarded")
                                         .description("이번에 처음 안내하는 적립이면 true. 적립 없음·이미 안내·회수면 false"),
                                 fieldWithPath("result.amount").description("적립액. rewarded가 false면 0"))));
+    }
+
+    @Test
+    void 추리_문제_날짜별_10P_적립_안내를_확인한다() throws Exception {
+        given(rewardService.acknowledge(MEMBER_ID, PointReason.MYSTERY_SOLVED, 20261124L))
+                .willReturn(Optional.of(10));
+        mockMvc.perform(RestDocumentationRequestBuilders.post("/api/points/me/rewards/acknowledge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"MYSTERY_SOLVED\",\"targetId\":20261124}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.rewarded").value(true))
+                .andExpect(jsonPath("$.result.amount").value(10))
+                .andDo(document("point-reward-mystery"));
     }
 
     @Test
