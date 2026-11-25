@@ -8,6 +8,7 @@
             "global :: auth",
             "place :: event",
             "graduation :: event",
+            "mystery :: event",
             "user :: event"
         })
 package com.donggree.point;

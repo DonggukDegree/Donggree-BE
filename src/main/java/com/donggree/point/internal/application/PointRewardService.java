@@ -3,6 +3,7 @@ package com.donggree.point.internal.application;
 import com.donggree.point.internal.domain.PointHistory;
 import com.donggree.point.internal.domain.PointHistoryRepository;
 import com.donggree.point.internal.domain.PointReason;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>장소 등록 500P: 장소당
  *   <li>리뷰: 그 장소의 첫 리뷰면 500P, 아니면 100P. 지웠다 다시 써도 회원당 장소별 1회
  *   <li>장소 정보 수정 100P: 회원당 장소별 1회
+ *   <li>추리 정답 해결 10P: 회원당 문제 날짜별 1회
  *   <li>장소·리뷰가 숨겨지면 해당 적립을 회수하고, 숨김이 풀리면 되살린다. 본인 삭제는 회수하지 않는다.
  * </ul>
  */
@@ -61,6 +63,13 @@ public class PointRewardService {
         grant(memberId, PointReason.PLACE_INFO_EDIT, placeId);
     }
 
+    /** 서버가 확정한 문제 날짜를 대상으로 사용해 회원당 하루 한 번만 10P를 적립한다. */
+    @Transactional
+    public void rewardMysterySolved(Long memberId, LocalDate gameDate) {
+        long targetId = gameDate.getYear() * 10000L + gameDate.getMonthValue() * 100L + gameDate.getDayOfMonth();
+        grant(memberId, PointReason.MYSTERY_SOLVED, targetId);
+    }
+
     @Transactional
     public void onPlaceVisibilityChanged(Long placeId, boolean visible) {
         if (visible) {
@@ -87,7 +96,7 @@ public class PointRewardService {
      * 화면이 아직 안내하지 않은 적립이면 안내한 것으로 기록하고 적립액을 돌려준다.
      * 적립이 없거나, 이미 안내했거나, 회수된 적립이면 비어 있다. 같은 적립을 두 번 안내하지 않기 위함이다.
      *
-     * @param targetId 장소 활동이면 장소 ID, 졸업 리포트 최초 확인이면 null
+     * @param targetId 장소 ID 또는 추리 문제 날짜(yyyyMMdd), 졸업 리포트 최초 확인이면 null
      */
     @Transactional
     public Optional<Integer> acknowledge(Long memberId, PointReason reason, Long targetId) {

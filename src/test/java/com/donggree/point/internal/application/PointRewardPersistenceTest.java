@@ -7,6 +7,7 @@ import com.donggree.point.internal.application.readmodel.PointHistoryPageReadMod
 import com.donggree.point.internal.domain.PointHistoryRepository;
 import com.donggree.point.internal.domain.PointReason;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,24 @@ class PointRewardPersistenceTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Test
+    void 추리_정답은_회원과_문제_날짜별_한번만_10P를_적립하고_안내한다() {
+        var day = LocalDate.of(2026, 11, 24);
+        rewardService.rewardMysterySolved(A, day);
+        rewardService.rewardMysterySolved(A, day);
+        rewardService.rewardMysterySolved(A, day.plusDays(1));
+        rewardService.rewardMysterySolved(B, day);
+
+        assertThat(queryService.getTotalPoints(A)).isEqualTo(20);
+        assertThat(queryService.getTotalPoints(B)).isEqualTo(10);
+        assertThat(rewardService.acknowledge(A, PointReason.MYSTERY_SOLVED, 20261124L))
+                .contains(10);
+        assertThat(rewardService.acknowledge(A, PointReason.MYSTERY_SOLVED, 20261124L))
+                .isEmpty();
+        assertThat(rewardService.acknowledge(A, PointReason.MYSTERY_SOLVED, 20261126L))
+                .isEmpty();
+    }
 
     @Test
     void 졸업_리포트_최초_확인은_회원당_한_번만_적립한다() {
