@@ -17,6 +17,17 @@ jobs:
 
     # DB 테스트는 Testcontainers가 러너의 Docker로 PostgreSQL 16 컨테이너를 직접 띄운다.
     steps:
+      - name: Validate deployment PR source
+        if: github.event_name == 'pull_request' && github.base_ref == 'main'
+        env:
+          PR_HEAD_REF: ${{ github.head_ref }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          if [ "$PR_HEAD_REF" != "dev" ] || [ "$PR_HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
+            echo "::error::main 대상 배포 PR은 같은 저장소의 dev 브랜치에서만 생성해야 합니다."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
