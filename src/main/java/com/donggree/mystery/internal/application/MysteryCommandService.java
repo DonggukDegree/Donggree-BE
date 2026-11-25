@@ -1,6 +1,7 @@
 package com.donggree.mystery.internal.application;
 
 import com.donggree.global.apiPayload.exception.GeneralException;
+import com.donggree.mystery.event.MysterySolvedEvent;
 import com.donggree.mystery.internal.application.command.MysteryGuessCommand;
 import com.donggree.mystery.internal.application.exception.MysteryErrorCode;
 import com.donggree.mystery.internal.application.readmodel.MysteryTodayReadModel;
@@ -8,6 +9,7 @@ import com.donggree.mystery.internal.domain.*;
 import com.donggree.mystery.internal.domain.MysteryData.*;
 import java.security.SecureRandom;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ public class MysteryCommandService {
     private final MysteryCaseService cases;
     private final MysteryPlayerRepository players;
     private final MysteryCalendar clock;
+    private final ApplicationEventPublisher events;
     private final SecureRandom random = new SecureRandom();
 
     @Transactional
@@ -48,6 +51,7 @@ public class MysteryCommandService {
                 ? null
                 : MysteryClues.generate(data, player.getSession(), command.guess(), number, random);
         player.record(new Attempt(command.requestId(), command.guess(), correct, clue));
+        if (correct) events.publishEvent(new MysterySolvedEvent(memberId, date));
         return MysteryView.of(daily, player);
     }
 }
