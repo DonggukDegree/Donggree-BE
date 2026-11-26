@@ -463,3 +463,25 @@ operation::club-my-request-detail[]
 operation::club-request-resubmit[]
 
 operation::club-request-resubmit-recruitment[]
+
+=== 관리자 동아리 관리
+
+`/api/admin/clubs/**`는 관리자만 호출한다. 요청자와 직접 수정 권한 회원은 실명과 회원 ID로 보여준다. 승인하면 요청 값을 바로 반영하고(신규 등록은 정식 동아리 생성, 임시 등록 동아리는 정식 전환), 요청자에게 그 동아리의 직접 수정 권한을 준다. 같은 요청을 두 관리자가 동시에 처리하지 않도록 잠그며, 이미 처리된 요청은 409(CLUB409_4), 반려 사유가 비거나 200자를 넘으면 400(CLUB400_6)이다.
+
+승인 적립은 승인과 같은 트랜잭션에서 저장하고, 적립에 실패하면 승인도 롤백된다. 최초 등록 500P(`CLUB_FIRST_REGISTRATION`)는 동아리당 1회(신규 등록 승인 또는 임시 등록 동아리의 첫 승인), 모집 100P(`CLUB_RECRUITMENT`)는 이 동아리가 처음 모집하는 기수의 새 모집 건, 기수 갱신 100P(`CLUB_GENERATION_UPDATE`)는 정보 수정으로 현재 기수가 올라갈 때이며 둘 다 동아리·기수당 1회다. 대상 ID는 최초 등록이면 동아리 ID, 모집·기수 갱신이면 동아리 ID × 10000 + 기수다. 관리자 직접 수정·임시 등록과 권한 회원의 바로 반영은 적립하지 않는다. 탈퇴한 요청자의 요청은 반영만 하고 권한·적립은 없다.
+
+operation::admin-club-requests[]
+
+operation::admin-club-request-approve[]
+
+operation::admin-club-request-reject[]
+
+operation::admin-club-list[]
+
+임시 등록은 회원 요청이 처음 승인될 때 정식 등록으로 바뀌고 그 회원이 최초 등록 포인트를 받는다. 권한을 회수하면 그 회원의 다음 정보 수정·모집 등록부터 다시 승인 요청이 된다.
+
+operation::admin-club-register[]
+
+operation::admin-club-edit[]
+
+operation::admin-club-editor-revoke[]
