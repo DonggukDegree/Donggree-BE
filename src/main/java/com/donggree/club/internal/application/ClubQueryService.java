@@ -5,6 +5,7 @@ import com.donggree.club.internal.application.readmodel.ClubDetailReadModel;
 import com.donggree.club.internal.application.readmodel.ClubPageReadModel;
 import com.donggree.club.internal.application.readmodel.ClubRecruitmentReadModel;
 import com.donggree.club.internal.domain.Club;
+import com.donggree.club.internal.domain.ClubEditorRepository;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
 import com.donggree.club.internal.domain.ClubRepository;
 import com.donggree.club.internal.domain.RecruitmentSelection;
@@ -23,6 +24,7 @@ public class ClubQueryService {
     private final ClubQueries clubQueries;
     private final ClubRepository clubRepository;
     private final ClubRecruitmentRepository recruitmentRepository;
+    private final ClubEditorRepository editorRepository;
     private final ClubClock clock;
 
     /** 필터·정렬을 적용한 목록을 12개씩 준다. */
@@ -40,8 +42,9 @@ public class ClubQueryService {
         }
     }
 
+    /** 요청 회원이 이 동아리의 직접 수정 권한이 있으면 canEditDirectly가 true다. */
     @Transactional(readOnly = true)
-    public ClubDetailReadModel getClub(Long clubId) {
+    public ClubDetailReadModel getClub(Long memberId, Long clubId) {
         Club club =
                 clubRepository.findById(clubId).orElseThrow(() -> new GeneralException(ClubErrorCode.CLUB_NOT_FOUND));
         LocalDateTime now = clock.now();
@@ -51,7 +54,7 @@ public class ClubQueryService {
                 .orElse(null);
         RecruitmentSelection<ClubRecruitmentReadModel> selection = RecruitmentSelection.of(
                 latest, latest == null ? null : latest.schedule(), club.getActivityEndDate(), now);
-        // 직접 수정 권한은 요청 승인 API에서, 사진은 사진 저장 API에서 채운다.
+        // 사진은 사진 저장 API에서 채운다.
         return new ClubDetailReadModel(
                 club.getId(),
                 club.getName(),
@@ -73,7 +76,7 @@ public class ClubQueryService {
                 selection.previous(),
                 club.getOfficers(),
                 club.getLinks(),
-                false,
+                editorRepository.canEdit(clubId, memberId),
                 club.firstRegistrationRewardAvailable(),
                 club.getInfoUpdatedAt());
     }

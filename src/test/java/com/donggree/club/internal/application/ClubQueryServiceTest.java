@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.application.readmodel.ClubDetailReadModel;
 import com.donggree.club.internal.domain.Club;
+import com.donggree.club.internal.domain.ClubEditorRepository;
 import com.donggree.club.internal.domain.ClubFixtures;
 import com.donggree.club.internal.domain.ClubRecruitment;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
@@ -26,13 +27,14 @@ class ClubQueryServiceTest {
     private final ClubQueries queries = mock(ClubQueries.class);
     private final ClubRepository clubs = mock(ClubRepository.class);
     private final ClubRecruitmentRepository recruitments = mock(ClubRecruitmentRepository.class);
-    private final ClubQueryService service = new ClubQueryService(queries, clubs, recruitments, () -> NOW);
+    private final ClubEditorRepository editors = mock(ClubEditorRepository.class);
+    private final ClubQueryService service = new ClubQueryService(queries, clubs, recruitments, editors, () -> NOW);
 
     @Test
     void 없는_동아리는_404다() {
         given(clubs.findById(9L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getClub(9L))
+        assertThatThrownBy(() -> service.getClub(7L, 9L))
                 .isInstanceOfSatisfying(GeneralException.class, exception -> assertThat(exception.getCode())
                         .isEqualTo(ClubErrorCode.CLUB_NOT_FOUND));
     }
@@ -45,12 +47,14 @@ class ClubQueryServiceTest {
         given(clubs.findById(1L)).willReturn(Optional.of(club));
         given(recruitments.findTopByClubIdOrderByIdDesc(1L)).willReturn(Optional.of(closed));
 
-        ClubDetailReadModel detail = service.getClub(1L);
+        given(editors.canEdit(1L, 7L)).willReturn(true);
+
+        ClubDetailReadModel detail = service.getClub(7L, 1L);
 
         assertThat(detail.recruitment()).isNull();
         assertThat(detail.previousRecruitment().generation()).isEqualTo(25);
         assertThat(detail.activityConfirmed()).isFalse();
-        assertThat(detail.canEditDirectly()).isFalse();
+        assertThat(detail.canEditDirectly()).isTrue();
         assertThat(detail.images()).isEmpty();
     }
 

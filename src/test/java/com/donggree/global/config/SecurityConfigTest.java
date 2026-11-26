@@ -125,6 +125,12 @@ class SecurityConfigTest {
     private com.donggree.club.internal.application.ClubQueryService clubQueryService;
 
     @MockitoBean
+    private com.donggree.club.internal.application.ClubCommandService clubCommandService;
+
+    @MockitoBean
+    private com.donggree.club.internal.application.ClubRequestQueryService clubRequestQueryService;
+
+    @MockitoBean
     private AuthService authService;
 
     @MockitoBean
@@ -449,11 +455,17 @@ class SecurityConfigTest {
     void 동아리_API는_로그인이_필요하다() throws Exception {
         mockMvc.perform(get("/api/clubs")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/clubs/1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/clubs/me/requests")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/clubs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
         given(clubQueryService.getClubs(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .willReturn(new com.donggree.club.internal.application.readmodel.ClubPageReadModel(
                         java.util.List.of(), null, 0));
         mockMvc.perform(get("/api/clubs").header("Authorization", bearer("STUDENT")))
                 .andExpect(status().isOk());
+        verifyNoInteractions(clubCommandService);
     }
 
     @Test
