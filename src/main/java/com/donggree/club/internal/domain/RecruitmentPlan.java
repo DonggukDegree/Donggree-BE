@@ -11,8 +11,8 @@ import java.util.List;
 public record RecruitmentPlan(Integer generation, RecruitmentSchedule schedule, List<ClubLink> links, String notice) {
 
     public RecruitmentPlan {
-        if (generation != null && generation < 1) {
-            throw new IllegalArgumentException("모집 기수는 1 이상입니다");
+        if (generation != null && (generation < 1 || generation > ClubProfile.GENERATION_MAX)) {
+            throw new IllegalArgumentException("모집 기수는 1~9999입니다");
         }
         if (schedule == null) {
             throw new IllegalArgumentException("모집 기간을 정해야 합니다");

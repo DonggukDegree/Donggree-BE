@@ -58,6 +58,42 @@ class ClubRequestTest {
     }
 
     @Test
+    void 승인하면_신규_등록은_만든_동아리를_연결하고_처리된_요청은_다시_처리할_수_없다() {
+        ClubRequest request = ClubRequest.register(7L, REQUESTER, INFO);
+
+        assertThatThrownBy(() -> request.approve(null, NOW)).isInstanceOf(IllegalArgumentException.class);
+        request.approve(3L, NOW);
+
+        assertThat(request.getStatus()).isEqualTo(ClubRequestStatus.APPROVED);
+        assertThat(request.getClubId()).isEqualTo(3L);
+        assertThat(request.getProcessedAt()).isEqualTo(NOW);
+        assertThatThrownBy(() -> request.reject("다시", NOW)).isInstanceOf(IllegalStateException.class);
+        assertThat(request.resubmittable()).isFalse();
+    }
+
+    @Test
+    void 반려는_사유가_1자에서_200자다() {
+        ClubRequest request = ClubRequest.register(7L, REQUESTER, INFO);
+
+        assertThatThrownBy(() -> request.reject("  ", NOW)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> request.reject("가".repeat(201), NOW)).isInstanceOf(IllegalArgumentException.class);
+        request.reject(" 활동 사진을 올려주세요. ", NOW);
+
+        assertThat(request.getStatus()).isEqualTo(ClubRequestStatus.REJECTED);
+        assertThat(request.getRejectReason()).isEqualTo("활동 사진을 올려주세요.");
+        assertThat(request.resubmittable()).isTrue();
+    }
+
+    @Test
+    void 임시_등록_동아리는_처음_승인될_때만_정식으로_바뀐다() {
+        Club provisional = Club.register(ClubFixtures.profile("소리마루"), ClubRegistration.PROVISIONAL, NOW);
+
+        assertThat(provisional.becomeOfficial()).isTrue();
+        assertThat(provisional.becomeOfficial()).isFalse();
+        assertThat(provisional.getRegistration()).isEqualTo(ClubRegistration.OFFICIAL);
+    }
+
+    @Test
     void 검토_중_요청은_다시_요청하면_취소되고_반려_요청은_그대로다() {
         ClubRequest pending = ClubRequest.register(7L, REQUESTER, INFO);
 

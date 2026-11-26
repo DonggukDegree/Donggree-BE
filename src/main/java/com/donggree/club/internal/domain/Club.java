@@ -154,6 +154,17 @@ public class Club extends BaseEntity {
         return List.copyOf(links);
     }
 
+    /**
+     * 회원 요청이 승인되면 임시 등록 동아리를 정식 등록으로 바꾼다.
+     *
+     * @return 이번에 정식으로 바뀌었으면 true(첫 회원 승인이라 최초 등록 포인트 대상)
+     */
+    public boolean becomeOfficial() {
+        if (registration == ClubRegistration.OFFICIAL) return false;
+        this.registration = ClubRegistration.OFFICIAL;
+        return true;
+    }
+
     /** 지금 정보(요청 비교용 변경 전 값). */
     public ClubProfile profile() {
         return new ClubProfile(

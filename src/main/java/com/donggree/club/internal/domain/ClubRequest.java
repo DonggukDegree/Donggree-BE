@@ -126,6 +126,45 @@ public class ClubRequest extends BaseEntity {
                 ClubRequestType.RECRUITMENT, club.getId(), club.getName(), requesterId, requester, before, after);
     }
 
+    public boolean isPending() {
+        return status == ClubRequestStatus.PENDING;
+    }
+
+    /**
+     * 관리자가 승인한다. 신규 등록은 승인으로 생긴 동아리를 연결한다.
+     *
+     * @param createdClubId 신규 등록 승인으로 만든 동아리 ID. 수정·모집 요청이면 null
+     */
+    public void approve(Long createdClubId, LocalDateTime now) {
+        requirePending();
+        if (type == ClubRequestType.REGISTER) {
+            if (createdClubId == null) {
+                throw new IllegalArgumentException("신규 등록 승인은 만든 동아리가 필요합니다");
+            }
+            this.clubId = createdClubId;
+        }
+        this.status = ClubRequestStatus.APPROVED;
+        this.processedAt = now;
+    }
+
+    /** 관리자가 사유(1~200자)와 함께 반려한다. 사유는 요청자의 내 요청 내역에 보인다. */
+    public void reject(String reason, LocalDateTime now) {
+        requirePending();
+        String trimmed = reason == null ? "" : reason.strip();
+        if (trimmed.isEmpty() || trimmed.length() > REJECT_REASON_MAX_LENGTH) {
+            throw new IllegalArgumentException("반려 사유는 1~200자입니다");
+        }
+        this.status = ClubRequestStatus.REJECTED;
+        this.rejectReason = trimmed;
+        this.processedAt = now;
+    }
+
+    private void requirePending() {
+        if (!isPending()) {
+            throw new IllegalStateException("검토 중인 요청만 처리할 수 있습니다");
+        }
+    }
+
     public boolean isRequestedBy(Long memberId) {
         return requesterId != null && requesterId.equals(memberId);
     }
