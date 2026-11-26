@@ -17,7 +17,7 @@ import java.util.Locale;
  * 동아리 목록의 필터·정렬·커서 계산. 모집 상태·마감 임박은 조회 시각에 따라 달라져 저장 값으로 정렬할 수 없으므로,
  * 전체 동아리를 읽어 여기서 계산한다(교내 동아리 규모라 한 번에 읽는다).
  */
-final class ClubCatalog {
+public final class ClubCatalog {
 
     static final int PAGE_SIZE = 12;
 
@@ -48,11 +48,17 @@ final class ClubCatalog {
     }
 
     private static Entry toEntry(ClubListRow row, ClubSort sort, LocalDateTime now) {
+        ClubSummaryReadModel summary = summarize(row, now);
+        return new Entry(summary, key(summary, sort, now));
+    }
+
+    /** 조회 시각 기준 현재 모집·활동 확인을 계산한 목록 카드. */
+    public static ClubSummaryReadModel summarize(ClubListRow row, LocalDateTime now) {
         ClubRecruitmentReadModel latest = row.latestRecruitment();
         ClubRecruitmentReadModel current = RecruitmentSelection.of(
                         latest, latest == null ? null : latest.schedule(), row.activityEndDate(), now)
                 .current();
-        ClubSummaryReadModel summary = new ClubSummaryReadModel(
+        return new ClubSummaryReadModel(
                 row.id(),
                 row.name(),
                 row.affiliation(),
@@ -63,7 +69,6 @@ final class ClubCatalog {
                 row.totalMemberCount(),
                 row.foundedDate(),
                 current);
-        return new Entry(summary, key(summary, sort, now));
     }
 
     private static boolean matches(Entry entry, ClubSearch search, LocalDateTime now) {

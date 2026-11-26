@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>리뷰: 그 장소의 첫 리뷰면 500P, 아니면 100P. 지웠다 다시 써도 회원당 장소별 1회
  *   <li>장소 정보 수정 100P: 회원당 장소별 1회
  *   <li>추리 정답 해결 10P: 회원당 문제 날짜별 1회
+ *   <li>동아리 요청 승인: 최초 등록 500P는 동아리당 1회, 모집 100P·기수 갱신 100P는 동아리·기수당 1회
  *   <li>장소·리뷰가 숨겨지면 해당 적립을 회수하고, 숨김이 풀리면 되살린다. 본인 삭제는 회수하지 않는다.
  * </ul>
  */
@@ -70,6 +71,28 @@ public class PointRewardService {
         grant(memberId, PointReason.MYSTERY_SOLVED, targetId);
     }
 
+    /** 관리자 승인으로 생긴 동아리 적립. 같은 동아리(·기수)는 먼저 받은 회원만 받는다. */
+    @Transactional
+    public void rewardClubApproval(
+            Long memberId,
+            Long clubId,
+            boolean firstRegistration,
+            Integer recruitedGeneration,
+            Integer updatedGeneration) {
+        if (firstRegistration) grant(memberId, PointReason.CLUB_FIRST_REGISTRATION, clubId);
+        if (recruitedGeneration != null) {
+            grant(memberId, PointReason.CLUB_RECRUITMENT, clubGenerationTarget(clubId, recruitedGeneration));
+        }
+        if (updatedGeneration != null) {
+            grant(memberId, PointReason.CLUB_GENERATION_UPDATE, clubGenerationTarget(clubId, updatedGeneration));
+        }
+    }
+
+    /** 동아리 ID × 10000 + 기수. 기수는 동아리 모듈이 1~9999로 제한한다. */
+    static long clubGenerationTarget(Long clubId, int generation) {
+        return clubId * 10000L + generation;
+    }
+
     @Transactional
     public void onPlaceVisibilityChanged(Long placeId, boolean visible) {
         if (visible) {
@@ -96,7 +119,7 @@ public class PointRewardService {
      * 화면이 아직 안내하지 않은 적립이면 안내한 것으로 기록하고 적립액을 돌려준다.
      * 적립이 없거나, 이미 안내했거나, 회수된 적립이면 비어 있다. 같은 적립을 두 번 안내하지 않기 위함이다.
      *
-     * @param targetId 장소 ID 또는 추리 문제 날짜(yyyyMMdd), 졸업 리포트 최초 확인이면 null
+     * @param targetId 장소 ID, 추리 문제 날짜(yyyyMMdd), 동아리 ID(·기수 인코딩), 졸업 리포트 최초 확인이면 null
      */
     @Transactional
     public Optional<Integer> acknowledge(Long memberId, PointReason reason, Long targetId) {
