@@ -45,7 +45,7 @@ class SchemaMappingTest extends MigrationDatabase {
                                     .current()
                                     .getVersion()
                                     .getVersion())
-                            .isEqualTo("14");
+                            .isEqualTo("15");
                 });
     }
 
