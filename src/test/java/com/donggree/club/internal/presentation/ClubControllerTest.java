@@ -14,6 +14,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.queryPar
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.donggree.club.internal.application.ClubBannerQueryService;
 import com.donggree.club.internal.application.ClubCommandService;
 import com.donggree.club.internal.application.ClubQueryService;
 import com.donggree.club.internal.application.ClubSearch;
@@ -21,6 +22,7 @@ import com.donggree.club.internal.application.ClubSort;
 import com.donggree.club.internal.application.command.ClubSaveResult;
 import com.donggree.club.internal.application.command.RecruitmentSaveCommand;
 import com.donggree.club.internal.application.exception.ClubErrorCode;
+import com.donggree.club.internal.application.readmodel.ClubBannerReadModel;
 import com.donggree.club.internal.application.readmodel.ClubDetailReadModel;
 import com.donggree.club.internal.application.readmodel.ClubPageReadModel;
 import com.donggree.club.internal.application.readmodel.ClubRecruitmentReadModel;
@@ -83,10 +85,11 @@ class ClubControllerTest extends RestDocsSupport {
 
     private final ClubQueryService queryService = Mockito.mock(ClubQueryService.class);
     private final ClubCommandService commandService = Mockito.mock(ClubCommandService.class);
+    private final ClubBannerQueryService bannerQueryService = Mockito.mock(ClubBannerQueryService.class);
 
     @Override
     protected Object initController() {
-        return new ClubController(queryService, commandService);
+        return new ClubController(queryService, commandService, bannerQueryService);
     }
 
     @Override
@@ -103,6 +106,36 @@ class ClubControllerTest extends RestDocsSupport {
     @AfterEach
     void logout() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void 공개_배너는_노출_중인_배너만_순서대로_준다() throws Exception {
+        given(bannerQueryService.getVisibleBanners())
+                .willReturn(List.of(new ClubBannerReadModel(
+                        1L,
+                        "우리 동아리가 없나요?",
+                        "EVENT",
+                        null,
+                        "#2563eb",
+                        null,
+                        null,
+                        "/clubs/register",
+                        null,
+                        null,
+                        true,
+                        1)));
+
+        mockMvc.perform(RestDocumentationRequestBuilders.get("/api/clubs/banners"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result[0].link").value("/clubs/register"))
+                .andDo(document(
+                        "club-banners",
+                        responseFields(
+                                        fieldWithPath("isSuccess").description("요청 성공 여부"),
+                                        fieldWithPath("code").description("응답 코드"),
+                                        fieldWithPath("message").description("응답 메시지"),
+                                        fieldWithPath("result[]").description("켜져 있고 노출 기간 안인 배너(노출 순서)"))
+                                .andWithPrefix("result[].", ClubBannerControllerTest.publicFields())));
     }
 
     @Test
