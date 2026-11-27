@@ -9,6 +9,7 @@
             "place :: event",
             "graduation :: event",
             "mystery :: event",
+            "club :: event",
             "user :: event"
         })
 package com.donggree.point;

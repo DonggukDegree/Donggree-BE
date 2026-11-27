@@ -33,6 +33,7 @@ public record ClubProfile(
     public static final int DESCRIPTION_MAX_LENGTH = 1000;
     public static final int FIELDS_MAX_COUNT = 3;
     public static final int ROOM_MAX_LENGTH = 50;
+    public static final int GENERATION_MAX = 9999;
 
     public ClubProfile {
         name = name == null ? "" : name.strip();
@@ -55,6 +56,7 @@ public record ClubProfile(
                 throw new IllegalArgumentException("기수 없이 활동하면 활동 기간을 두지 않습니다");
             }
         } else if (generation < 1
+                || generation > GENERATION_MAX
                 || activityStartDate == null
                 || activityEndDate == null
                 || activityStartDate.isAfter(activityEndDate)) {

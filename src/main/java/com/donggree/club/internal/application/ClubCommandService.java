@@ -6,9 +6,6 @@ import com.donggree.club.internal.application.command.RecruitmentSaveCommand;
 import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubEditorRepository;
-import com.donggree.club.internal.domain.ClubLink;
-import com.donggree.club.internal.domain.ClubOfficer;
-import com.donggree.club.internal.domain.ClubProfile;
 import com.donggree.club.internal.domain.ClubRecruitment;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
 import com.donggree.club.internal.domain.ClubRepository;
@@ -17,10 +14,8 @@ import com.donggree.club.internal.domain.ClubRequestPayload;
 import com.donggree.club.internal.domain.ClubRequestRepository;
 import com.donggree.club.internal.domain.ClubRequester;
 import com.donggree.club.internal.domain.RecruitmentPlan;
-import com.donggree.club.internal.domain.RecruitmentSchedule;
 import com.donggree.club.internal.domain.enums.ClubRequestStatus;
 import com.donggree.club.internal.domain.enums.ClubRequestType;
-import com.donggree.club.internal.domain.enums.ClubRequesterRole;
 import com.donggree.club.internal.domain.enums.RecruitmentStatus;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import com.donggree.user.UserLookupService;
@@ -53,7 +48,9 @@ public class ClubCommandService {
     public ClubSaveResult register(Long memberId, ClubSaveCommand command) {
         requireStudentVerified(memberId);
         submit(ClubRequest.register(
-                memberId, requester(command.requesterRole(), command.requesterContact()), infoPayload(command)));
+                memberId,
+                ClubInputs.requester(command.requesterRole(), command.requesterContact()),
+                ClubInputs.infoPayload(command)));
         return ClubSaveResult.pending(null);
     }
 
@@ -61,13 +58,13 @@ public class ClubCommandService {
     public ClubSaveResult edit(Long memberId, Long clubId, ClubSaveCommand command) {
         requireStudentVerified(memberId);
         Club club = findClub(clubId);
-        ClubRequestPayload after = infoPayload(command);
+        ClubRequestPayload after = ClubInputs.infoPayload(command);
         if (editorRepository.canEdit(clubId, memberId)) {
             club.edit(after.profile(), clock.now());
             flushClub();
             return ClubSaveResult.direct(clubId);
         }
-        requestEdit(memberId, club, requester(command.requesterRole(), command.requesterContact()), after);
+        requestEdit(memberId, club, ClubInputs.requester(command.requesterRole(), command.requesterContact()), after);
         return ClubSaveResult.pending(clubId);
     }
 
@@ -76,14 +73,15 @@ public class ClubCommandService {
     public ClubSaveResult saveRecruitment(Long memberId, Long clubId, RecruitmentSaveCommand command) {
         requireStudentVerified(memberId);
         Club club = findClub(clubId);
-        RecruitmentPlan plan = plan(command);
+        RecruitmentPlan plan = ClubInputs.plan(command);
         if (editorRepository.canEdit(clubId, memberId)) {
             ClubRecruitment ongoing = ongoingRecruitment(clubId);
             if (ongoing == null) recruitmentRepository.save(ClubRecruitment.open(clubId, plan));
             else ongoing.revise(plan);
             return ClubSaveResult.direct(clubId);
         }
-        requestRecruitment(memberId, club, requester(command.requesterRole(), command.requesterContact()), plan);
+        requestRecruitment(
+                memberId, club, ClubInputs.requester(command.requesterRole(), command.requesterContact()), plan);
         return ClubSaveResult.pending(clubId);
     }
 
@@ -92,8 +90,8 @@ public class ClubCommandService {
     public ClubSaveResult resubmitInfo(Long memberId, Long requestId, ClubSaveCommand command) {
         requireStudentVerified(memberId);
         ClubRequest previous = takeForResubmit(memberId, requestId, ClubRequestType.REGISTER, ClubRequestType.EDIT);
-        ClubRequester requester = requester(command.requesterRole(), command.requesterContact());
-        ClubRequestPayload after = infoPayload(command);
+        ClubRequester requester = ClubInputs.requester(command.requesterRole(), command.requesterContact());
+        ClubRequestPayload after = ClubInputs.infoPayload(command);
         if (previous.getType() == ClubRequestType.REGISTER) {
             submit(ClubRequest.register(memberId, requester, after));
             return ClubSaveResult.pending(null);
@@ -108,8 +106,8 @@ public class ClubCommandService {
     public ClubSaveResult resubmitRecruitment(Long memberId, Long requestId, RecruitmentSaveCommand command) {
         requireStudentVerified(memberId);
         ClubRequest previous = takeForResubmit(memberId, requestId, ClubRequestType.RECRUITMENT);
-        ClubRequester requester = requester(command.requesterRole(), command.requesterContact());
-        RecruitmentPlan plan = plan(command);
+        ClubRequester requester = ClubInputs.requester(command.requesterRole(), command.requesterContact());
+        RecruitmentPlan plan = ClubInputs.plan(command);
         Club club = findClub(previous.getClubId());
         requestRecruitment(memberId, club, requester, plan);
         return ClubSaveResult.pending(club.getId());
@@ -180,61 +178,5 @@ public class ClubCommandService {
         if (!userLookupService.isStudentVerified(memberId)) {
             throw new GeneralException(ClubErrorCode.VERIFICATION_REQUIRED);
         }
-    }
-
-    private static ClubRequester requester(ClubRequesterRole role, String contact) {
-        try {
-            return new ClubRequester(role, contact);
-        } catch (IllegalArgumentException exception) {
-            throw new GeneralException(ClubErrorCode.INVALID_REQUESTER);
-        }
-    }
-
-    private static ClubRequestPayload infoPayload(ClubSaveCommand command) {
-        try {
-            ClubProfile profile = new ClubProfile(
-                    command.name(),
-                    command.affiliation(),
-                    command.fields(),
-                    command.description(),
-                    command.generation(),
-                    command.activityStartDate(),
-                    command.activityEndDate(),
-                    command.roomLocation(),
-                    command.generationMemberCount(),
-                    command.totalMemberCount(),
-                    command.foundedDate(),
-                    command.officers() == null
-                            ? List.of()
-                            : command.officers().stream()
-                                    .map(officer ->
-                                            new ClubOfficer(officer.role(), officer.department(), officer.name()))
-                                    .toList(),
-                    links(command.links()));
-            return ClubRequestPayload.of(profile, command.imageCount());
-        } catch (IllegalArgumentException exception) {
-            throw new GeneralException(ClubErrorCode.INVALID_CLUB);
-        }
-    }
-
-    private static RecruitmentPlan plan(RecruitmentSaveCommand command) {
-        try {
-            return new RecruitmentPlan(
-                    command.generation(),
-                    new RecruitmentSchedule(
-                            command.alwaysOpen(), command.startsAt(), command.endsAt(), command.closedEarly()),
-                    links(command.links()),
-                    command.notice());
-        } catch (IllegalArgumentException exception) {
-            throw new GeneralException(ClubErrorCode.INVALID_RECRUITMENT);
-        }
-    }
-
-    private static List<ClubLink> links(List<ClubSaveCommand.Link> links) {
-        return links == null
-                ? List.of()
-                : links.stream()
-                        .map(link -> new ClubLink(link.label(), link.url()))
-                        .toList();
     }
 }

@@ -131,6 +131,12 @@ class SecurityConfigTest {
     private com.donggree.club.internal.application.ClubRequestQueryService clubRequestQueryService;
 
     @MockitoBean
+    private com.donggree.club.internal.application.admin.AdminClubQueryService adminClubQueryService;
+
+    @MockitoBean
+    private com.donggree.club.internal.application.admin.AdminClubCommandService adminClubCommandService;
+
+    @MockitoBean
     private AuthService authService;
 
     @MockitoBean
@@ -466,6 +472,11 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/clubs").header("Authorization", bearer("STUDENT")))
                 .andExpect(status().isOk());
         verifyNoInteractions(clubCommandService);
+        mockMvc.perform(post("/api/admin/clubs/requests/1/approve").header("Authorization", bearer("STUDENT")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/admin/clubs/requests/1/approve").header("Authorization", bearer("ADMIN")))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(adminClubCommandService).approve(1L);
     }
 
     @Test
