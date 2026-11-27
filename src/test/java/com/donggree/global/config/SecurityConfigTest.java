@@ -137,6 +137,12 @@ class SecurityConfigTest {
     private com.donggree.club.internal.application.admin.AdminClubCommandService adminClubCommandService;
 
     @MockitoBean
+    private com.donggree.club.internal.application.ClubBannerQueryService clubBannerQueryService;
+
+    @MockitoBean
+    private com.donggree.club.internal.application.admin.AdminClubBannerCommandService adminClubBannerCommandService;
+
+    @MockitoBean
     private AuthService authService;
 
     @MockitoBean

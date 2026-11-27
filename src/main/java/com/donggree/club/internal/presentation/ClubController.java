@@ -1,5 +1,6 @@
 package com.donggree.club.internal.presentation;
 
+import com.donggree.club.internal.application.ClubBannerQueryService;
 import com.donggree.club.internal.application.ClubCommandService;
 import com.donggree.club.internal.application.ClubQueryService;
 import com.donggree.club.internal.application.ClubSearch;
@@ -7,6 +8,7 @@ import com.donggree.club.internal.application.ClubSort;
 import com.donggree.club.internal.domain.enums.ClubAffiliation;
 import com.donggree.club.internal.domain.enums.ClubField;
 import com.donggree.club.internal.domain.enums.RecruitmentStatus;
+import com.donggree.club.internal.presentation.dto.ClubBannerResponse;
 import com.donggree.club.internal.presentation.dto.ClubDetailResponse;
 import com.donggree.club.internal.presentation.dto.ClubPageResponse;
 import com.donggree.club.internal.presentation.dto.ClubSaveRequest;
@@ -35,6 +37,7 @@ public class ClubController {
 
     private final ClubQueryService clubQueryService;
     private final ClubCommandService clubCommandService;
+    private final ClubBannerQueryService bannerQueryService;
 
     /** 필터는 같은 이름을 반복하거나 쉼표로 이어 여러 개를 보낸다. ids는 찜 모아보기처럼 특정 동아리로 좁힐 때만 보낸다. */
     @GetMapping
@@ -53,6 +56,16 @@ public class ClubController {
                 ids == null ? null : new HashSet<>(ids));
         return ApiResponse.onSuccess(
                 GeneralSuccessCode.OK, ClubPageResponse.from(clubQueryService.getClubs(search, cursor)));
+    }
+
+    /** 켜져 있고 노출 기간 안인 배너만 노출 순서대로. */
+    @GetMapping("/banners")
+    public ApiResponse<List<ClubBannerResponse>> getBanners() {
+        return ApiResponse.onSuccess(
+                GeneralSuccessCode.OK,
+                bannerQueryService.getVisibleBanners().stream()
+                        .map(ClubBannerResponse::from)
+                        .toList());
     }
 
     @GetMapping("/{clubId}")
