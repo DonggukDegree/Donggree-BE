@@ -2,6 +2,7 @@ package com.donggree.club.internal.presentation;
 
 import com.donggree.club.internal.application.ClubBannerQueryService;
 import com.donggree.club.internal.application.ClubCommandService;
+import com.donggree.club.internal.application.ClubFavoriteService;
 import com.donggree.club.internal.application.ClubQueryService;
 import com.donggree.club.internal.application.ClubSearch;
 import com.donggree.club.internal.application.ClubSort;
@@ -20,6 +21,7 @@ import com.donggree.global.auth.LoginMemberId;
 import java.util.HashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +40,7 @@ public class ClubController {
     private final ClubQueryService clubQueryService;
     private final ClubCommandService clubCommandService;
     private final ClubBannerQueryService bannerQueryService;
+    private final ClubFavoriteService favoriteService;
 
     /** 필터는 같은 이름을 반복하거나 쉼표로 이어 여러 개를 보낸다. ids는 찜 모아보기처럼 특정 동아리로 좁힐 때만 보낸다. */
     @GetMapping
@@ -66,6 +69,24 @@ public class ClubController {
                 bannerQueryService.getVisibleBanners().stream()
                         .map(ClubBannerResponse::from)
                         .toList());
+    }
+
+    /** 내가 찜한 동아리 ID(최근 찜한 순). 찜 모아보기는 이 ID를 목록 조회의 ids로 넘긴다. */
+    @GetMapping("/favorites")
+    public ApiResponse<List<Long>> getFavorites(@LoginMemberId Long memberId) {
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, favoriteService.getFavoriteClubIds(memberId));
+    }
+
+    @PutMapping("/{clubId}/favorite")
+    public ApiResponse<Void> addFavorite(@LoginMemberId Long memberId, @PathVariable Long clubId) {
+        favoriteService.add(memberId, clubId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK);
+    }
+
+    @DeleteMapping("/{clubId}/favorite")
+    public ApiResponse<Void> removeFavorite(@LoginMemberId Long memberId, @PathVariable Long clubId) {
+        favoriteService.remove(memberId, clubId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK);
     }
 
     @GetMapping("/{clubId}")
