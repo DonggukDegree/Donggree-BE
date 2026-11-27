@@ -5,6 +5,7 @@ import com.donggree.club.internal.application.command.RecruitmentSaveCommand;
 import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.domain.ClubLink;
 import com.donggree.club.internal.domain.ClubOfficer;
+import com.donggree.club.internal.domain.ClubPhotos;
 import com.donggree.club.internal.domain.ClubProfile;
 import com.donggree.club.internal.domain.ClubRequestPayload;
 import com.donggree.club.internal.domain.ClubRequester;
@@ -19,12 +20,8 @@ public final class ClubInputs {
 
     private ClubInputs() {}
 
-    /** @throws com.donggree.global.apiPayload.exception.GeneralException 입력 규칙 위반(CLUB400_2) */
-    public static ClubProfile profile(ClubSaveCommand command) {
-        return infoPayload(command).profile();
-    }
-
-    static ClubRequestPayload infoPayload(ClubSaveCommand command) {
+    /** @throws GeneralException 입력 규칙 위반(CLUB400_2, 사진은 CLUB400_9) */
+    public static ClubRequestPayload infoPayload(ClubSaveCommand command) {
         try {
             ClubProfile profile = new ClubProfile(
                     command.name(),
@@ -45,9 +42,17 @@ public final class ClubInputs {
                                             new ClubOfficer(officer.role(), officer.department(), officer.name()))
                                     .toList(),
                     links(command.links()));
-            return ClubRequestPayload.of(profile, command.imageCount());
+            return ClubRequestPayload.of(profile, photos(command));
         } catch (IllegalArgumentException exception) {
             throw new GeneralException(ClubErrorCode.INVALID_CLUB);
+        }
+    }
+
+    private static ClubPhotos photos(ClubSaveCommand command) {
+        try {
+            return new ClubPhotos(command.imageIds(), command.representativeImageId());
+        } catch (IllegalArgumentException exception) {
+            throw new GeneralException(ClubErrorCode.INVALID_PHOTOS);
         }
     }
 

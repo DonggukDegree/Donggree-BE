@@ -10,6 +10,7 @@ import com.donggree.club.internal.application.readmodel.ClubDetailReadModel;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubEditorRepository;
 import com.donggree.club.internal.domain.ClubFixtures;
+import com.donggree.club.internal.domain.ClubImageRepository;
 import com.donggree.club.internal.domain.ClubRecruitment;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
 import com.donggree.club.internal.domain.ClubRepository;
@@ -28,7 +29,9 @@ class ClubQueryServiceTest {
     private final ClubRepository clubs = mock(ClubRepository.class);
     private final ClubRecruitmentRepository recruitments = mock(ClubRecruitmentRepository.class);
     private final ClubEditorRepository editors = mock(ClubEditorRepository.class);
-    private final ClubQueryService service = new ClubQueryService(queries, clubs, recruitments, editors, () -> NOW);
+    private final ClubImageRepository images = mock(ClubImageRepository.class);
+    private final ClubQueryService service =
+            new ClubQueryService(queries, clubs, recruitments, editors, images, () -> NOW);
 
     @Test
     void 없는_동아리는_404다() {

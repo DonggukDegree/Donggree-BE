@@ -143,6 +143,9 @@ class SecurityConfigTest {
     private com.donggree.club.internal.application.ClubFavoriteService clubFavoriteService;
 
     @MockitoBean
+    private com.donggree.club.internal.application.ClubImageService clubImageService;
+
+    @MockitoBean
     private com.donggree.club.internal.application.admin.AdminClubBannerCommandService adminClubBannerCommandService;
 
     @MockitoBean
@@ -481,6 +484,12 @@ class SecurityConfigTest {
         mockMvc.perform(get("/api/clubs").header("Authorization", bearer("STUDENT")))
                 .andExpect(status().isOk());
         verifyNoInteractions(clubCommandService);
+        given(clubImageService.load("3f2b6c1e-5d4a-4b7e-9a1c-2e8f0d6b7c9a.webp"))
+                .willReturn(new com.donggree.club.internal.application.readmodel.ClubImageFile(
+                        "image/webp", new byte[] {1}));
+        mockMvc.perform(get("/api/clubs/images/3f2b6c1e-5d4a-4b7e-9a1c-2e8f0d6b7c9a.webp"))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/clubs/images")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/admin/clubs/requests/1/approve").header("Authorization", bearer("STUDENT")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(post("/api/admin/clubs/requests/1/approve").header("Authorization", bearer("ADMIN")))

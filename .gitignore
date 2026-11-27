@@ -53,3 +53,4 @@ src/test/resources/pdf/
 # DB 덤프 (커밋 금지)
 backup.sql
 *.dump
+data/

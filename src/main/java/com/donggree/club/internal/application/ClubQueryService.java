@@ -6,6 +6,8 @@ import com.donggree.club.internal.application.readmodel.ClubPageReadModel;
 import com.donggree.club.internal.application.readmodel.ClubRecruitmentReadModel;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubEditorRepository;
+import com.donggree.club.internal.domain.ClubImage;
+import com.donggree.club.internal.domain.ClubImageRepository;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
 import com.donggree.club.internal.domain.ClubRepository;
 import com.donggree.club.internal.domain.RecruitmentSelection;
@@ -25,6 +27,7 @@ public class ClubQueryService {
     private final ClubRepository clubRepository;
     private final ClubRecruitmentRepository recruitmentRepository;
     private final ClubEditorRepository editorRepository;
+    private final ClubImageRepository imageRepository;
     private final ClubClock clock;
 
     /** 필터·정렬을 적용한 목록을 12개씩 준다. */
@@ -54,7 +57,7 @@ public class ClubQueryService {
                 .orElse(null);
         RecruitmentSelection<ClubRecruitmentReadModel> selection = RecruitmentSelection.of(
                 latest, latest == null ? null : latest.schedule(), club.getActivityEndDate(), now);
-        // 사진은 사진 저장 API에서 채운다.
+        List<ClubImage> images = imageRepository.findByClubIdOrderBySortOrderAsc(clubId);
         return new ClubDetailReadModel(
                 club.getId(),
                 club.getName(),
@@ -71,8 +74,14 @@ public class ClubQueryService {
                 club.getActivityEndDate(),
                 club.getRoomLocation(),
                 club.getGenerationMemberCount(),
-                List.of(),
-                null,
+                images.stream()
+                        .map(image -> new ClubDetailReadModel.Image(image.getId(), image.url()))
+                        .toList(),
+                images.stream()
+                        .filter(ClubImage::isRepresentative)
+                        .map(ClubImage::getId)
+                        .findFirst()
+                        .orElse(null),
                 selection.previous(),
                 club.getOfficers(),
                 club.getLinks(),

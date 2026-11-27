@@ -190,6 +190,7 @@ class ClubCatalogTest {
                 NOW.minusMonths(1),
                 totalMembers,
                 foundedDate,
+                List.of(),
                 recruitment);
     }
 }

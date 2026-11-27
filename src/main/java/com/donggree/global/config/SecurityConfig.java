@@ -94,6 +94,8 @@ public class SecurityConfig {
                     }
                     // FAQ는 비로그인 홈의 푸터에서도 들어올 수 있어야 하므로 읽기만 공개한다.
                     auth.requestMatchers(HttpMethod.GET, "/api/faqs").permitAll();
+                    // 동아리 사진은 <img>로 불러오므로 읽기만 공개한다(추측할 수 없는 저장 이름, 업로드는 로그인 필요).
+                    auth.requestMatchers(HttpMethod.GET, "/api/clubs/images/*").permitAll();
                     // 관리자 영역은 경로 단위로 1차 방어한다. (SUPER_ADMIN 전용 엔드포인트는 컨트롤러의 @PreAuthorize로 2차 방어)
                     // RoleHierarchy에 의해 SUPER_ADMIN은 ADMIN 권한을 포함한다.
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");

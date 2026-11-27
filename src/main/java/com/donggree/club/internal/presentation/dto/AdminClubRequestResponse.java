@@ -38,8 +38,8 @@ public record AdminClubRequestResponse(
                 request.requestedAt(),
                 request.processedAt(),
                 request.rejectReason(),
-                ClubRequestValue.of(request.before(), null, null),
-                ClubRequestValue.of(request.after(), null, null),
+                ClubRequestValue.of(request.before(), null, null, request.imageUrls()),
+                ClubRequestValue.of(request.after(), null, null, request.imageUrls()),
                 new Requester(requester.memberId(), requester.name(), requester.contact(), requester.role()));
     }
 }

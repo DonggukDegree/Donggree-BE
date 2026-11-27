@@ -42,15 +42,16 @@ public class ClubCommandService {
     private final ClubRequestRepository requestRepository;
     private final ClubEditorRepository editorRepository;
     private final UserLookupService userLookupService;
+    private final ClubPhotoBinder photoBinder;
     private final ClubClock clock;
 
     @Transactional
     public ClubSaveResult register(Long memberId, ClubSaveCommand command) {
         requireStudentVerified(memberId);
+        ClubRequestPayload after = ClubInputs.infoPayload(command);
+        photoBinder.requireUsable(memberId, null, after.photos());
         submit(ClubRequest.register(
-                memberId,
-                ClubInputs.requester(command.requesterRole(), command.requesterContact()),
-                ClubInputs.infoPayload(command)));
+                memberId, ClubInputs.requester(command.requesterRole(), command.requesterContact()), after));
         return ClubSaveResult.pending(null);
     }
 
@@ -59,8 +60,10 @@ public class ClubCommandService {
         requireStudentVerified(memberId);
         Club club = findClub(clubId);
         ClubRequestPayload after = ClubInputs.infoPayload(command);
+        photoBinder.requireUsable(memberId, clubId, after.photos());
         if (editorRepository.canEdit(clubId, memberId)) {
             club.edit(after.profile(), clock.now());
+            photoBinder.bind(clubId, after.photos());
             flushClub();
             return ClubSaveResult.direct(clubId);
         }
@@ -92,6 +95,7 @@ public class ClubCommandService {
         ClubRequest previous = takeForResubmit(memberId, requestId, ClubRequestType.REGISTER, ClubRequestType.EDIT);
         ClubRequester requester = ClubInputs.requester(command.requesterRole(), command.requesterContact());
         ClubRequestPayload after = ClubInputs.infoPayload(command);
+        photoBinder.requireUsable(memberId, previous.getClubId(), after.photos());
         if (previous.getType() == ClubRequestType.REGISTER) {
             submit(ClubRequest.register(memberId, requester, after));
             return ClubSaveResult.pending(null);
@@ -114,7 +118,7 @@ public class ClubCommandService {
     }
 
     private void requestEdit(Long memberId, Club club, ClubRequester requester, ClubRequestPayload after) {
-        ClubRequestPayload before = ClubRequestPayload.of(club.profile(), 0);
+        ClubRequestPayload before = ClubRequestPayload.of(club.profile(), photoBinder.current(club.getId()));
         submit(ClubRequest.edit(club, memberId, requester, before, after));
     }
 

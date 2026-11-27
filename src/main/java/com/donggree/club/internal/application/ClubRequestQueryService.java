@@ -6,6 +6,7 @@ import com.donggree.club.internal.application.readmodel.MyClubRequestReadModel;
 import com.donggree.club.internal.domain.ClubRequestRepository;
 import com.donggree.global.apiPayload.exception.GeneralException;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClubRequestQueryService {
 
     private final ClubRequestRepository requestRepository;
+    private final ClubPhotoBinder photoBinder;
 
     /** 최신순. 바로 반영된 변경은 요청이 아니라 여기에 없다. */
     @Transactional(readOnly = true)
@@ -30,7 +32,11 @@ public class ClubRequestQueryService {
         return requestRepository
                 .findById(requestId)
                 .filter(request -> request.isRequestedBy(memberId))
-                .map(MyClubRequestDetailReadModel::from)
+                .map(request -> MyClubRequestDetailReadModel.from(
+                        request,
+                        request.getAfter().photos() == null
+                                ? Map.of()
+                                : photoBinder.urls(request.getAfter().photos().imageIds())))
                 .orElseThrow(() -> new GeneralException(ClubErrorCode.REQUEST_NOT_FOUND));
     }
 }

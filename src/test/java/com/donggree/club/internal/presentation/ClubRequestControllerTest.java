@@ -19,6 +19,7 @@ import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.application.readmodel.MyClubRequestDetailReadModel;
 import com.donggree.club.internal.application.readmodel.MyClubRequestReadModel;
 import com.donggree.club.internal.domain.ClubFixtures;
+import com.donggree.club.internal.domain.ClubPhotos;
 import com.donggree.club.internal.domain.ClubRequestPayload;
 import com.donggree.club.internal.domain.enums.ClubRequestStatus;
 import com.donggree.club.internal.domain.enums.ClubRequestType;
@@ -29,6 +30,7 @@ import com.donggree.global.support.RestDocsSupport;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -101,9 +103,10 @@ class ClubRequestControllerTest extends RestDocsSupport {
         given(queryService.getMyRequest(MEMBER_ID, 31L))
                 .willReturn(new MyClubRequestDetailReadModel(
                         REJECTED,
-                        ClubRequestPayload.of(ClubFixtures.profile("별자리 탐험대"), 2),
+                        ClubRequestPayload.of(ClubFixtures.profile("별자리 탐험대"), ClubPhotos.NONE),
                         "dongle@dgu.ac.kr",
-                        ClubRequesterRole.MEMBER));
+                        ClubRequesterRole.MEMBER,
+                        Map.of()));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/clubs/me/requests/{requestId}", 31L))
                 .andExpect(status().isOk())
@@ -119,7 +122,7 @@ class ClubRequestControllerTest extends RestDocsSupport {
                                         fieldWithPath("result.after")
                                                 .description("보냈던 값. 신규 등록·정보 수정은 동아리 정보, 모집 등록은 모집 정보와 같은 모양"))
                                 .andWithPrefix("result.", myRequestFields())
-                                .andWithPrefix("result.after.", ClubControllerTest.clubRequestFields())));
+                                .andWithPrefix("result.after.", ClubControllerTest.clubValueFields())));
     }
 
     @Test

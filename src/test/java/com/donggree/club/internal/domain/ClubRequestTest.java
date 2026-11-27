@@ -14,7 +14,7 @@ class ClubRequestTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 27, 12, 0);
     private static final ClubRequester REQUESTER = new ClubRequester(ClubRequesterRole.PRESIDENT, " dongle@dgu.ac.kr ");
-    private static final ClubRequestPayload INFO = ClubRequestPayload.of(ClubFixtures.profile("소리마루"), 2);
+    private static final ClubRequestPayload INFO = ClubRequestPayload.of(ClubFixtures.profile("소리마루"), ClubPhotos.NONE);
 
     @Test
     void 확인_연락처는_이메일_또는_전화번호이고_관계는_필수다() {
@@ -30,10 +30,15 @@ class ClubRequestTest {
     @Test
     void 요청_값은_동아리_정보와_모집_정보_중_하나만_담는다() {
         assertThatThrownBy(() -> new ClubRequestPayload(null, null, null)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> ClubRequestPayload.of(ClubFixtures.profile("소리마루"), 4))
+        assertThatThrownBy(() -> new ClubPhotos(java.util.List.of(1L, 2L, 3L, 4L), null))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThat(ClubRequestPayload.of(ClubFixtures.alwaysOpen()).imageCount())
-                .isNull();
+        assertThatThrownBy(() -> new ClubPhotos(java.util.List.of(1L, 2L), 9L))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(new ClubPhotos(java.util.List.of(5L, 6L, 5L), null))
+                .isEqualTo(new ClubPhotos(java.util.List.of(5L, 6L), 5L));
+        assertThat(ClubRequestPayload.of(ClubFixtures.alwaysOpen()).photos()).isNull();
+        assertThat(ClubRequestPayload.of(ClubFixtures.profile("소리마루"), null).photos())
+                .isEqualTo(ClubPhotos.NONE);
     }
 
     @Test

@@ -14,6 +14,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.queryPar
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.donggree.club.internal.application.ClubImageService;
 import com.donggree.club.internal.application.admin.AdminClubCommandService;
 import com.donggree.club.internal.application.admin.AdminClubQueryService;
 import com.donggree.club.internal.application.admin.AdminClubReadModel;
@@ -21,6 +22,7 @@ import com.donggree.club.internal.application.admin.AdminClubRequestReadModel;
 import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.application.readmodel.ClubSummaryReadModel;
 import com.donggree.club.internal.domain.ClubFixtures;
+import com.donggree.club.internal.domain.ClubPhotos;
 import com.donggree.club.internal.domain.ClubProfile;
 import com.donggree.club.internal.domain.ClubRequestPayload;
 import com.donggree.club.internal.domain.enums.ClubAffiliation;
@@ -36,6 +38,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.MediaType;
@@ -48,10 +51,11 @@ class AdminClubControllerTest extends RestDocsSupport {
 
     private final AdminClubQueryService queryService = Mockito.mock(AdminClubQueryService.class);
     private final AdminClubCommandService commandService = Mockito.mock(AdminClubCommandService.class);
+    private final ClubImageService imageService = Mockito.mock(ClubImageService.class);
 
     @Override
     protected Object initController() {
-        return new AdminClubController(queryService, commandService);
+        return new AdminClubController(queryService, commandService, imageService);
     }
 
     @Override
@@ -86,10 +90,11 @@ class AdminClubControllerTest extends RestDocsSupport {
                         AT,
                         null,
                         null,
-                        ClubRequestPayload.of(before, 0),
-                        ClubRequestPayload.of(after, 1),
+                        ClubRequestPayload.of(before, ClubPhotos.NONE),
+                        ClubRequestPayload.of(after, new ClubPhotos(List.of(21L), 21L)),
                         new AdminClubRequestReadModel.Requester(
-                                12L, "박서연", "seoyeon@dgu.ac.kr", ClubRequesterRole.PRESIDENT))));
+                                12L, "박서연", "seoyeon@dgu.ac.kr", ClubRequesterRole.PRESIDENT),
+                        Map.of(21L, "/api/clubs/images/3f2b6c1e-5d4a-4b7e-9a1c-2e8f0d6b7c9a.webp"))));
 
         mockMvc.perform(RestDocumentationRequestBuilders.get("/api/admin/clubs/requests")
                         .param("status", "PENDING"))
@@ -258,7 +263,7 @@ class AdminClubControllerTest extends RestDocsSupport {
     }
 
     private static List<FieldDescriptor> valueFields() {
-        List<FieldDescriptor> fields = new ArrayList<>(ClubControllerTest.clubRequestFields());
+        List<FieldDescriptor> fields = new ArrayList<>(ClubControllerTest.clubValueFields());
         fields.removeIf(field -> field.getPath().equals("officers[].department"));
         fields.add(fieldWithPath("officers[].department").description("학과. 비우면 빈 문자열"));
         return fields.stream()

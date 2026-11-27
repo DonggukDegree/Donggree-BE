@@ -24,7 +24,8 @@ final class ClubCommands {
                 profile.foundedDate(),
                 List.of(),
                 List.of(),
-                0,
+                List.of(),
+                null,
                 null,
                 null);
     }
