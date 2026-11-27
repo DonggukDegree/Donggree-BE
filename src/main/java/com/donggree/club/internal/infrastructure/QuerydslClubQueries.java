@@ -1,5 +1,6 @@
 package com.donggree.club.internal.infrastructure;
 
+import com.donggree.club.internal.application.ClubImageUrls;
 import com.donggree.club.internal.application.ClubQueries;
 import com.donggree.club.internal.application.readmodel.ClubListRow;
 import com.donggree.club.internal.application.readmodel.ClubRecruitmentReadModel;
@@ -30,6 +31,7 @@ public class QuerydslClubQueries implements ClubQueries {
     private static final QClubImage IMAGE = QClubImage.clubImage;
 
     private final JPAQueryFactory queryFactory;
+    private final ClubImageUrls imageUrls;
 
     @Override
     public List<ClubListRow> findListRows() {
@@ -91,7 +93,7 @@ public class QuerydslClubQueries implements ClubQueries {
                 .collect(Collectors.groupingBy(
                         ClubImage::getClubId,
                         LinkedHashMap::new,
-                        Collectors.mapping(ClubImage::url, Collectors.toList())));
+                        Collectors.mapping(imageUrls::of, Collectors.toList())));
     }
 
     private Map<Long, ClubRecruitmentReadModel> findLatestRecruitments() {

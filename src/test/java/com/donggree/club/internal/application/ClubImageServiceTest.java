@@ -27,8 +27,12 @@ class ClubImageServiceTest {
     private final ClubImageRepository images = mock(ClubImageRepository.class);
     private final ClubImageStorage storage = mock(ClubImageStorage.class);
     private final UserLookupService users = mock(UserLookupService.class);
-    private final ClubImageService service =
-            new ClubImageService(images, storage, users, () -> LocalDateTime.of(2026, 11, 27, 12, 0));
+    private final ClubImageService service = new ClubImageService(
+            images,
+            storage,
+            users,
+            () -> LocalDateTime.of(2026, 11, 27, 12, 0),
+            new ClubImageUrls("https://img.example.com"));
 
     @Test
     void 학생_인증_회원의_사진을_형식_확인_후_저장한다() {
@@ -42,7 +46,7 @@ class ClubImageServiceTest {
         ClubImageReadModel uploaded = service.uploadByMember(7L, PNG);
 
         assertThat(uploaded.id()).isEqualTo(21L);
-        assertThat(uploaded.url()).startsWith("/api/clubs/images/").endsWith(".png");
+        assertThat(uploaded.url()).startsWith("https://img.example.com/").endsWith(".png");
         verify(storage).save(anyString(), any());
     }
 

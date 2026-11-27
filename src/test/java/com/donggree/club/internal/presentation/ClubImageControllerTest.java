@@ -66,15 +66,19 @@ class ClubImageControllerTest extends RestDocsSupport {
                         .file(new MockMultipartFile("file", "band.webp", "image/webp", new byte[] {1, 2, 3})))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.id").value(21))
-                .andDo(document(
-                        "club-image-upload",
-                        requestParts(partWithName("file").description("JPG·PNG·WEBP 사진(5MB 이하, 파일 내용으로 형식 확인)")),
-                        responseFields(
-                                fieldWithPath("isSuccess").description("요청 성공 여부"),
-                                fieldWithPath("code").description("응답 코드"),
-                                fieldWithPath("message").description("응답 메시지"),
-                                fieldWithPath("result.id").description("사진 ID. 등록·수정 요청의 imageIds에 넣는다"),
-                                fieldWithPath("result.url").description("사진 주소(API 서버 기준 경로)"))));
+                .andDo(
+                        document(
+                                "club-image-upload",
+                                requestParts(
+                                        partWithName("file").description("JPG·PNG·WEBP 사진(5MB 이하, 파일 내용으로 형식 확인)")),
+                                responseFields(
+                                        fieldWithPath("isSuccess").description("요청 성공 여부"),
+                                        fieldWithPath("code").description("응답 코드"),
+                                        fieldWithPath("message").description("응답 메시지"),
+                                        fieldWithPath("result.id").description("사진 ID. 등록·수정 요청의 imageIds에 넣는다"),
+                                        fieldWithPath("result.url")
+                                                .description(
+                                                        "사진 주소(공개 주소 설정 기준. 디스크 저장은 /api/clubs/images/..., R2 저장은 https 공개 주소)"))));
     }
 
     @Test

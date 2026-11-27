@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 목록 카드 한 개.
  *
- * @param imageUrls   대표 사진을 맨 앞에 둔 사진 주소(사진 저장 전까지 빈 목록)
+ * @param imageUrls   대표 사진을 맨 앞에 둔 사진 주소(사진이 없으면 빈 목록)
  * @param recruitment 현재 모집. 없으면 null(모집 전)
  */
 public record ClubSummaryReadModel(

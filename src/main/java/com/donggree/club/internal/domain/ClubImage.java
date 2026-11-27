@@ -26,8 +26,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ClubImage {
 
-    public static final String URL_PREFIX = "/api/clubs/images/";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -79,10 +77,6 @@ public class ClubImage {
     public static ClubImage upload(
             ImageFormat format, int sizeBytes, ClubImagePurpose purpose, Long uploaderId, LocalDateTime now) {
         return new ClubImage(format, sizeBytes, purpose, uploaderId, now);
-    }
-
-    public String url() {
-        return URL_PREFIX + storedName;
     }
 
     /** 이 회원이 동아리 사진으로 쓸 수 있는지: 본인이 올렸거나 이미 이 동아리 사진이다. */

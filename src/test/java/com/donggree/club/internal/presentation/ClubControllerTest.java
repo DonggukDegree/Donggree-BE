@@ -271,7 +271,7 @@ class ClubControllerTest extends RestDocsSupport {
         fields.add(fieldWithPath("images[].url")
                 .optional()
                 .type(org.springframework.restdocs.payload.JsonFieldType.STRING)
-                .description("사진 주소(API 서버 기준 경로)"));
+                .description("사진 주소(공개 주소 설정 기준. 디스크 저장은 /api/clubs/images/..., R2 저장은 https 공개 주소)"));
         return fields;
     }
 
@@ -441,7 +441,7 @@ class ClubControllerTest extends RestDocsSupport {
 
     private static List<FieldDescriptor> summaryFields() {
         List<FieldDescriptor> fields = new java.util.ArrayList<>(commonFields());
-        fields.add(fieldWithPath("imageUrls[]").description("대표 사진을 맨 앞에 둔 사진 주소(사진 저장 기능 전까지 빈 목록)"));
+        fields.add(fieldWithPath("imageUrls[]").description("대표 사진을 맨 앞에 둔 사진 주소(사진이 없으면 빈 목록)"));
         return fields;
     }
 

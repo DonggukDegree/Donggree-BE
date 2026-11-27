@@ -29,6 +29,7 @@ public class ClubQueryService {
     private final ClubEditorRepository editorRepository;
     private final ClubImageRepository imageRepository;
     private final ClubClock clock;
+    private final ClubImageUrls imageUrls;
 
     /** 필터·정렬을 적용한 목록을 12개씩 준다. */
     @Transactional(readOnly = true)
@@ -75,7 +76,7 @@ public class ClubQueryService {
                 club.getRoomLocation(),
                 club.getGenerationMemberCount(),
                 images.stream()
-                        .map(image -> new ClubDetailReadModel.Image(image.getId(), image.url()))
+                        .map(image -> new ClubDetailReadModel.Image(image.getId(), imageUrls.of(image)))
                         .toList(),
                 images.stream()
                         .filter(ClubImage::isRepresentative)

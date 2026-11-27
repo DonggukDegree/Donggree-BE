@@ -25,6 +25,7 @@ public class ClubImageService {
     private final ClubImageStorage storage;
     private final UserLookupService userLookupService;
     private final ClubClock clock;
+    private final ClubImageUrls imageUrls;
 
     @Transactional
     public ClubImageReadModel uploadByMember(Long memberId, byte[] bytes) {
@@ -58,6 +59,6 @@ public class ClubImageService {
         ClubImage image =
                 imageRepository.save(ClubImage.upload(format, bytes.length, purpose, uploaderId, clock.now()));
         storage.save(image.getStoredName(), bytes);
-        return ClubImageReadModel.from(image);
+        return ClubImageReadModel.from(image, imageUrls.of(image));
     }
 }
