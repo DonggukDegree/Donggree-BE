@@ -154,6 +154,24 @@ public class Club extends BaseEntity {
         return List.copyOf(links);
     }
 
+    /** 지금 정보(요청 비교용 변경 전 값). */
+    public ClubProfile profile() {
+        return new ClubProfile(
+                name,
+                affiliation,
+                sortedFields(),
+                description,
+                generation,
+                activityStartDate,
+                activityEndDate,
+                roomLocation,
+                generationMemberCount,
+                totalMemberCount,
+                foundedDate,
+                getOfficers(),
+                getLinks());
+    }
+
     public ClubActivity activity() {
         return new ClubActivity(generation, activityStartDate, activityEndDate, infoUpdatedAt);
     }

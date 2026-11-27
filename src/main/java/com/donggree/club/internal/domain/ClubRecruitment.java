@@ -93,6 +93,11 @@ public class ClubRecruitment extends BaseEntity {
         return new RecruitmentSchedule(alwaysOpen, startsAt, endsAt, closedEarly);
     }
 
+    /** 지금 모집 정보(요청 비교용 변경 전 값). */
+    public RecruitmentPlan plan() {
+        return new RecruitmentPlan(generation, schedule(), getLinks(), notice);
+    }
+
     public List<ClubLink> getLinks() {
         return List.copyOf(links);
     }
