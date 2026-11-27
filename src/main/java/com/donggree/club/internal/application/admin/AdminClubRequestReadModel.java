@@ -6,11 +6,13 @@ import com.donggree.club.internal.domain.enums.ClubRequestStatus;
 import com.donggree.club.internal.domain.enums.ClubRequestType;
 import com.donggree.club.internal.domain.enums.ClubRequesterRole;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 관리자 요청 한 건. 요청 당시 현재 값(before)과 요청 값(after)을 함께 준다.
  *
- * @param before 신규 등록·새 모집이면 null
+ * @param before    신규 등록·새 모집이면 null
+ * @param imageUrls 변경 전·요청 값의 사진 ID별 주소. 정리돼 없어진 사진은 빠진다
  */
 public record AdminClubRequestReadModel(
         Long id,
@@ -23,7 +25,8 @@ public record AdminClubRequestReadModel(
         String rejectReason,
         ClubRequestPayload before,
         ClubRequestPayload after,
-        Requester requester) {
+        Requester requester,
+        Map<Long, String> imageUrls) {
 
     /**
      * @param memberId 탈퇴했으면 null
@@ -33,7 +36,7 @@ public record AdminClubRequestReadModel(
      */
     public record Requester(Long memberId, String name, String contact, ClubRequesterRole role) {}
 
-    static AdminClubRequestReadModel of(ClubRequest request, String requesterName) {
+    static AdminClubRequestReadModel of(ClubRequest request, String requesterName, Map<Long, String> imageUrls) {
         return new AdminClubRequestReadModel(
                 request.getId(),
                 request.getType(),
@@ -49,6 +52,7 @@ public record AdminClubRequestReadModel(
                         request.getRequesterId(),
                         requesterName,
                         request.getRequesterContact(),
-                        request.getRequesterRole()));
+                        request.getRequesterRole()),
+                imageUrls);
     }
 }

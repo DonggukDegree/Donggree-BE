@@ -2,6 +2,7 @@ package com.donggree.club.internal.application.admin;
 
 import com.donggree.club.internal.application.ClubCatalog;
 import com.donggree.club.internal.application.ClubClock;
+import com.donggree.club.internal.application.ClubPhotoBinder;
 import com.donggree.club.internal.application.ClubQueries;
 import com.donggree.club.internal.application.readmodel.ClubListRow;
 import com.donggree.club.internal.domain.ClubEditor;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ public class AdminClubQueryService {
     private final ClubRequestRepository requestRepository;
     private final ClubEditorRepository editorRepository;
     private final ClubQueries clubQueries;
+    private final ClubPhotoBinder photoBinder;
     private final UserModerationService userModerationService;
     private final ClubClock clock;
 
@@ -45,8 +48,13 @@ public class AdminClubQueryService {
                         : requestRepository.findByStatusOrderByIdDesc(status);
         Map<Long, String> names =
                 names(requests.stream().map(ClubRequest::getRequesterId).toList());
+        Map<Long, String> urls = photoBinder.urls(requests.stream()
+                .flatMap(request -> Stream.of(request.getBefore(), request.getAfter()))
+                .filter(payload -> payload != null && payload.photos() != null)
+                .flatMap(payload -> payload.photos().imageIds().stream())
+                .collect(Collectors.toSet()));
         return requests.stream()
-                .map(request -> AdminClubRequestReadModel.of(request, names.get(request.getRequesterId())))
+                .map(request -> AdminClubRequestReadModel.of(request, names.get(request.getRequesterId()), urls))
                 .toList();
     }
 

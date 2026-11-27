@@ -486,6 +486,14 @@ operation::admin-club-edit[]
 
 operation::admin-club-editor-revoke[]
 
+=== 사진
+
+학생 인증 회원이 동아리 사진을 올리면 사진 ID와 주소를 받는다. JPG·PNG·WEBP만 파일 내용으로 확인해 받고 5MB를 넘거나 다른 형식이면 400(CLUB400_8)이다. 등록·수정 요청은 `imageIds`(최대 3장, 순서대로)와 `representativeImageId`(비우면 첫 사진)로 사진을 고르며, 직접 올렸거나 이미 그 동아리 사진만 쓸 수 있다(400, CLUB400_9). 사진은 승인·바로 반영 때 동아리에 연결되고, 연결되지 않은 채 30일이 지났고 검토 중 요청에도 쓰이지 않는 사진은 매일 04:10에 지운다. 사진 주소는 추측할 수 없는 이름이며 로그인 없이 내려받는다(30일 캐시). 관리자는 `POST /api/admin/clubs/images`(배너 사진은 `purpose=BANNER`, 정리하지 않음)로 올린다.
+
+operation::club-image-upload[]
+
+operation::club-image-download[]
+
 === 찜
 
 로그인 회원 누구나 찜한다. 찜·찜 해제는 여러 번 보내도 결과가 같고, 없는 동아리 찜은 404(CLUB404_1)다. 찜 모아보기는 찜 목록의 ID를 목록 조회의 `ids`로 넘긴다. 탈퇴하면 찜을 지운다.

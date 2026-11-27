@@ -22,7 +22,8 @@ public record ClubSaveRequest(
         LocalDate foundedDate,
         List<Officer> officers,
         List<Link> links,
-        int imageCount,
+        List<Long> imageIds,
+        Long representativeImageId,
         String requesterContact,
         ClubRequesterRole requesterRole) {
 
@@ -50,7 +51,8 @@ public record ClubSaveRequest(
                                         officer.role(), officer.department(), officer.name()))
                                 .toList(),
                 toLinks(links),
-                imageCount,
+                imageIds,
+                representativeImageId,
                 requesterContact,
                 requesterRole);
     }

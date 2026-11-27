@@ -10,11 +10,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.donggree.club.event.ClubRequestApprovedEvent;
+import com.donggree.club.internal.application.ClubPhotoBinder;
 import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubEditor;
 import com.donggree.club.internal.domain.ClubEditorRepository;
 import com.donggree.club.internal.domain.ClubFixtures;
+import com.donggree.club.internal.domain.ClubPhotos;
 import com.donggree.club.internal.domain.ClubProfile;
 import com.donggree.club.internal.domain.ClubRecruitment;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
@@ -46,8 +48,9 @@ class AdminClubCommandServiceTest {
     private final ClubRecruitmentRepository recruitments = mock(ClubRecruitmentRepository.class);
     private final ClubEditorRepository editors = mock(ClubEditorRepository.class);
     private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
+    private final ClubPhotoBinder photos = mock(ClubPhotoBinder.class);
     private final AdminClubCommandService service =
-            new AdminClubCommandService(requests, clubs, recruitments, editors, events, () -> NOW);
+            new AdminClubCommandService(requests, clubs, recruitments, editors, photos, events, () -> NOW);
 
     private Club club;
 
@@ -75,6 +78,7 @@ class AdminClubCommandServiceTest {
         verify(clubs).save(created.capture());
         assertThat(created.getValue().getRegistration()).isEqualTo(ClubRegistration.OFFICIAL);
         verify(editors).save(any(ClubEditor.class));
+        verify(photos).bind(10L, ClubPhotos.NONE);
         assertThat(publishedEvent()).isEqualTo(new ClubRequestApprovedEvent(7L, 10L, true, null, null));
     }
 
@@ -96,7 +100,11 @@ class AdminClubCommandServiceTest {
                 base.officers(),
                 base.links());
         pending(ClubRequest.edit(
-                club, 7L, REQUESTER, ClubRequestPayload.of(base, 0), ClubRequestPayload.of(nextGeneration, 0)));
+                club,
+                7L,
+                REQUESTER,
+                ClubRequestPayload.of(base, ClubPhotos.NONE),
+                ClubRequestPayload.of(nextGeneration, ClubPhotos.NONE)));
 
         service.approve(1L);
 
@@ -190,6 +198,6 @@ class AdminClubCommandServiceTest {
     }
 
     private static ClubRequestPayload info(String name) {
-        return ClubRequestPayload.of(ClubFixtures.profile(name), 0);
+        return ClubRequestPayload.of(ClubFixtures.profile(name), ClubPhotos.NONE);
     }
 }

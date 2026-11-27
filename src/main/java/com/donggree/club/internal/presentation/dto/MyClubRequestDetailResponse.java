@@ -32,6 +32,7 @@ public record MyClubRequestDetailResponse(
                 request.requestedAt(),
                 request.processedAt(),
                 request.rejectReason(),
-                ClubRequestValue.of(detail.after(), detail.requesterContact(), detail.requesterRole()));
+                ClubRequestValue.of(
+                        detail.after(), detail.requesterContact(), detail.requesterRole(), detail.imageUrls()));
     }
 }

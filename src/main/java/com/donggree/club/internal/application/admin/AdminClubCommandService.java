@@ -3,6 +3,7 @@ package com.donggree.club.internal.application.admin;
 import com.donggree.club.event.ClubRequestApprovedEvent;
 import com.donggree.club.internal.application.ClubClock;
 import com.donggree.club.internal.application.ClubInputs;
+import com.donggree.club.internal.application.ClubPhotoBinder;
 import com.donggree.club.internal.application.command.ClubSaveCommand;
 import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.domain.Club;
@@ -12,6 +13,7 @@ import com.donggree.club.internal.domain.ClubRecruitment;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
 import com.donggree.club.internal.domain.ClubRepository;
 import com.donggree.club.internal.domain.ClubRequest;
+import com.donggree.club.internal.domain.ClubRequestPayload;
 import com.donggree.club.internal.domain.ClubRequestRepository;
 import com.donggree.club.internal.domain.RecruitmentPlan;
 import com.donggree.club.internal.domain.enums.ClubRegistration;
@@ -38,6 +40,7 @@ public class AdminClubCommandService {
     private final ClubRepository clubRepository;
     private final ClubRecruitmentRepository recruitmentRepository;
     private final ClubEditorRepository editorRepository;
+    private final ClubPhotoBinder photoBinder;
     private final ApplicationEventPublisher eventPublisher;
     private final ClubClock clock;
 
@@ -52,12 +55,14 @@ public class AdminClubCommandService {
         switch (request.getType()) {
             case REGISTER -> {
                 club = clubRepository.save(Club.register(request.getAfter().profile(), ClubRegistration.OFFICIAL, now));
+                photoBinder.bind(club.getId(), request.getAfter().photos());
                 firstRegistration = true;
             }
             case EDIT -> {
                 club = findClub(request.getClubId());
                 Integer previous = club.getGeneration();
                 club.edit(request.getAfter().profile(), now);
+                photoBinder.bind(club.getId(), request.getAfter().photos());
                 Integer current = club.getGeneration();
                 if (current != null && (previous == null || current > previous)) updatedGeneration = current;
                 firstRegistration = club.becomeOfficial();
@@ -95,15 +100,20 @@ public class AdminClubCommandService {
     /** 관리자 임시 등록. 회원 요청이 처음 승인되면 정식 등록으로 바뀌고 그 회원이 최초 등록 포인트를 받는다. */
     @Transactional
     public Long registerProvisional(ClubSaveCommand command) {
-        return clubRepository
-                .save(Club.register(ClubInputs.profile(command), ClubRegistration.PROVISIONAL, clock.now()))
-                .getId();
+        ClubRequestPayload input = ClubInputs.infoPayload(command);
+        photoBinder.requireUsableByAdmin(null, input.photos());
+        Club club = clubRepository.save(Club.register(input.profile(), ClubRegistration.PROVISIONAL, clock.now()));
+        photoBinder.bind(club.getId(), input.photos());
+        return club.getId();
     }
 
     /** 관리자 정보 수정은 승인 없이 바로 반영하며 적립하지 않는다. */
     @Transactional
     public void edit(Long clubId, ClubSaveCommand command) {
-        findClub(clubId).edit(ClubInputs.profile(command), clock.now());
+        ClubRequestPayload input = ClubInputs.infoPayload(command);
+        photoBinder.requireUsableByAdmin(clubId, input.photos());
+        findClub(clubId).edit(input.profile(), clock.now());
+        photoBinder.bind(clubId, input.photos());
         try {
             clubRepository.flush();
         } catch (OptimisticLockingFailureException exception) {

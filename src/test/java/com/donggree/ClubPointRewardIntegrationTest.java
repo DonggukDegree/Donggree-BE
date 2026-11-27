@@ -11,6 +11,7 @@ import com.donggree.club.internal.application.admin.AdminClubCommandService;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubEditorRepository;
 import com.donggree.club.internal.domain.ClubFixtures;
+import com.donggree.club.internal.domain.ClubPhotos;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
 import com.donggree.club.internal.domain.ClubRepository;
 import com.donggree.club.internal.domain.ClubRequest;
@@ -127,7 +128,8 @@ class ClubPointRewardIntegrationTest {
     }
 
     private static ClubRequest register(Long memberId, String name) {
-        return ClubRequest.register(memberId, REQUESTER, ClubRequestPayload.of(ClubFixtures.profile(name), 0));
+        return ClubRequest.register(
+                memberId, REQUESTER, ClubRequestPayload.of(ClubFixtures.profile(name), ClubPhotos.NONE));
     }
 
     private static ClubRequest recruitment(Club club, Long memberId, LocalDateTime startsAt, LocalDateTime endsAt) {

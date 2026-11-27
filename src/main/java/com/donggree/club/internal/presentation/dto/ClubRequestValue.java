@@ -9,6 +9,7 @@ import com.donggree.club.internal.domain.enums.ClubRequesterRole;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /** 요청의 변경 전·요청 값. 저장 요청 본문과 같은 모양이며 신규 등록·정보 수정은 {@link InfoValue}, 모집 등록은 {@link RecruitmentValue}다. */
 public final class ClubRequestValue {
@@ -29,7 +30,8 @@ public final class ClubRequestValue {
             LocalDate foundedDate,
             List<ClubDetailResponse.Officer> officers,
             List<ClubRecruitmentResponse.Link> links,
-            int imageCount,
+            List<ClubDetailResponse.Image> images,
+            Long representativeImageId,
             String requesterContact,
             ClubRequesterRole requesterRole) {}
 
@@ -45,7 +47,12 @@ public final class ClubRequestValue {
             ClubRequesterRole requesterRole) {}
 
     /** @return 값이 없으면 null */
-    public static Object of(ClubRequestPayload payload, String requesterContact, ClubRequesterRole requesterRole) {
+    /** @param imageUrls 사진 ID별 주소. 정리돼 없어진 사진은 빠진다 */
+    public static Object of(
+            ClubRequestPayload payload,
+            String requesterContact,
+            ClubRequesterRole requesterRole,
+            Map<Long, String> imageUrls) {
         if (payload == null) return null;
         if (payload.recruitment() != null) {
             RecruitmentPlan plan = payload.recruitment();
@@ -82,7 +89,11 @@ public final class ClubRequestValue {
                 profile.links().stream()
                         .map(link -> new ClubRecruitmentResponse.Link(link.label(), link.url()))
                         .toList(),
-                payload.imageCount(),
+                payload.photos().imageIds().stream()
+                        .filter(imageUrls::containsKey)
+                        .map(id -> new ClubDetailResponse.Image(id, imageUrls.get(id)))
+                        .toList(),
+                payload.photos().representativeImageId(),
                 requesterContact,
                 requesterRole);
     }

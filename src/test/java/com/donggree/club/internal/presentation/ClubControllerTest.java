@@ -64,7 +64,7 @@ class ClubControllerTest extends RestDocsSupport {
             "generationMemberCount":14,"totalMemberCount":120,"foundedDate":null,
             "officers":[{"role":"회장","department":"컴퓨터공학과","name":"김동글"}],
             "links":[{"label":"인스타그램","url":"https://instagram.com/donggree"}],
-            "imageCount":2,"requesterContact":"dongle@dgu.ac.kr","requesterRole":"PRESIDENT"}
+            "imageIds":[11,12],"representativeImageId":12,"requesterContact":"dongle@dgu.ac.kr","requesterRole":"PRESIDENT"}
             """;
     static final String RECRUITMENT_BODY =
             """
@@ -251,11 +251,28 @@ class ClubControllerTest extends RestDocsSupport {
                 fieldWithPath("links[]").description("관련 링크(최대 3개)"),
                 fieldWithPath("links[].label").description("표시 이름(1~10자)"),
                 fieldWithPath("links[].url").description("https 주소"),
-                fieldWithPath("imageCount").description("고른 사진 수(0~3, 사진 저장 기능 전까지 비교 표시용)"),
+                fieldWithPath("imageIds[]").description("사진 업로드로 받은 사진 ID(최대 3장, 순서대로). 직접 올렸거나 이미 이 동아리 사진만"),
+                fieldWithPath("representativeImageId").optional().description("대표 사진 ID. 비우면 첫 사진"),
                 fieldWithPath("requesterContact").optional().description("승인 요청의 확인 연락처(이메일 또는 전화번호). 바로 반영이면 무시"),
                 fieldWithPath("requesterRole")
                         .optional()
                         .description("승인 요청의 동아리와의 관계(PRESIDENT·STAFF·MEMBER·OUTSIDER). 바로 반영이면 무시"));
+    }
+
+    /** 요청 값 응답(보냈던 값·관리자 비교 값). 사진은 ID 대신 주소와 함께 준다. */
+    static List<FieldDescriptor> clubValueFields() {
+        List<FieldDescriptor> fields = new java.util.ArrayList<>(clubRequestFields());
+        fields.removeIf(field -> field.getPath().equals("imageIds[]"));
+        fields.add(fieldWithPath("images[]").description("사진(순서대로). 정리돼 없어진 사진은 빠짐"));
+        fields.add(fieldWithPath("images[].id")
+                .optional()
+                .type(org.springframework.restdocs.payload.JsonFieldType.NUMBER)
+                .description("사진 ID"));
+        fields.add(fieldWithPath("images[].url")
+                .optional()
+                .type(org.springframework.restdocs.payload.JsonFieldType.STRING)
+                .description("사진 주소(API 서버 기준 경로)"));
+        return fields;
     }
 
     static List<FieldDescriptor> recruitmentRequestFields() {

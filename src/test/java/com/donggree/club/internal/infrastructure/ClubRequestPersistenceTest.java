@@ -7,6 +7,7 @@ import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubEditor;
 import com.donggree.club.internal.domain.ClubEditorRepository;
 import com.donggree.club.internal.domain.ClubFixtures;
+import com.donggree.club.internal.domain.ClubPhotos;
 import com.donggree.club.internal.domain.ClubRepository;
 import com.donggree.club.internal.domain.ClubRequest;
 import com.donggree.club.internal.domain.ClubRequestPayload;
@@ -19,6 +20,7 @@ import com.donggree.global.config.QueryDslConfig;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -54,8 +56,8 @@ class ClubRequestPersistenceTest {
                         club,
                         7L,
                         REQUESTER,
-                        ClubRequestPayload.of(club.profile(), 0),
-                        ClubRequestPayload.of(ClubFixtures.profile("소리마루 밴드"), 2)))
+                        ClubRequestPayload.of(club.profile(), ClubPhotos.NONE),
+                        ClubRequestPayload.of(ClubFixtures.profile("소리마루 밴드"), new ClubPhotos(List.of(3L, 4L), 4L))))
                 .getId();
         entityManager.clear();
 
@@ -66,7 +68,7 @@ class ClubRequestPersistenceTest {
         assertThat(recruitment.getAfter().recruitment().links()).hasSize(1);
         assertThat(info.getBefore().profile().activityStartDate()).isEqualTo(LocalDate.of(2026, 3, 1));
         assertThat(info.getAfter().profile().officers().get(0).name()).isEqualTo("김동글");
-        assertThat(info.getAfter().imageCount()).isEqualTo(2);
+        assertThat(info.getAfter().photos()).isEqualTo(new ClubPhotos(List.of(3L, 4L), 4L));
         assertThat(requestRepository.findByRequesterIdOrderByIdDesc(7L))
                 .extracting(ClubRequest::getId)
                 .containsExactly(infoId, saved.getId());
@@ -86,7 +88,8 @@ class ClubRequestPersistenceTest {
         Club club = saveClub();
         Long oldId = requestRepository.saveAndFlush(editRequest(club)).getId();
         Long newId = requestRepository
-                .saveAndFlush(ClubRequest.register(8L, REQUESTER, ClubRequestPayload.of(ClubFixtures.profile("가"), 0)))
+                .saveAndFlush(ClubRequest.register(
+                        8L, REQUESTER, ClubRequestPayload.of(ClubFixtures.profile("가"), ClubPhotos.NONE)))
                 .getId();
         entityManager
                 .createNativeQuery("UPDATE club_request SET created_at = :at WHERE id = :id")
@@ -128,7 +131,7 @@ class ClubRequestPersistenceTest {
                 club,
                 7L,
                 REQUESTER,
-                ClubRequestPayload.of(club.profile(), 0),
-                ClubRequestPayload.of(ClubFixtures.profile("소리마루 밴드"), 0));
+                ClubRequestPayload.of(club.profile(), ClubPhotos.NONE),
+                ClubRequestPayload.of(ClubFixtures.profile("소리마루 밴드"), ClubPhotos.NONE));
     }
 }

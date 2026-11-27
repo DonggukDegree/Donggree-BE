@@ -65,7 +65,7 @@ public final class ClubCatalog {
                 row.fields(),
                 row.registration(),
                 row.activity().confirmedOn(now.toLocalDate()),
-                List.of(),
+                row.imageUrls(),
                 row.totalMemberCount(),
                 row.foundedDate(),
                 current);

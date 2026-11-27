@@ -15,6 +15,7 @@ import com.donggree.club.internal.application.exception.ClubErrorCode;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubEditorRepository;
 import com.donggree.club.internal.domain.ClubFixtures;
+import com.donggree.club.internal.domain.ClubPhotos;
 import com.donggree.club.internal.domain.ClubRecruitment;
 import com.donggree.club.internal.domain.ClubRecruitmentRepository;
 import com.donggree.club.internal.domain.ClubRepository;
@@ -48,8 +49,9 @@ class ClubCommandServiceTest {
     private final ClubRequestRepository requests = mock(ClubRequestRepository.class);
     private final ClubEditorRepository editors = mock(ClubEditorRepository.class);
     private final UserLookupService users = mock(UserLookupService.class);
+    private final ClubPhotoBinder photos = mock(ClubPhotoBinder.class);
     private final ClubCommandService service =
-            new ClubCommandService(clubs, recruitments, requests, editors, users, () -> NOW);
+            new ClubCommandService(clubs, recruitments, requests, editors, users, photos, () -> NOW);
 
     private Club club;
 
@@ -76,7 +78,8 @@ class ClubCommandServiceTest {
         ClubRequest saved = savedRequest();
         assertThat(result).isEqualTo(ClubSaveResult.pending(null));
         assertThat(saved.getType()).isEqualTo(ClubRequestType.REGISTER);
-        assertThat(saved.getAfter().imageCount()).isEqualTo(2);
+        assertThat(saved.getAfter().photos()).isEqualTo(new ClubPhotos(List.of(11L, 12L), 12L));
+        verify(photos).requireUsable(MEMBER, null, saved.getAfter().photos());
         assertThat(saved.getRequesterContact()).isEqualTo("dongle@dgu.ac.kr");
     }
 
@@ -96,7 +99,8 @@ class ClubCommandServiceTest {
                 null,
                 null,
                 null,
-                0,
+                List.of(),
+                null,
                 "dongle@dgu.ac.kr",
                 ClubRequesterRole.STAFF);
 
@@ -115,6 +119,7 @@ class ClubCommandServiceTest {
         assertThat(result).isEqualTo(ClubSaveResult.direct(1L));
         assertThat(club.getName()).isEqualTo("소리마루 밴드");
         assertThat(club.getInfoUpdatedAt()).isEqualTo(NOW);
+        verify(photos).bind(1L, new ClubPhotos(List.of(11L, 12L), 12L));
         verify(requests, never()).saveAndFlush(any());
     }
 
@@ -177,8 +182,8 @@ class ClubCommandServiceTest {
                 club,
                 MEMBER,
                 requester(),
-                ClubRequestPayload.of(club.profile(), 0),
-                ClubRequestPayload.of(ClubFixtures.profile("소리마루 밴드"), 0));
+                ClubRequestPayload.of(club.profile(), ClubPhotos.NONE),
+                ClubRequestPayload.of(ClubFixtures.profile("소리마루 밴드"), ClubPhotos.NONE));
         given(requests.findById(30L)).willReturn(Optional.of(pending));
 
         ClubSaveResult result = service.resubmitInfo(MEMBER, 30L, info("소리마루 합주단"));
@@ -190,10 +195,10 @@ class ClubCommandServiceTest {
 
     @Test
     void 다른_회원_요청은_404이고_종류가_다르면_400이다() {
-        ClubRequest others =
-                ClubRequest.register(99L, requester(), ClubRequestPayload.of(ClubFixtures.profile("가"), 0));
-        ClubRequest register =
-                ClubRequest.register(MEMBER, requester(), ClubRequestPayload.of(ClubFixtures.profile("가"), 0));
+        ClubRequest others = ClubRequest.register(
+                99L, requester(), ClubRequestPayload.of(ClubFixtures.profile("가"), ClubPhotos.NONE));
+        ClubRequest register = ClubRequest.register(
+                MEMBER, requester(), ClubRequestPayload.of(ClubFixtures.profile("가"), ClubPhotos.NONE));
         given(requests.findById(1L)).willReturn(Optional.of(others));
         given(requests.findById(2L)).willReturn(Optional.of(register));
 
@@ -203,8 +208,8 @@ class ClubCommandServiceTest {
 
     @Test
     void 취소된_요청은_다시_보낼_수_없다() {
-        ClubRequest canceled =
-                ClubRequest.register(MEMBER, requester(), ClubRequestPayload.of(ClubFixtures.profile("가"), 0));
+        ClubRequest canceled = ClubRequest.register(
+                MEMBER, requester(), ClubRequestPayload.of(ClubFixtures.profile("가"), ClubPhotos.NONE));
         canceled.cancelForResubmit(NOW);
         given(requests.findById(3L)).willReturn(Optional.of(canceled));
 
@@ -245,7 +250,8 @@ class ClubCommandServiceTest {
                 profile.foundedDate(),
                 List.of(new ClubSaveCommand.Officer("회장", "", "김동글")),
                 List.of(new ClubSaveCommand.Link("인스타그램", "https://instagram.com/donggree")),
-                2,
+                List.of(11L, 12L),
+                12L,
                 contact,
                 role);
     }

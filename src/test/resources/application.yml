@@ -53,3 +53,7 @@ app:
   frontend-redirect-url: http://localhost:5173/login/callback
   cors:
     allowed-origins: http://localhost:3000
+
+club:
+  image:
+    dir: ${java.io.tmpdir}/donggree-club-images-test

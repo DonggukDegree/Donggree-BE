@@ -3,14 +3,17 @@ package com.donggree.club.internal.infrastructure;
 import com.donggree.club.internal.application.ClubQueries;
 import com.donggree.club.internal.application.readmodel.ClubListRow;
 import com.donggree.club.internal.application.readmodel.ClubRecruitmentReadModel;
+import com.donggree.club.internal.domain.ClubImage;
 import com.donggree.club.internal.domain.ClubRecruitment;
 import com.donggree.club.internal.domain.QClub;
+import com.donggree.club.internal.domain.QClubImage;
 import com.donggree.club.internal.domain.QClubRecruitment;
 import com.donggree.club.internal.domain.enums.ClubField;
 import com.querydsl.core.types.dsl.EnumPath;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,6 +27,7 @@ public class QuerydslClubQueries implements ClubQueries {
 
     private static final QClub CLUB = QClub.club;
     private static final QClubRecruitment RECRUITMENT = QClubRecruitment.clubRecruitment;
+    private static final QClubImage IMAGE = QClubImage.clubImage;
 
     private final JPAQueryFactory queryFactory;
 
@@ -31,6 +35,7 @@ public class QuerydslClubQueries implements ClubQueries {
     public List<ClubListRow> findListRows() {
         Map<Long, List<ClubField>> fields = findFields();
         Map<Long, ClubRecruitmentReadModel> recruitments = findLatestRecruitments();
+        Map<Long, List<String>> images = findImageUrls();
         return queryFactory
                 .select(
                         CLUB.id,
@@ -59,6 +64,7 @@ public class QuerydslClubQueries implements ClubQueries {
                         row.get(CLUB.infoUpdatedAt),
                         row.get(CLUB.totalMemberCount),
                         row.get(CLUB.foundedDate),
+                        images.getOrDefault(row.get(CLUB.id), List.of()),
                         recruitments.get(row.get(CLUB.id))))
                 .toList();
     }
@@ -72,6 +78,20 @@ public class QuerydslClubQueries implements ClubQueries {
                         Collectors.collectingAndThen(
                                 Collectors.mapping(row -> row.get(field), Collectors.toList()),
                                 list -> list.stream().sorted().toList())));
+    }
+
+    // 동아리별 사진 주소(대표 먼저, 그다음 순서대로).
+    private Map<Long, List<String>> findImageUrls() {
+        return queryFactory
+                .selectFrom(IMAGE)
+                .where(IMAGE.clubId.isNotNull())
+                .orderBy(IMAGE.clubId.asc(), IMAGE.representative.desc(), IMAGE.sortOrder.asc())
+                .fetch()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        ClubImage::getClubId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(ClubImage::url, Collectors.toList())));
     }
 
     private Map<Long, ClubRecruitmentReadModel> findLatestRecruitments() {

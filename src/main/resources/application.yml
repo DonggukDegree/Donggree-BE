@@ -22,6 +22,11 @@ spring:
   sql:
     init:
       mode: never
+  # 동아리 사진은 5MB까지 받는다(성적표 PDF 업로드도 같은 상한을 쓴다).
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   jpa:
     open-in-view: false
     hibernate:
@@ -99,3 +104,8 @@ springdoc:
     # 태그를 알파벳순 정렬해 동일 접두어("Admin · ")끼리 한곳에 모이게 한다. (기본은 스캔 순서라 흩어짐)
     tags-sorter: alpha
     operations-sorter: method
+
+# 동아리·배너 사진 저장 경로. 운영은 Docker 볼륨을 이 경로에 연결한다.
+club:
+  image:
+    dir: ${CLUB_IMAGE_DIR:./data/club-images}
