@@ -24,6 +24,7 @@ import com.donggree.point.internal.application.PointRewardService;
 import com.donggree.point.internal.domain.PointHistoryRepository;
 import com.donggree.point.internal.domain.PointReason;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -84,7 +85,8 @@ class ClubPointRewardIntegrationTest {
     void 같은_기수_모집은_다른_회원이_다시_올려도_한_번만_적립한다() {
         Club club =
                 clubs.save(Club.register(ClubFixtures.profile("소리마루"), ClubRegistration.OFFICIAL, LocalDateTime.now()));
-        LocalDateTime now = LocalDateTime.now();
+        // PostgreSQL은 마이크로초까지 저장하므로 비교 기준 시각을 초 단위로 맞춘다(리눅스는 나노초까지 나온다).
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         Long first = requests.save(recruitment(club, 8L, now.minusDays(9), now.minusDays(2)))
                 .getId();
         admin.approve(first);
