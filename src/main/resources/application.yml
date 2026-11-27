@@ -105,7 +105,15 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: method
 
-# 동아리·배너 사진 저장 경로. 운영은 Docker 볼륨을 이 경로에 연결한다.
+# 동아리·배너 사진 저장소. disk(기본, 로컬·홈서버 디스크) 또는 r2(Cloudflare R2).
+# 사진 주소는 public-url 뒤에 저장 이름을 붙인다. R2는 버킷에 연결한 공개 도메인(https://.../)을 넣는다.
 club:
   image:
+    storage: ${CLUB_IMAGE_STORAGE:disk}
     dir: ${CLUB_IMAGE_DIR:./data/club-images}
+    public-url: ${CLUB_IMAGE_PUBLIC_URL:/api/clubs/images/}
+    r2:
+      endpoint: ${CLUB_R2_ENDPOINT:}
+      bucket: ${CLUB_R2_BUCKET:}
+      access-key-id: ${CLUB_R2_ACCESS_KEY_ID:}
+      secret-access-key: ${CLUB_R2_SECRET_ACCESS_KEY:}

@@ -19,13 +19,13 @@ class DiskClubImageStorageTest {
         DiskClubImageStorage storage =
                 new DiskClubImageStorage(dir.resolve("images").toString());
 
-        storage.save(NAME, new byte[] {1, 2, 3});
+        storage.save(NAME, "image/webp", new byte[] {1, 2, 3});
 
         assertThat(storage.load(NAME)).hasValue(new byte[] {1, 2, 3});
         storage.delete(NAME);
         assertThat(storage.load(NAME)).isEmpty();
         assertThat(storage.load("../../etc/passwd")).isEmpty();
-        assertThatThrownBy(() -> storage.save("../evil.webp", new byte[] {1}))
+        assertThatThrownBy(() -> storage.save("../evil.webp", "image/webp", new byte[] {1}))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

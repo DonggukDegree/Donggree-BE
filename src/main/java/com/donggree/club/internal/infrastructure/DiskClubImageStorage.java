@@ -6,15 +6,14 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/** 사진 파일을 디스크(운영은 Docker 볼륨)에 저장한다. 이름은 서버가 만든 UUID.확장자만 받아 경로 밖으로 나가지 않게 한다. */
+/** 사진 파일을 디스크(Docker 볼륨)에 저장한다(기본 저장소). 이름은 서버가 만든 UUID.확장자만 받아 경로 밖으로 나가지 않게 한다. */
 @Component
+@ConditionalOnProperty(name = "club.image.storage", havingValue = "disk", matchIfMissing = true)
 public class DiskClubImageStorage implements ClubImageStorage {
-
-    private static final Pattern NAME = Pattern.compile("^[0-9a-f-]{36}\\.(jpg|png|webp)$");
 
     private final Path root;
 
@@ -23,7 +22,7 @@ public class DiskClubImageStorage implements ClubImageStorage {
     }
 
     @Override
-    public void save(String storedName, byte[] bytes) {
+    public void save(String storedName, String contentType, byte[] bytes) {
         try {
             Files.createDirectories(root);
             Files.write(resolve(storedName), bytes);
@@ -34,7 +33,7 @@ public class DiskClubImageStorage implements ClubImageStorage {
 
     @Override
     public Optional<byte[]> load(String storedName) {
-        if (!NAME.matcher(storedName).matches()) return Optional.empty();
+        if (!ClubImageStoredName.isValid(storedName)) return Optional.empty();
         Path path = resolve(storedName);
         if (!Files.isRegularFile(path)) return Optional.empty();
         try {
@@ -46,7 +45,7 @@ public class DiskClubImageStorage implements ClubImageStorage {
 
     @Override
     public void delete(String storedName) {
-        if (!NAME.matcher(storedName).matches()) return;
+        if (!ClubImageStoredName.isValid(storedName)) return;
         try {
             Files.deleteIfExists(resolve(storedName));
         } catch (IOException exception) {
@@ -55,9 +54,6 @@ public class DiskClubImageStorage implements ClubImageStorage {
     }
 
     private Path resolve(String storedName) {
-        if (!NAME.matcher(storedName).matches()) {
-            throw new IllegalArgumentException("저장 이름 형식이 올바르지 않습니다");
-        }
-        return root.resolve(storedName);
+        return root.resolve(ClubImageStoredName.require(storedName));
     }
 }

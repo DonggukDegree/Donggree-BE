@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -47,7 +48,7 @@ class ClubImageServiceTest {
 
         assertThat(uploaded.id()).isEqualTo(21L);
         assertThat(uploaded.url()).startsWith("https://img.example.com/").endsWith(".png");
-        verify(storage).save(anyString(), any());
+        verify(storage).save(anyString(), eq("image/png"), any());
     }
 
     @Test
@@ -61,7 +62,7 @@ class ClubImageServiceTest {
         assertThatThrownBy(() -> service.uploadByMember(8L, "GIF89a-not-allowed".getBytes()))
                 .isInstanceOfSatisfying(GeneralException.class, exception -> assertThat(exception.getCode())
                         .isEqualTo(ClubErrorCode.INVALID_IMAGE));
-        verify(storage, never()).save(anyString(), any());
+        verify(storage, never()).save(anyString(), anyString(), any());
     }
 
     @Test

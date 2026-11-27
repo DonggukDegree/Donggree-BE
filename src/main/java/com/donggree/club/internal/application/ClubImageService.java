@@ -58,7 +58,7 @@ public class ClubImageService {
                 ImageFormat.detect(bytes).orElseThrow(() -> new GeneralException(ClubErrorCode.INVALID_IMAGE));
         ClubImage image =
                 imageRepository.save(ClubImage.upload(format, bytes.length, purpose, uploaderId, clock.now()));
-        storage.save(image.getStoredName(), bytes);
+        storage.save(image.getStoredName(), image.getContentType(), bytes);
         return ClubImageReadModel.from(image, imageUrls.of(image));
     }
 }
