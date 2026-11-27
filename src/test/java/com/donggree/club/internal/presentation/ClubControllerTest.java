@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.donggree.club.internal.application.ClubBannerQueryService;
 import com.donggree.club.internal.application.ClubCommandService;
+import com.donggree.club.internal.application.ClubFavoriteService;
 import com.donggree.club.internal.application.ClubQueryService;
 import com.donggree.club.internal.application.ClubSearch;
 import com.donggree.club.internal.application.ClubSort;
@@ -86,10 +87,11 @@ class ClubControllerTest extends RestDocsSupport {
     private final ClubQueryService queryService = Mockito.mock(ClubQueryService.class);
     private final ClubCommandService commandService = Mockito.mock(ClubCommandService.class);
     private final ClubBannerQueryService bannerQueryService = Mockito.mock(ClubBannerQueryService.class);
+    private final ClubFavoriteService favoriteService = Mockito.mock(ClubFavoriteService.class);
 
     @Override
     protected Object initController() {
-        return new ClubController(queryService, commandService, bannerQueryService);
+        return new ClubController(queryService, commandService, bannerQueryService, favoriteService);
     }
 
     @Override
@@ -136,6 +138,35 @@ class ClubControllerTest extends RestDocsSupport {
                                         fieldWithPath("message").description("응답 메시지"),
                                         fieldWithPath("result[]").description("켜져 있고 노출 기간 안인 배너(노출 순서)"))
                                 .andWithPrefix("result[].", ClubBannerControllerTest.publicFields())));
+    }
+
+    @Test
+    void 찜_목록을_조회하고_찜하거나_해제한다() throws Exception {
+        given(favoriteService.getFavoriteClubIds(MEMBER_ID)).willReturn(List.of(3L, 1L));
+
+        mockMvc.perform(RestDocumentationRequestBuilders.get("/api/clubs/favorites"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result[0]").value(3))
+                .andDo(document(
+                        "club-favorites",
+                        responseFields(
+                                fieldWithPath("isSuccess").description("요청 성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("result[]").description("찜한 동아리 ID(최근 찜한 순)"))));
+        mockMvc.perform(RestDocumentationRequestBuilders.put("/api/clubs/{clubId}/favorite", 1L))
+                .andExpect(status().isOk())
+                .andDo(document(
+                        "club-favorite-add",
+                        pathParameters(parameterWithName("clubId").description("동아리 ID"))));
+        mockMvc.perform(RestDocumentationRequestBuilders.delete("/api/clubs/{clubId}/favorite", 1L))
+                .andExpect(status().isOk())
+                .andDo(document(
+                        "club-favorite-remove",
+                        pathParameters(parameterWithName("clubId").description("동아리 ID"))));
+
+        org.mockito.Mockito.verify(favoriteService).add(MEMBER_ID, 1L);
+        org.mockito.Mockito.verify(favoriteService).remove(MEMBER_ID, 1L);
     }
 
     @Test

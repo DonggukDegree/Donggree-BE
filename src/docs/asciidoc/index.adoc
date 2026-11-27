@@ -486,6 +486,16 @@ operation::admin-club-edit[]
 
 operation::admin-club-editor-revoke[]
 
+=== 찜
+
+로그인 회원 누구나 찜한다. 찜·찜 해제는 여러 번 보내도 결과가 같고, 없는 동아리 찜은 404(CLUB404_1)다. 찜 모아보기는 찜 목록의 ID를 목록 조회의 `ids`로 넘긴다. 탈퇴하면 찜을 지운다.
+
+operation::club-favorites[]
+
+operation::club-favorite-add[]
+
+operation::club-favorite-remove[]
+
 === 광고 배너
 
 목록 상단 배너. 글자 배너는 CSS 배경과 라벨·제목·설명을, 이미지 배너는 PC(필수)·모바일 이미지와 대체 텍스트(제목)를 쓴다. 링크와 이미지 주소는 동그리 경로('/'로 시작, '//' 제외) 또는 https 주소만 받으며, 어기면 400(CLUB400_7)이다. 공개 목록은 켜져 있고 노출 기간(시작 포함·종료 제외, 한국 시간) 안인 배너만 노출 순서대로 준다.
