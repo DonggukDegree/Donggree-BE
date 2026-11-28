@@ -31,6 +31,7 @@ configurations {
 dependencyManagement {
     imports {
         mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
+        mavenBom "software.amazon.awssdk:bom:2.46.7"
     }
 }
 
@@ -71,6 +72,13 @@ dependencies {
     runtimeOnly 'net.logstash.logback:logstash-logback-encoder:8.0'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+
+    // 동아리 사진 R2(S3 호환) 저장. 기본 HTTP 클라이언트(Apache·Netty) 대신 가벼운 JDK URLConnection 클라이언트를 쓴다.
+    implementation('software.amazon.awssdk:s3') {
+        exclude group: 'software.amazon.awssdk', module: 'apache-client'
+        exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
+    }
+    implementation 'software.amazon.awssdk:url-connection-client'
 
     implementation "io.github.openfeign.querydsl:querydsl-jpa:7.0"
     implementation "io.github.openfeign.querydsl:querydsl-core:7.0"

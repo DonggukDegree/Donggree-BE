@@ -27,7 +27,6 @@ class ClubImageTest {
         ClubImage image = ClubImage.upload(ImageFormat.WEBP, 1024, ClubImagePurpose.CLUB, 7L, NOW);
 
         assertThat(image.getStoredName()).matches("[0-9a-f-]{36}\\.webp");
-        assertThat(image.url()).isEqualTo("/api/clubs/images/" + image.getStoredName());
         assertThatThrownBy(() ->
                         ClubImage.upload(ImageFormat.PNG, ImageFormat.MAX_BYTES + 1, ClubImagePurpose.CLUB, 7L, NOW))
                 .isInstanceOf(IllegalArgumentException.class);

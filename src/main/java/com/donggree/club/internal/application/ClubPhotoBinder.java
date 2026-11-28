@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class ClubPhotoBinder {
 
     private final ClubImageRepository imageRepository;
+    private final ClubImageUrls imageUrls;
 
     /** @param clubId 정보 수정이면 대상 동아리, 신규 등록이면 null */
     public void requireUsable(Long memberId, Long clubId, ClubPhotos photos) {
@@ -76,6 +77,6 @@ public class ClubPhotoBinder {
     public Map<Long, String> urls(Collection<Long> imageIds) {
         if (imageIds.isEmpty()) return Map.of();
         return imageRepository.findAllById(imageIds).stream()
-                .collect(Collectors.toMap(ClubImage::getId, ClubImage::url));
+                .collect(Collectors.toMap(ClubImage::getId, imageUrls::of));
     }
 }

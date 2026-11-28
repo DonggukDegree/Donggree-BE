@@ -3,6 +3,7 @@ package com.donggree.club.internal.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.donggree.club.internal.application.ClubImageUrls;
 import com.donggree.club.internal.application.readmodel.ClubListRow;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubFixtures;
@@ -25,7 +26,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import({JpaAuditingConfig.class, QueryDslConfig.class, QuerydslClubQueries.class})
+@Import({JpaAuditingConfig.class, QueryDslConfig.class, QuerydslClubQueries.class, ClubImageUrls.class})
 class ClubPersistenceTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 27, 12, 0);

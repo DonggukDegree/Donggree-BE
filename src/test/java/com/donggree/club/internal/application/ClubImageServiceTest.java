@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -27,8 +28,12 @@ class ClubImageServiceTest {
     private final ClubImageRepository images = mock(ClubImageRepository.class);
     private final ClubImageStorage storage = mock(ClubImageStorage.class);
     private final UserLookupService users = mock(UserLookupService.class);
-    private final ClubImageService service =
-            new ClubImageService(images, storage, users, () -> LocalDateTime.of(2026, 11, 27, 12, 0));
+    private final ClubImageService service = new ClubImageService(
+            images,
+            storage,
+            users,
+            () -> LocalDateTime.of(2026, 11, 27, 12, 0),
+            new ClubImageUrls("https://img.example.com"));
 
     @Test
     void 학생_인증_회원의_사진을_형식_확인_후_저장한다() {
@@ -42,8 +47,8 @@ class ClubImageServiceTest {
         ClubImageReadModel uploaded = service.uploadByMember(7L, PNG);
 
         assertThat(uploaded.id()).isEqualTo(21L);
-        assertThat(uploaded.url()).startsWith("/api/clubs/images/").endsWith(".png");
-        verify(storage).save(anyString(), any());
+        assertThat(uploaded.url()).startsWith("https://img.example.com/").endsWith(".png");
+        verify(storage).save(anyString(), eq("image/png"), any());
     }
 
     @Test
@@ -57,7 +62,7 @@ class ClubImageServiceTest {
         assertThatThrownBy(() -> service.uploadByMember(8L, "GIF89a-not-allowed".getBytes()))
                 .isInstanceOfSatisfying(GeneralException.class, exception -> assertThat(exception.getCode())
                         .isEqualTo(ClubErrorCode.INVALID_IMAGE));
-        verify(storage, never()).save(anyString(), any());
+        verify(storage, never()).save(anyString(), anyString(), any());
     }
 
     @Test

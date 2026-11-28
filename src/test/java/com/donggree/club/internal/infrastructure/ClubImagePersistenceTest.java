@@ -2,6 +2,7 @@ package com.donggree.club.internal.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.donggree.club.internal.application.ClubImageUrls;
 import com.donggree.club.internal.application.ClubPhotoBinder;
 import com.donggree.club.internal.domain.Club;
 import com.donggree.club.internal.domain.ClubFixtures;
@@ -28,7 +29,13 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import({JpaAuditingConfig.class, QueryDslConfig.class, QuerydslClubQueries.class, ClubPhotoBinder.class})
+@Import({
+    JpaAuditingConfig.class,
+    QueryDslConfig.class,
+    QuerydslClubQueries.class,
+    ClubPhotoBinder.class,
+    ClubImageUrls.class
+})
 class ClubImagePersistenceTest {
 
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 11, 27, 12, 0);
@@ -61,7 +68,10 @@ class ClubImagePersistenceTest {
 
         photoBinder.bind(club.getId(), new ClubPhotos(List.of(first.getId(), second.getId()), second.getId()));
         entityManager.flush();
-        assertThat(clubQueries.findListRows().get(0).imageUrls()).containsExactly(second.url(), first.url());
+        assertThat(clubQueries.findListRows().get(0).imageUrls())
+                .containsExactly(
+                        ClubImageUrls.API_PATH + second.getStoredName(),
+                        ClubImageUrls.API_PATH + first.getStoredName());
 
         photoBinder.bind(club.getId(), new ClubPhotos(List.of(third.getId(), second.getId()), null));
         entityManager.flush();

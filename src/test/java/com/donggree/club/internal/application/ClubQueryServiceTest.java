@@ -30,8 +30,8 @@ class ClubQueryServiceTest {
     private final ClubRecruitmentRepository recruitments = mock(ClubRecruitmentRepository.class);
     private final ClubEditorRepository editors = mock(ClubEditorRepository.class);
     private final ClubImageRepository images = mock(ClubImageRepository.class);
-    private final ClubQueryService service =
-            new ClubQueryService(queries, clubs, recruitments, editors, images, () -> NOW);
+    private final ClubQueryService service = new ClubQueryService(
+            queries, clubs, recruitments, editors, images, () -> NOW, new ClubImageUrls(ClubImageUrls.API_PATH));
 
     @Test
     void 없는_동아리는_404다() {
